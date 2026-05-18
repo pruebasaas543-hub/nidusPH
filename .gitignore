@@ -1,16 +1,30 @@
+﻿# Entorno virtual
 venv/
 .venv/
-.env
-*.env
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Logs
 logs/
 *.log
+
+# Base de datos local
 *.db
 *.sqlite3
+
+# Sistema operativo
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# IDEs
 .vscode/
 .idea/
+
+# Scripts de deploy
+actualizar_github.bat
 subir_github.bat
