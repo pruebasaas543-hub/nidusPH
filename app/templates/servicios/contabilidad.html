@@ -1,0 +1,1162 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contabilidad — Nidus</title>
+  <style>
+    html { zoom: 0.8; }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0b1120;
+      --bg2:      #0d1540;
+      --bg3:      #111d52;
+      --accent:   #00c8f0;
+      --accent2:  #0099cc;
+      --red:      #ff4d6d;
+      --green:    #00e676;
+      --yellow:   #ffd600;
+      --text:     #e8eaf6;
+      --muted:    rgba(232,234,246,.45);
+      --border:   rgba(0,200,240,.18);
+      --radius:   12px;
+      --sidebar:  240px;
+    }
+
+    body {
+      font-family: 'Outfit', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,17,32,.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 20px; height: 56px;
+    }
+    .topbar .brand { font-size: 1.15rem; font-weight: 800; color: #fff; white-space: nowrap; }
+    .topbar .brand span { color: var(--accent); }
+    .topbar .sep { color: var(--muted); font-size: .85rem; }
+    .topbar .page-title { font-size: .85rem; color: var(--muted); }
+    .topbar .spacer { flex: 1; }
+    .topbar .user-pill {
+      background: rgba(0,200,240,.08); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: .8rem; color: var(--accent); font-weight: 600;
+    }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer;
+      padding: 6px; color: white; font-size: 1.4rem; line-height: 1;
+    }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 149;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ── Layout ── */
+    .layout { display: flex; flex: 1; min-height: calc(100vh - 56px); }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar); background: rgba(13,21,64,.7);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 16px 0; flex-shrink: 0;
+    }
+    .nav-label {
+      font-size: .65rem; font-weight: 700; letter-spacing: 1.5px;
+      color: var(--muted); padding: 8px 18px 4px; text-transform: uppercase;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 18px; font-size: .85rem; font-weight: 500;
+      color: rgba(232,234,246,.65); cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .2s;
+    }
+    .nav-item:hover { background: rgba(0,200,240,.07); color: var(--text); }
+    .nav-item.active {
+      border-left-color: var(--accent); background: rgba(0,200,240,.1);
+      color: var(--accent); font-weight: 700;
+    }
+    .nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 24px; overflow-y: auto; }
+
+    /* ── Panels ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .panel-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .panel-header h2 { font-size: 1.25rem; font-weight: 800; color: #fff; flex: 1; min-width: 140px; }
+
+    /* ── KPI Cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 16px;
+    }
+    .kpi-card .kpi-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+    .kpi-card .kpi-val { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+    .kpi-card .kpi-sub { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 16px; align-items: center;
+    }
+    .toolbar input, .toolbar select {
+      background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px;
+      color: var(--text); font-size: .85rem; font-family: inherit;
+      outline: none;
+    }
+    .toolbar input:focus, .toolbar select:focus { border-color: var(--accent); }
+    .toolbar .spacer { flex: 1; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 16px; border-radius: 8px; border: none;
+      font-size: .82rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all .2s;
+    }
+    .btn-primary { background: var(--accent); color: #0b1120; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-ghost {
+      background: rgba(255,255,255,.06); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.1); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-sm { padding: 5px 11px; font-size: .76rem; }
+
+    /* ── Table ── */
+    .tbl-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    thead th {
+      background: rgba(0,200,240,.08); padding: 10px 14px;
+      text-align: left; font-weight: 700; color: var(--accent);
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .15s; }
+    tbody tr:hover { background: rgba(0,200,240,.05); }
+    tbody td { padding: 9px 14px; color: var(--text); }
+    .badge {
+      display: inline-block; padding: 2px 9px; border-radius: 10px;
+      font-size: .72rem; font-weight: 700;
+    }
+    .badge-ok  { background: rgba(0,230,118,.12); color: var(--green); border: 1px solid rgba(0,230,118,.25); }
+    .badge-warn{ background: rgba(255,214,0,.1);  color: var(--yellow);border: 1px solid rgba(255,214,0,.25); }
+    .badge-err { background: rgba(255,77,109,.1); color: var(--red);   border: 1px solid rgba(255,77,109,.25); }
+
+    /* ── PUC tree ── */
+    .puc-tree { font-size: .84rem; }
+    .puc-node { padding: 5px 0 5px 16px; border-left: 1px solid var(--border); margin-left: 8px; }
+    .puc-node-header {
+      display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+      border-radius: 8px; cursor: pointer; transition: background .15s;
+    }
+    .puc-node-header:hover { background: rgba(0,200,240,.08); }
+    .puc-node-header .caret { font-size: .7rem; color: var(--muted); width: 12px; }
+    .puc-node-header .codigo { color: var(--accent); font-weight: 700; min-width: 60px; }
+    .puc-node-header .nombre { color: var(--text); }
+    .puc-node-header .saldo { margin-left: auto; color: var(--muted); font-size: .8rem; }
+
+    /* ── Modal ── */
+    .modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.6); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: #0f1b3d; border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; width: 90%; max-width: 560px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    }
+    .modal-wide { max-width: 820px; }
+    .modal h3 { font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 20px; }
+    .form-row { margin-bottom: 14px; }
+    .form-row label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%; background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; color: var(--text);
+      font-size: .85rem; font-family: inherit; outline: none;
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); }
+    .form-row textarea { resize: vertical; min-height: 70px; }
+    .form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .hamburger { display: flex; align-items: center; justify-content: center; }
+      .sidebar {
+        position: fixed; top: 0; left: 0; height: 100%; z-index: 150;
+        transform: translateX(-100%); transition: transform .3s ease;
+        box-shadow: 4px 0 24px rgba(0,0,0,.5);
+      }
+      .sidebar.open { transform: translateX(0); }
+    }
+    @media (max-width: 600px) {
+      .topbar { padding: 0 14px; gap: 10px; }
+      .main { padding: 16px; }
+      .kpi-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+      .form-cols { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 400px) {
+      .topbar .user-pill { display: none; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="topbar">
+  <button class="hamburger" onclick="toggleSidebar()">&#9776;</button>
+  <span class="brand">Ni<span>du</span>s</span>
+  <span class="sep">/</span>
+  <span class="page-title">Contabilidad Financiera</span>
+  <div class="spacer"></div>
+  <span class="user-pill" id="user-label">{{ session.get('usuario_nombre', 'Usuario') }}</span>
+</div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="nav-label">Módulos</div>
+    <div class="nav-item active" onclick="showTab('dashboard')"><span class="icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showTab('puc')"><span class="icon">🗂️</span> PUC</div>
+    <div class="nav-item" onclick="showTab('periodos')"><span class="icon">📅</span> Períodos</div>
+    <div class="nav-item" onclick="showTab('comprobantes')"><span class="icon">📋</span> Comprobantes</div>
+    <div class="nav-item" onclick="showTab('cartera')"><span class="icon">💼</span> Cartera</div>
+    <div class="nav-item" onclick="showTab('tesoreria')"><span class="icon">🏦</span> Tesorería</div>
+    <div class="nav-item" onclick="showTab('presupuesto')"><span class="icon">📈</span> Presupuesto</div>
+    <div class="nav-item" onclick="showTab('activos')"><span class="icon">🏗️</span> Activos Fijos</div>
+    <div class="nav-item" onclick="showTab('reportes')"><span class="icon">📄</span> Reportes</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <section id="panel-dashboard" class="panel active">
+      <div class="panel-header">
+        <h2>📊 Dashboard Contable</h2>
+        <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ Actualizar</button>
+      </div>
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Cartera pendiente</div>
+          <div class="kpi-val" id="kpi-cartera">$0</div>
+          <div class="kpi-sub">Por cobrar</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Morosos</div>
+          <div class="kpi-val" id="kpi-morosos" style="color:var(--red)">0</div>
+          <div class="kpi-sub">Deudores vencidos</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Por pagar</div>
+          <div class="kpi-val" id="kpi-pagar">$0</div>
+          <div class="kpi-sub">Cuentas por pagar</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Pagos próximos</div>
+          <div class="kpi-val" id="kpi-proximos">0</div>
+          <div class="kpi-sub">Próximos 7 días</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Activos netos</div>
+          <div class="kpi-val" id="kpi-activos">$0</div>
+          <div class="kpi-sub">Valor en libros</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ PUC ══ -->
+    <section id="panel-puc" class="panel">
+      <div class="panel-header">
+        <h2>🗂️ Plan Único de Cuentas</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="btn-vista-tabla" onclick="setPucVista('tabla')">Tabla</button>
+          <button class="btn btn-ghost btn-sm" id="btn-vista-arbol" onclick="setPucVista('arbol')">Árbol</button>
+          <button class="btn btn-ghost btn-sm" onclick="openModal('modal-plantilla-puc')">📥 Plantilla</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+            📂 Importar CSV
+            <input type="file" id="puc-csv" accept=".csv" style="display:none" onchange="importarPucCsv()">
+          </label>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-puc')">+ Nueva cuenta</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="puc-buscar" placeholder="Buscar código o nombre…" oninput="loadPuc()" style="min-width:200px">
+        <select id="puc-clase" onchange="loadPuc()">
+          <option value="">Todas las clases</option>
+          <option value="1">1 - Activo</option>
+          <option value="2">2 - Pasivo</option>
+          <option value="3">3 - Patrimonio</option>
+          <option value="4">4 - Ingresos</option>
+          <option value="5">5 - Gastos</option>
+          <option value="6">6 - Costos</option>
+          <option value="7">7 - Costos de producción</option>
+          <option value="8">8 - Cuentas de orden deudoras</option>
+          <option value="9">9 - Cuentas de orden acreedoras</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadPuc()">↻</button>
+      </div>
+      <div id="puc-tabla-wrap" class="tbl-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Naturaleza</th><th>Nivel</th><th>Saldo</th><th>Acciones</th></tr></thead>
+          <tbody id="puc-tbody"></tbody>
+        </table>
+      </div>
+      <div id="puc-arbol-wrap" style="display:none;padding:8px">
+        <div id="puc-arbol" class="puc-tree"></div>
+      </div>
+    </section>
+
+    <!-- ══ PERÍODOS ══ -->
+    <section id="panel-periodos" class="panel">
+      <div class="panel-header">
+        <h2>📅 Períodos Contables</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-periodo')">+ Nuevo período</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Año</th><th>Mes</th><th>Nombre</th><th>Estado</th><th>Fecha inicio</th><th>Fecha fin</th><th>Acciones</th></tr></thead>
+          <tbody id="periodos-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ COMPROBANTES ══ -->
+    <section id="panel-comprobantes" class="panel">
+      <div class="panel-header">
+        <h2>📋 Comprobantes Contables</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-comprobante')">+ Nuevo comprobante</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="comp-buscar" placeholder="Buscar…" oninput="loadComprobantes()">
+        <select id="comp-periodo" onchange="loadComprobantes()"><option value="">Todos los períodos</option></select>
+        <select id="comp-tipo" onchange="loadComprobantes()">
+          <option value="">Todos los tipos</option>
+          <option value="diario">Diario</option>
+          <option value="ingreso">Ingreso</option>
+          <option value="egreso">Egreso</option>
+          <option value="ajuste">Ajuste</option>
+          <option value="cierre">Cierre</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Número</th><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Débito</th><th>Crédito</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="comp-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ CARTERA ══ -->
+    <section id="panel-cartera" class="panel">
+      <div class="panel-header">
+        <h2>💼 Cartera por Cobrar</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-cartera')">+ Nueva cartera</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="cart-buscar" placeholder="Buscar deudor…" oninput="loadCartera()">
+        <select id="cart-estado" onchange="loadCartera()">
+          <option value="">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="parcial">Pago parcial</option>
+          <option value="pagado">Pagado</option>
+          <option value="vencido">Vencido</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Deudor</th><th>Documento</th><th>Concepto</th><th>Valor</th><th>Saldo</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="cart-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ TESORERÍA ══ -->
+    <section id="panel-tesoreria" class="panel">
+      <div class="panel-header">
+        <h2>🏦 Tesorería</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-factura')">+ Nueva transacción</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="tes-buscar" placeholder="Buscar…" oninput="loadTesoreria()">
+        <select id="tes-tipo" onchange="loadTesoreria()">
+          <option value="">Todos</option>
+          <option value="ingreso">Ingreso</option>
+          <option value="egreso">Egreso</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Tercero</th><th>Valor</th><th>Cuenta</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="tes-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ PRESUPUESTO ══ -->
+    <section id="panel-presupuesto" class="panel">
+      <div class="panel-header">
+        <h2>📈 Presupuesto</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-presupuesto')">+ Nueva partida</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="pres-buscar" placeholder="Buscar…" oninput="loadPresupuesto()">
+        <select id="pres-anio" onchange="loadPresupuesto()"><option value="">Todos los años</option></select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Cuenta</th><th>Concepto</th><th>Año</th><th>Presupuestado</th><th>Ejecutado</th><th>Disponible</th><th>% Ejecución</th><th>Acciones</th></tr></thead>
+          <tbody id="pres-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ ACTIVOS FIJOS ══ -->
+    <section id="panel-activos" class="panel">
+      <div class="panel-header">
+        <h2>🏗️ Activos Fijos</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-activo')">+ Nuevo activo</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="act-buscar" placeholder="Buscar activo…" oninput="loadActivos()">
+        <select id="act-tipo" onchange="loadActivos()">
+          <option value="">Todos los tipos</option>
+          <option value="inmueble">Inmueble</option>
+          <option value="vehiculo">Vehículo</option>
+          <option value="equipo">Equipo</option>
+          <option value="mueble">Mueble/Ensere</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Valor compra</th><th>Depreciación</th><th>Valor neto</th><th>Fecha adq.</th><th>Acciones</th></tr></thead>
+          <tbody id="act-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ REPORTES ══ -->
+    <section id="panel-reportes" class="panel">
+      <div class="panel-header">
+        <h2>📄 Reportes Financieros</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px">
+        <button class="btn btn-ghost" onclick="generarReporte('balance')">📊 Balance General</button>
+        <button class="btn btn-ghost" onclick="generarReporte('estado_resultados')">📈 Estado de Resultados</button>
+        <button class="btn btn-ghost" onclick="generarReporte('flujo_caja')">💧 Flujo de Caja</button>
+        <button class="btn btn-ghost" onclick="generarReporte('libro_mayor')">📚 Libro Mayor</button>
+        <button class="btn btn-ghost" onclick="generarReporte('libro_diario')">📒 Libro Diario</button>
+        <button class="btn btn-ghost" onclick="generarReporte('cartera_detalle')">💼 Cartera Detallada</button>
+      </div>
+      <div id="reporte-output" style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--radius);padding:20px;min-height:200px">
+        <p style="color:var(--muted);font-size:.85rem">Selecciona un reporte para visualizarlo aquí.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══ MODALES ══ -->
+
+<!-- Modal PUC -->
+<div class="modal-bg" id="modal-puc">
+  <div class="modal">
+    <h3 id="modal-puc-title">Nueva Cuenta PUC</h3>
+    <input type="hidden" id="puc-id">
+    <div class="form-cols">
+      <div class="form-row"><label>Código *</label><input type="text" id="puc-codigo" placeholder="Ej: 110505"></div>
+      <div class="form-row"><label>Nivel</label><select id="puc-nivel">
+        <option value="1">1 - Clase</option><option value="2">2 - Grupo</option>
+        <option value="3">3 - Cuenta</option><option value="4">4 - Subcuenta</option>
+        <option value="5">5 - Auxiliar</option>
+      </select></div>
+    </div>
+    <div class="form-row"><label>Nombre *</label><input type="text" id="puc-nombre" placeholder="Nombre de la cuenta"></div>
+    <div class="form-cols">
+      <div class="form-row"><label>Tipo</label><select id="puc-tipo">
+        <option value="activo">Activo</option><option value="pasivo">Pasivo</option>
+        <option value="patrimonio">Patrimonio</option><option value="ingreso">Ingreso</option>
+        <option value="gasto">Gasto</option><option value="costo">Costo</option>
+        <option value="orden">Orden</option>
+      </select></div>
+      <div class="form-row"><label>Naturaleza</label><select id="puc-naturaleza">
+        <option value="debito">Débito</option><option value="credito">Crédito</option>
+      </select></div>
+    </div>
+    <div class="form-row"><label>Cuenta padre (código)</label><input type="text" id="puc-padre" placeholder="Dejar vacío si es raíz"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-puc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePuc()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Plantilla PUC -->
+<div class="modal-bg" id="modal-plantilla-puc">
+  <div class="modal">
+    <h3>Cargar plantilla PUC</h3>
+    <p style="font-size:.84rem;color:var(--muted);margin-bottom:16px">Selecciona una plantilla estándar para cargar el PUC base.</p>
+    <div style="display:grid;gap:10px">
+      <button class="btn btn-ghost" onclick="cargarPlantillaPuc('colombia_2650')">🇨🇴 PUC Colombia (Decreto 2650)</button>
+      <button class="btn btn-ghost" onclick="cargarPlantillaPuc('ph_simplificado')">🏢 PUC Propiedad Horizontal Simplificado</button>
+      <button class="btn btn-ghost" onclick="cargarPlantillaPuc('niif_pymes')">📘 NIIF para Pymes</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-plantilla-puc')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Período -->
+<div class="modal-bg" id="modal-periodo">
+  <div class="modal">
+    <h3 id="modal-periodo-title">Nuevo Período Contable</h3>
+    <input type="hidden" id="periodo-id">
+    <div class="form-cols">
+      <div class="form-row"><label>Año *</label><input type="number" id="periodo-anio" min="2000" max="2099" placeholder="2025"></div>
+      <div class="form-row"><label>Mes *</label><select id="periodo-mes">
+        <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+        <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+        <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select></div>
+    </div>
+    <div class="form-row"><label>Nombre</label><input type="text" id="periodo-nombre" placeholder="Ej: Enero 2025"></div>
+    <div class="form-cols">
+      <div class="form-row"><label>Fecha inicio</label><input type="date" id="periodo-inicio"></div>
+      <div class="form-row"><label>Fecha fin</label><input type="date" id="periodo-fin"></div>
+    </div>
+    <div class="form-row"><label>Estado</label><select id="periodo-estado">
+      <option value="abierto">Abierto</option><option value="cerrado">Cerrado</option>
+    </select></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-periodo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePeriodo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Comprobante -->
+<div class="modal-bg" id="modal-comprobante">
+  <div class="modal modal-wide">
+    <h3 id="modal-comp-title">Nuevo Comprobante Contable</h3>
+    <input type="hidden" id="comp-id">
+    <div class="form-cols">
+      <div class="form-row"><label>Tipo *</label><select id="comp-tipo-m">
+        <option value="diario">Diario</option><option value="ingreso">Ingreso</option>
+        <option value="egreso">Egreso</option><option value="ajuste">Ajuste</option>
+        <option value="cierre">Cierre</option>
+      </select></div>
+      <div class="form-row"><label>Fecha *</label><input type="date" id="comp-fecha"></div>
+    </div>
+    <div class="form-row"><label>Concepto *</label><input type="text" id="comp-concepto" placeholder="Descripción del comprobante"></div>
+    <div class="form-row"><label>Período</label><select id="comp-periodo-m"><option value="">-- Seleccionar --</option></select></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-comprobante')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveComprobante()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cartera -->
+<div class="modal-bg" id="modal-cartera">
+  <div class="modal">
+    <h3 id="modal-cart-title">Nueva Cartera</h3>
+    <input type="hidden" id="cart-id">
+    <div class="form-row"><label>Deudor *</label><input type="text" id="cart-deudor" placeholder="Nombre del deudor"></div>
+    <div class="form-row"><label>Documento</label><input type="text" id="cart-documento" placeholder="NIT o cédula"></div>
+    <div class="form-row"><label>Concepto *</label><input type="text" id="cart-concepto" placeholder="Concepto de la deuda"></div>
+    <div class="form-cols">
+      <div class="form-row"><label>Valor *</label><input type="number" id="cart-valor" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="form-row"><label>Saldo</label><input type="number" id="cart-saldo" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-cols">
+      <div class="form-row"><label>Fecha factura</label><input type="date" id="cart-fecha"></div>
+      <div class="form-row"><label>Vencimiento</label><input type="date" id="cart-vencimiento"></div>
+    </div>
+    <div class="form-row"><label>Estado</label><select id="cart-estado-m">
+      <option value="pendiente">Pendiente</option><option value="parcial">Pago parcial</option>
+      <option value="pagado">Pagado</option><option value="vencido">Vencido</option>
+    </select></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cartera')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCartera()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tesorería -->
+<div class="modal-bg" id="modal-factura">
+  <div class="modal">
+    <h3 id="modal-fact-title">Nueva Transacción de Tesorería</h3>
+    <input type="hidden" id="fact-id">
+    <div class="form-cols">
+      <div class="form-row"><label>Tipo *</label><select id="fact-tipo">
+        <option value="ingreso">Ingreso</option><option value="egreso">Egreso</option>
+      </select></div>
+      <div class="form-row"><label>Fecha *</label><input type="date" id="fact-fecha"></div>
+    </div>
+    <div class="form-row"><label>Concepto *</label><input type="text" id="fact-concepto" placeholder="Descripción"></div>
+    <div class="form-row"><label>Tercero</label><input type="text" id="fact-tercero" placeholder="Nombre del tercero"></div>
+    <div class="form-cols">
+      <div class="form-row"><label>Valor *</label><input type="number" id="fact-valor" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="form-row"><label>Cuenta contable</label><input type="text" id="fact-cuenta" placeholder="Código PUC"></div>
+    </div>
+    <div class="form-row"><label>Estado</label><select id="fact-estado">
+      <option value="pendiente">Pendiente</option><option value="aplicado">Aplicado</option>
+      <option value="anulado">Anulado</option>
+    </select></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-factura')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFactura()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Presupuesto -->
+<div class="modal-bg" id="modal-presupuesto">
+  <div class="modal">
+    <h3 id="modal-pres-title">Nueva Partida Presupuestal</h3>
+    <input type="hidden" id="pres-id">
+    <div class="form-row"><label>Cuenta PUC</label><input type="text" id="pres-cuenta" placeholder="Código PUC"></div>
+    <div class="form-row"><label>Concepto *</label><input type="text" id="pres-concepto" placeholder="Descripción"></div>
+    <div class="form-cols">
+      <div class="form-row"><label>Año *</label><input type="number" id="pres-anio" min="2000" max="2099" placeholder="2025"></div>
+      <div class="form-row"><label>Valor presupuestado *</label><input type="number" id="pres-valor" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-presupuesto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePresupuesto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Activo Fijo -->
+<div class="modal-bg" id="modal-activo">
+  <div class="modal">
+    <h3 id="modal-act-title">Nuevo Activo Fijo</h3>
+    <input type="hidden" id="act-id">
+    <div class="form-cols">
+      <div class="form-row"><label>Código</label><input type="text" id="act-codigo" placeholder="AF-001"></div>
+      <div class="form-row"><label>Tipo</label><select id="act-tipo-m">
+        <option value="inmueble">Inmueble</option><option value="vehiculo">Vehículo</option>
+        <option value="equipo">Equipo</option><option value="mueble">Mueble/Ensere</option>
+        <option value="otro">Otro</option>
+      </select></div>
+    </div>
+    <div class="form-row"><label>Descripción *</label><input type="text" id="act-desc" placeholder="Descripción del activo"></div>
+    <div class="form-cols">
+      <div class="form-row"><label>Valor de compra *</label><input type="number" id="act-valor" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="form-row"><label>Vida útil (años)</label><input type="number" id="act-vida" min="1" max="100" placeholder="5"></div>
+    </div>
+    <div class="form-cols">
+      <div class="form-row"><label>Fecha adquisición</label><input type="date" id="act-fecha"></div>
+      <div class="form-row"><label>Método depreciación</label><select id="act-metodo">
+        <option value="linea_recta">Línea recta</option>
+        <option value="suma_digitos">Suma de dígitos</option>
+        <option value="unidades">Unidades de producción</option>
+      </select></div>
+    </div>
+    <div class="form-row"><label>Observaciones</label><textarea id="act-obs" placeholder="Notas adicionales…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-activo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveActivo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE = window.location.origin;
+  const EMP  = () => document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('empresa_id='))?.split('=')[1] || '';
+
+  function fmt(n) {
+    if (n === null || n === undefined) return '$0';
+    return '$' + Number(n).toLocaleString('es-CO', {minimumFractionDigits:0, maximumFractionDigits:0});
+  }
+
+  function showToast(msg, type='ok') {
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:20px;right:20px;z-index:999;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;color:#fff;background:${type==='ok'?'#00c8f0':type==='warn'?'#ffd600':'#ff4d6d'};box-shadow:0 8px 24px rgba(0,0,0,.4);`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  async function apiFetch(url, opts={}) {
+    try {
+      const r = await fetch(BASE + url, { headers:{'Content-Type':'application/json'}, ...opts });
+      return await r.json();
+    } catch(e) {
+      showToast('Error de conexión', 'err');
+      return null;
+    }
+  }
+
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  /* ── Navegación ── */
+  function showTab(tab) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+    closeSidebar();
+    const loaders = {
+      dashboard: loadDashboard, puc: loadPuc, periodos: loadPeriodos,
+      comprobantes: loadComprobantes, cartera: loadCartera, tesoreria: loadTesoreria,
+      presupuesto: loadPresupuesto, activos: loadActivos
+    };
+    if (loaders[tab]) loaders[tab]();
+  }
+
+  /* ── Dashboard ── */
+  async function loadDashboard() {
+    const d = await apiFetch('/api/contabilidad/dashboard?empresa_id=' + EMP());
+    if (!d) return;
+    document.getElementById('kpi-cartera').textContent  = fmt(d.cartera_pendiente);
+    document.getElementById('kpi-morosos').textContent  = d.morosos ?? 0;
+    document.getElementById('kpi-pagar').textContent    = fmt(d.por_pagar);
+    document.getElementById('kpi-proximos').textContent = d.pagos_proximos ?? 0;
+    document.getElementById('kpi-activos').textContent  = fmt(d.activos_netos);
+  }
+
+  /* ── PUC ── */
+  let pucVista = 'tabla';
+  function setPucVista(v) {
+    pucVista = v;
+    document.getElementById('puc-tabla-wrap').style.display = v==='tabla' ? '' : 'none';
+    document.getElementById('puc-arbol-wrap').style.display = v==='arbol' ? '' : 'none';
+    loadPuc();
+  }
+
+  async function loadPuc() {
+    const buscar = document.getElementById('puc-buscar').value;
+    const clase  = document.getElementById('puc-clase').value;
+    const d = await apiFetch(`/api/contabilidad/puc?empresa_id=${EMP()}&buscar=${encodeURIComponent(buscar)}&clase=${clase}`);
+    if (!d || !d.cuentas) return;
+    if (pucVista === 'tabla') renderPucTabla(d.cuentas);
+    else renderArbolPuc(d.cuentas);
+  }
+
+  function renderPucTabla(cuentas) {
+    const tb = document.getElementById('puc-tbody');
+    tb.innerHTML = '';
+    if (!cuentas.length) {
+      tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Sin cuentas registradas</td></tr>';
+      return;
+    }
+    cuentas.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-weight:700;color:var(--accent)">${c.codigo}</td><td>${c.nombre}</td><td>${c.tipo||''}</td><td>${c.naturaleza||''}</td><td>${c.nivel||''}</td><td>${fmt(c.saldo)}</td><td><button class="btn btn-ghost btn-sm" onclick='editPuc(${JSON.stringify(c)})'>✏️</button> <button class="btn btn-danger btn-sm" onclick="delPuc('${c._id}')">🗑️</button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  function renderArbolPuc(cuentas) {
+    const arbol  = document.getElementById('puc-arbol');
+    const raices = cuentas.filter(c => !c.padre);
+    const hijos  = cuentas.filter(c =>  c.padre);
+    function renderNodo(cuenta) {
+      const hh = hijos.filter(h => h.padre === cuenta.codigo);
+      return `<div class="puc-node"><div class="puc-node-header">
+        <span class="caret">${hh.length ? '▶' : ''}</span>
+        <span class="codigo">${cuenta.codigo}</span>
+        <span class="nombre">${cuenta.nombre}</span>
+        <span class="saldo">${fmt(cuenta.saldo)}</span>
+      </div>${hh.map(renderNodo).join('')}</div>`;
+    }
+    arbol.innerHTML = raices.map(renderNodo).join('');
+  }
+
+  async function savePuc() {
+    const id = document.getElementById('puc-id').value;
+    const body = {
+      empresa_id: EMP(),
+      codigo: document.getElementById('puc-codigo').value,
+      nombre: document.getElementById('puc-nombre').value,
+      tipo: document.getElementById('puc-tipo').value,
+      naturaleza: document.getElementById('puc-naturaleza').value,
+      nivel: parseInt(document.getElementById('puc-nivel').value),
+      padre: document.getElementById('puc-padre').value || null
+    };
+    if (!body.codigo || !body.nombre) { showToast('Código y nombre son requeridos', 'err'); return; }
+    const r = await apiFetch('/api/contabilidad/puc' + (id ? '/'+id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) { showToast(id ? 'Cuenta actualizada' : 'Cuenta creada'); closeModal('modal-puc'); loadPuc(); }
+    else showToast(r?.error || 'Error al guardar', 'err');
+  }
+
+  function editPuc(c) {
+    document.getElementById('modal-puc-title').textContent = 'Editar Cuenta PUC';
+    document.getElementById('puc-id').value        = c._id || '';
+    document.getElementById('puc-codigo').value    = c.codigo || '';
+    document.getElementById('puc-nombre').value    = c.nombre || '';
+    document.getElementById('puc-tipo').value      = c.tipo || 'activo';
+    document.getElementById('puc-naturaleza').value= c.naturaleza || 'debito';
+    document.getElementById('puc-nivel').value     = c.nivel || 1;
+    document.getElementById('puc-padre').value     = c.padre || '';
+    openModal('modal-puc');
+  }
+
+  async function delPuc(id) {
+    if (!confirm('¿Eliminar esta cuenta?')) return;
+    const r = await apiFetch('/api/contabilidad/puc/'+id, { method:'DELETE', body: JSON.stringify({empresa_id: EMP()}) });
+    if (r && r.ok) { showToast('Cuenta eliminada'); loadPuc(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  async function importarPucCsv() {
+    const file = document.getElementById('puc-csv').files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('file', file);
+    form.append('empresa_id', EMP());
+    try {
+      const r = await fetch(BASE + '/api/contabilidad/puc/importar', { method:'POST', body: form });
+      const d = await r.json();
+      if (d.ok) { showToast(`Importadas ${d.importadas||0} cuentas`); loadPuc(); }
+      else showToast(d.error || 'Error al importar', 'err');
+    } catch(e) { showToast('Error de conexión', 'err'); }
+  }
+
+  async function cargarPlantillaPuc(plantilla) {
+    const r = await apiFetch('/api/contabilidad/puc/plantilla', { method:'POST', body: JSON.stringify({empresa_id: EMP(), plantilla}) });
+    if (r && r.ok) { showToast(`Plantilla cargada`); closeModal('modal-plantilla-puc'); loadPuc(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  /* ── Períodos ── */
+  async function loadPeriodos() {
+    const d = await apiFetch('/api/contabilidad/periodos?empresa_id=' + EMP());
+    if (!d || !d.periodos) return;
+    const tb = document.getElementById('periodos-tbody');
+    tb.innerHTML = '';
+    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    d.periodos.forEach(p => {
+      const tr = document.createElement('tr');
+      const badge = p.estado === 'abierto' ? 'badge-ok' : 'badge-err';
+      tr.innerHTML = `<td>${p.anio}</td><td>${meses[p.mes]||p.mes}</td><td>${p.nombre||''}</td><td><span class="badge ${badge}">${p.estado}</span></td><td>${p.fecha_inicio||''}</td><td>${p.fecha_fin||''}</td><td><button class="btn btn-ghost btn-sm" onclick='editPeriodo(${JSON.stringify(p)})'>✏️</button></td>`;
+      tb.appendChild(tr);
+    });
+    const sels = [document.getElementById('comp-periodo'), document.getElementById('comp-periodo-m')];
+    sels.forEach(sel => {
+      if (!sel) return;
+      const val = sel.value;
+      sel.innerHTML = '<option value="">Todos los períodos</option>';
+      d.periodos.forEach(p => { sel.innerHTML += `<option value="${p._id}">${p.nombre||p.anio+'/'+p.mes}</option>`; });
+      sel.value = val;
+    });
+  }
+
+  async function savePeriodo() {
+    const id = document.getElementById('periodo-id').value;
+    const body = {
+      empresa_id: EMP(),
+      anio: parseInt(document.getElementById('periodo-anio').value),
+      mes:  parseInt(document.getElementById('periodo-mes').value),
+      nombre: document.getElementById('periodo-nombre').value,
+      fecha_inicio: document.getElementById('periodo-inicio').value,
+      fecha_fin:    document.getElementById('periodo-fin').value,
+      estado: document.getElementById('periodo-estado').value
+    };
+    const r = await apiFetch('/api/contabilidad/periodos' + (id ? '/'+id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) { showToast(id ? 'Período actualizado' : 'Período creado'); closeModal('modal-periodo'); loadPeriodos(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  function editPeriodo(p) {
+    document.getElementById('modal-periodo-title').textContent = 'Editar Período';
+    document.getElementById('periodo-id').value     = p._id || '';
+    document.getElementById('periodo-anio').value   = p.anio || '';
+    document.getElementById('periodo-mes').value    = p.mes || 1;
+    document.getElementById('periodo-nombre').value = p.nombre || '';
+    document.getElementById('periodo-inicio').value = p.fecha_inicio || '';
+    document.getElementById('periodo-fin').value    = p.fecha_fin || '';
+    document.getElementById('periodo-estado').value = p.estado || 'abierto';
+    openModal('modal-periodo');
+  }
+
+  /* ── Comprobantes ── */
+  async function loadComprobantes() {
+    const buscar  = document.getElementById('comp-buscar').value;
+    const periodo = document.getElementById('comp-periodo').value;
+    const tipo    = document.getElementById('comp-tipo').value;
+    const d = await apiFetch(`/api/contabilidad/comprobantes?empresa_id=${EMP()}&buscar=${encodeURIComponent(buscar)}&periodo_id=${periodo}&tipo=${tipo}`);
+    if (!d || !d.comprobantes) return;
+    const tb = document.getElementById('comp-tbody');
+    tb.innerHTML = '';
+    d.comprobantes.forEach(c => {
+      const tr = document.createElement('tr');
+      const badge = c.estado === 'borrador' ? 'badge-warn' : c.estado === 'anulado' ? 'badge-err' : 'badge-ok';
+      tr.innerHTML = `<td style="color:var(--accent);font-weight:700">${c.numero||'-'}</td><td>${c.fecha||''}</td><td>${c.tipo||''}</td><td>${c.concepto||''}</td><td>${fmt(c.debito)}</td><td>${fmt(c.credito)}</td><td><span class="badge ${badge}">${c.estado||'borrador'}</span></td><td><button class="btn btn-ghost btn-sm" onclick='editComprobante(${JSON.stringify(c)})'>✏️</button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  async function saveComprobante() {
+    const id = document.getElementById('comp-id').value;
+    const body = {
+      empresa_id: EMP(),
+      tipo:       document.getElementById('comp-tipo-m').value,
+      fecha:      document.getElementById('comp-fecha').value,
+      concepto:   document.getElementById('comp-concepto').value,
+      periodo_id: document.getElementById('comp-periodo-m').value
+    };
+    const r = await apiFetch('/api/contabilidad/comprobantes' + (id ? '/'+id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) { showToast(id ? 'Actualizado' : 'Creado'); closeModal('modal-comprobante'); loadComprobantes(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  function editComprobante(c) {
+    document.getElementById('modal-comp-title').textContent = 'Editar Comprobante';
+    document.getElementById('comp-id').value       = c._id || '';
+    document.getElementById('comp-tipo-m').value   = c.tipo || 'diario';
+    document.getElementById('comp-fecha').value    = c.fecha || '';
+    document.getElementById('comp-concepto').value = c.concepto || '';
+    openModal('modal-comprobante');
+  }
+
+  /* ── Cartera ── */
+  async function loadCartera() {
+    const buscar = document.getElementById('cart-buscar').value;
+    const estado = document.getElementById('cart-estado').value;
+    const d = await apiFetch(`/api/contabilidad/cartera?empresa_id=${EMP()}&buscar=${encodeURIComponent(buscar)}&estado=${estado}`);
+    if (!d || !d.cartera) return;
+    const tb = document.getElementById('cart-tbody');
+    tb.innerHTML = '';
+    d.cartera.forEach(c => {
+      const tr = document.createElement('tr');
+      const badge = c.estado === 'pagado' ? 'badge-ok' : c.estado === 'vencido' ? 'badge-err' : 'badge-warn';
+      tr.innerHTML = `<td>${c.deudor||''}</td><td>${c.documento||''}</td><td>${c.concepto||''}</td><td>${fmt(c.valor)}</td><td>${fmt(c.saldo)}</td><td>${c.vencimiento||''}</td><td><span class="badge ${badge}">${c.estado}</span></td><td><button class="btn btn-ghost btn-sm" onclick='editCartera(${JSON.stringify(c)})'>✏️</button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  async function saveCartera() {
+    const id = document.getElementById('cart-id').value;
+    const body = {
+      empresa_id:  EMP(),
+      deudor:      document.getElementById('cart-deudor').value,
+      documento:   document.getElementById('cart-documento').value,
+      concepto:    document.getElementById('cart-concepto').value,
+      valor:       parseFloat(document.getElementById('cart-valor').value) || 0,
+      saldo:       parseFloat(document.getElementById('cart-saldo').value) || 0,
+      fecha:       document.getElementById('cart-fecha').value,
+      vencimiento: document.getElementById('cart-vencimiento').value,
+      estado:      document.getElementById('cart-estado-m').value
+    };
+    const r = await apiFetch('/api/contabilidad/cartera' + (id ? '/'+id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) { showToast(id ? 'Actualizado' : 'Creado'); closeModal('modal-cartera'); loadCartera(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  function editCartera(c) {
+    document.getElementById('modal-cart-title').textContent = 'Editar Cartera';
+    document.getElementById('cart-id').value          = c._id || '';
+    document.getElementById('cart-deudor').value      = c.deudor || '';
+    document.getElementById('cart-documento').value   = c.documento || '';
+    document.getElementById('cart-concepto').value    = c.concepto || '';
+    document.getElementById('cart-valor').value       = c.valor || 0;
+    document.getElementById('cart-saldo').value       = c.saldo || 0;
+    document.getElementById('cart-fecha').value       = c.fecha || '';
+    document.getElementById('cart-vencimiento').value = c.vencimiento || '';
+    document.getElementById('cart-estado-m').value   = c.estado || 'pendiente';
+    openModal('modal-cartera');
+  }
+
+  /* ── Tesorería ── */
+  async function loadTesoreria() {
+    const buscar = document.getElementById('tes-buscar').value;
+    const tipo   = document.getElementById('tes-tipo').value;
+    const d = await apiFetch(`/api/contabilidad/tesoreria?empresa_id=${EMP()}&buscar=${encodeURIComponent(buscar)}&tipo=${tipo}`);
+    if (!d || !d.transacciones) return;
+    const tb = document.getElementById('tes-tbody');
+    tb.innerHTML = '';
+    d.transacciones.forEach(t => {
+      const tr = document.createElement('tr');
+      const badge = t.estado === 'aplicado' ? 'badge-ok' : t.estado === 'anulado' ? 'badge-err' : 'badge-warn';
+      tr.innerHTML = `<td>${t.fecha||''}</td><td>${t.tipo||''}</td><td>${t.concepto||''}</td><td>${t.tercero||''}</td><td>${fmt(t.valor)}</td><td>${t.cuenta||''}</td><td><span class="badge ${badge}">${t.estado}</span></td><td><button class="btn btn-ghost btn-sm" onclick='editFactura(${JSON.stringify(t)})'>✏️</button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  async function saveFactura() {
+    const id = document.getElementById('fact-id').value;
+    const body = {
+      empresa_id: EMP(),
+      tipo:       document.getElementById('fact-tipo').value,
+      fecha:      document.getElementById('fact-fecha').value,
+      concepto:   document.getElementById('fact-concepto').value,
+      tercero:    document.getElementById('fact-tercero').value,
+      valor:      parseFloat(document.getElementById('fact-valor').value) || 0,
+      cuenta:     document.getElementById('fact-cuenta').value,
+      estado:     document.getElementById('fact-estado').value
+    };
+    const r = await apiFetch('/api/contabilidad/tesoreria' + (id ? '/'+id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) { showToast(id ? 'Actualizado' : 'Creado'); closeModal('modal-factura'); loadTesoreria(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  function editFactura(t) {
+    document.getElementById('modal-fact-title').textContent = 'Editar Transacción';
+    document.getElementById('fact-id').value       = t._id || '';
+    document.getElementById('fact-tipo').value     = t.tipo || 'ingreso';
+    document.getElementById('fact-fecha').value    = t.fecha || '';
+    document.getElementById('fact-concepto').value = t.concepto || '';
+    document.getElementById('fact-tercero').value  = t.tercero || '';
+    document.getElementById('fact-valor').value    = t.valor || 0;
+    document.getElementById('fact-cuenta').value   = t.cuenta || '';
+    document.getElementById('fact-estado').value   = t.estado || 'pendiente';
+    openModal('modal-factura');
+  }
+
+  /* ── Presupuesto ── */
+  async function loadPresupuesto() {
+    const buscar = document.getElementById('pres-buscar').value;
+    const anio   = document.getElementById('pres-anio').value;
+    const d = await apiFetch(`/api/contabilidad/presupuesto?empresa_id=${EMP()}&buscar=${encodeURIComponent(buscar)}&anio=${anio}`);
+    if (!d || !d.partidas) return;
+    const tb = document.getElementById('pres-tbody');
+    tb.innerHTML = '';
+    d.partidas.forEach(p => {
+      const pct   = p.presupuestado ? Math.round((p.ejecutado||0) / p.presupuestado * 100) : 0;
+      const badge = pct >= 100 ? 'badge-err' : pct >= 80 ? 'badge-warn' : 'badge-ok';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="color:var(--accent)">${p.cuenta||''}</td><td>${p.concepto||''}</td><td>${p.anio||''}</td><td>${fmt(p.presupuestado)}</td><td>${fmt(p.ejecutado)}</td><td>${fmt((p.presupuestado||0)-(p.ejecutado||0))}</td><td><span class="badge ${badge}">${pct}%</span></td><td><button class="btn btn-ghost btn-sm" onclick='editPresupuesto(${JSON.stringify(p)})'>✏️</button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  async function savePresupuesto() {
+    const id = document.getElementById('pres-id').value;
+    const body = {
+      empresa_id:    EMP(),
+      cuenta:        document.getElementById('pres-cuenta').value,
+      concepto:      document.getElementById('pres-concepto').value,
+      anio:          parseInt(document.getElementById('pres-anio').value),
+      presupuestado: parseFloat(document.getElementById('pres-valor').value) || 0
+    };
+    const r = await apiFetch('/api/contabilidad/presupuesto' + (id ? '/'+id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) { showToast(id ? 'Actualizado' : 'Creado'); closeModal('modal-presupuesto'); loadPresupuesto(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  function editPresupuesto(p) {
+    document.getElementById('modal-pres-title').textContent = 'Editar Partida';
+    document.getElementById('pres-id').value       = p._id || '';
+    document.getElementById('pres-cuenta').value   = p.cuenta || '';
+    document.getElementById('pres-concepto').value = p.concepto || '';
+    document.getElementById('pres-anio').value     = p.anio || new Date().getFullYear();
+    document.getElementById('pres-valor').value    = p.presupuestado || 0;
+    openModal('modal-presupuesto');
+  }
+
+  /* ── Activos Fijos ── */
+  async function loadActivos() {
+    const buscar = document.getElementById('act-buscar').value;
+    const tipo   = document.getElementById('act-tipo').value;
+    const d = await apiFetch(`/api/contabilidad/activos?empresa_id=${EMP()}&buscar=${encodeURIComponent(buscar)}&tipo=${tipo}`);
+    if (!d || !d.activos) return;
+    const tb = document.getElementById('act-tbody');
+    tb.innerHTML = '';
+    d.activos.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="color:var(--accent)">${a.codigo||''}</td><td>${a.descripcion||''}</td><td>${a.tipo||''}</td><td>${fmt(a.valor_compra)}</td><td>${fmt(a.depreciacion_acumulada)}</td><td>${fmt((a.valor_compra||0)-(a.depreciacion_acumulada||0))}</td><td>${a.fecha_adquisicion||''}</td><td><button class="btn btn-ghost btn-sm" onclick='editActivo(${JSON.stringify(a)})'>✏️</button></td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  async function saveActivo() {
+    const id = document.getElementById('act-id').value;
+    const body = {
+      empresa_id:          EMP(),
+      codigo:              document.getElementById('act-codigo').value,
+      tipo:                document.getElementById('act-tipo-m').value,
+      descripcion:         document.getElementById('act-desc').value,
+      valor_compra:        parseFloat(document.getElementById('act-valor').value) || 0,
+      vida_util:           parseInt(document.getElementById('act-vida').value) || 5,
+      fecha_adquisicion:   document.getElementById('act-fecha').value,
+      metodo_depreciacion: document.getElementById('act-metodo').value,
+      observaciones:       document.getElementById('act-obs').value
+    };
+    const r = await apiFetch('/api/contabilidad/activos' + (id ? '/'+id : ''), { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    if (r && r.ok) { showToast(id ? 'Actualizado' : 'Creado'); closeModal('modal-activo'); loadActivos(); }
+    else showToast(r?.error || 'Error', 'err');
+  }
+
+  function editActivo(a) {
+    document.getElementById('modal-act-title').textContent  = 'Editar Activo';
+    document.getElementById('act-id').value      = a._id || '';
+    document.getElementById('act-codigo').value  = a.codigo || '';
+    document.getElementById('act-tipo-m').value  = a.tipo || 'equipo';
+    document.getElementById('act-desc').value    = a.descripcion || '';
+    document.getElementById('act-valor').value   = a.valor_compra || 0;
+    document.getElementById('act-vida').value    = a.vida_util || 5;
+    document.getElementById('act-fecha').value   = a.fecha_adquisicion || '';
+    document.getElementById('act-metodo').value  = a.metodo_depreciacion || 'linea_recta';
+    document.getElementById('act-obs').value     = a.observaciones || '';
+    openModal('modal-activo');
+  }
+
+  /* ── Reportes ── */
+  async function generarReporte(tipo) {
+    document.getElementById('reporte-output').innerHTML = '<p style="color:var(--muted)">Generando reporte…</p>';
+    const d = await apiFetch(`/api/contabilidad/reportes?empresa_id=${EMP()}&tipo=${tipo}`);
+    if (!d) return;
+    document.getElementById('reporte-output').innerHTML = `<pre style="color:var(--text);font-size:.82rem;white-space:pre-wrap">${JSON.stringify(d, null, 2)}</pre>`;
+  }
+
+  /* ── Sidebar responsive ── */
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+
+  /* ── Init ── */
+  document.addEventListener('DOMContentLoaded', () => {
+    const isIframe = window !== window.parent;
+    if (!isIframe) {
+      loadDashboard();
+    } else {
+      window.addEventListener('message', e => {
+        if (e.data && e.data.empresa_id) loadDashboard();
+      });
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if empresa_nombre %}{{ empresa_nombre }}{% else %}arIAna{% endif %} — Panel</title>
+    <style>
+    html { zoom: 0.8; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a1628 0%, #0d1a5a 60%, #080e2e 100%);
+            color: #fff;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 58px;
+            background: rgba(10,22,40,0.92);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            display: flex; align-items: center; padding: 0 24px; gap: 16px;
+        }
+        .topbar-logo img {
+            height: 32px; filter: drop-shadow(0 2px 8px rgba(0,212,255,.4));
+        }
+        .topbar-empresa {
+            flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0;
+        }
+        .empresa-badge {
+            font-size: .78rem; font-weight: 700;
+            padding: 4px 12px; border-radius: 20px;
+            background: rgba(0,212,255,.12);
+            border: 1px solid rgba(0,212,255,.3);
+            color: #00d4ff; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; max-width: 280px;
+        }
+        .rol-badge {
+            font-size: .72rem; font-weight: 600;
+            padding: 3px 10px; border-radius: 20px;
+            background: rgba(230,0,255,.1);
+            border: 1px solid rgba(230,0,255,.25);
+            color: #e600ff; white-space: nowrap;
+        }
+        .topbar-actions { display: flex; align-items: center; gap: 10px; }
+        .btn-topbar {
+            padding: 7px 16px; border-radius: 8px; border: none;
+            font-size: .78rem; font-weight: 700; cursor: pointer;
+            transition: all .2s; text-decoration: none; display: inline-block;
+            letter-spacing: .3px;
+        }
+        .btn-cambiar {
+            background: rgba(0,212,255,.1);
+            border: 1px solid rgba(0,212,255,.3);
+            color: #00d4ff;
+        }
+        .btn-cambiar:hover { background: rgba(0,212,255,.2); }
+        .btn-salir {
+            background: rgba(255,75,75,.1);
+            border: 1px solid rgba(255,75,75,.25);
+            color: #ff6b6b;
+        }
+        .btn-salir:hover { background: rgba(255,75,75,.2); }
+        .user-info {
+            font-size: .8rem; color: rgba(255,255,255,.55);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        /* ── CONTENIDO ── */
+        .content {
+            padding: 80px 28px 32px;
+            max-width: 1200px; margin: 0 auto;
+        }
+
+        .welcome-section { margin-bottom: 36px; }
+        .welcome-title {
+            font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;
+            background: linear-gradient(135deg, #fff 30%, #00d4ff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .welcome-sub {
+            font-size: .88rem; color: rgba(255,255,255,.45);
+        }
+
+        /* ── MÓDULOS GRID ── */
+        .section-title {
+            font-size: .72rem; font-weight: 700; letter-spacing: 2px;
+            color: rgba(255,255,255,.35); text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px; margin-bottom: 36px;
+        }
+        .module-card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.09);
+            border-radius: 14px; padding: 22px 18px;
+            text-align: center; cursor: pointer;
+            transition: all .25s cubic-bezier(.4,0,.2,1);
+            text-decoration: none; color: inherit;
+        }
+        .module-card:hover {
+            background: rgba(0,212,255,.07);
+            border-color: rgba(0,212,255,.35);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,212,255,.15);
+        }
+        .module-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .module-name {
+            font-size: .82rem; font-weight: 700; color: rgba(255,255,255,.85);
+        }
+        .module-desc {
+            font-size: .7rem; color: rgba(255,255,255,.35);
+            margin-top: 4px; line-height: 1.4;
+        }
+        .module-card.disabled {
+            opacity: .35; cursor: not-allowed;
+        }
+        .module-card.disabled:hover {
+            background: rgba(255,255,255,.04);
+            border-color: rgba(255,255,255,.09);
+            transform: none; box-shadow: none;
+        }
+
+        /* ── INFO SESION ── */
+        .session-info {
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 12px; padding: 18px 22px;
+            display: flex; gap: 32px; flex-wrap: wrap;
+        }
+        .info-item { display: flex; flex-direction: column; gap: 4px; }
+        .info-label { font-size: .67rem; color: rgba(255,255,255,.35); letter-spacing: 1px; text-transform: uppercase; }
+        .info-value { font-size: .88rem; color: rgba(255,255,255,.8); font-weight: 600; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .user-info, .empresa-badge { max-width: 120px; }
+            .content { padding: 72px 16px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── TOPBAR ── -->
+    <div class="topbar">
+        <div class="topbar-logo">
+            <img src="{{ url_for('static', filename='images/Logo-Caminos-1.png') }}" alt="arIAna">
+        </div>
+
+        <div class="topbar-empresa">
+            {% if empresa_nombre %}
+            <span class="empresa-badge">🏢 {{ empresa_nombre }}</span>
+            {% endif %}
+            {% if rol %}
+            <span class="rol-badge">{{ rol }}</span>
+            {% endif %}
+        </div>
+
+        <div class="topbar-actions">
+            <span class="user-info">👤 {{ nombres }}</span>
+
+            {% if num_empresas > 1 %}
+            <a href="{{ url_for('auth.cambiar_empresa') }}" class="btn-topbar btn-cambiar">
+                🔄 Cambiar empresa
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('auth.logout') }}" class="btn-topbar btn-salir">
+                ⏻ Salir
+            </a>
+        </div>
+    </div>
+
+    <!-- ── CONTENIDO ── -->
+    <div class="content">
+
+        <div class="welcome-section">
+            <h1 class="welcome-title">Bienvenido, {{ nombres.split()[0] if nombres else 'Usuario' }}</h1>
+            <p class="welcome-sub">
+                {% if empresa_nombre %}
+                    Estás operando en <strong style="color:rgba(255,255,255,.7)">{{ empresa_nombre }}</strong>
+                    como <strong style="color:#00d4ff">{{ rol }}</strong>.
+                {% else %}
+                    Selecciona un módulo para comenzar.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="section-title">Módulos disponibles</div>
+        <div class="modules-grid">
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">💰</span>
+                <div class="module-name">Pagos</div>
+                <div class="module-desc">Gestión de cuotas y recaudos</div>
+            </a>
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">📋</span>
+                <div class="module-name">PQRS</div>
+                <div class="module-desc">Peticiones, quejas y reclamos</div>
+            </a>
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">📅</span>
+                <div class="module-name">Reservas</div>
+                <div class="module-desc">Zonas comunes y espacios</div>
+            </a>
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">🏛️</span>
+                <div class="module-name">Asambleas</div>
+                <div class="module-desc">Convocatorias y actas</div>
+            </a>
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">📊</span>
+                <div class="module-name">Cartera</div>
+                <div class="module-desc">Estado de cuenta y mora</div>
+            </a>
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">🔒</span>
+                <div class="module-name">Control Acceso</div>
+                <div class="module-desc">Visitantes y portería</div>
+            </a>
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">📢</span>
+                <div class="module-name">Comunicados</div>
+                <div class="module-desc">Avisos y circulares</div>
+            </a>
+            <a href="#" class="module-card disabled">
+                <span class="module-icon">📄</span>
+                <div class="module-name">Documentos</div>
+                <div class="module-desc">Reglamentos y actas</div>
+            </a>
+        </div>
+
+        <div class="section-title">Información de sesión</div>
+        <div class="session-info">
+            <div class="info-item">
+                <span class="info-label">Usuario</span>
+                <span class="info-value">{{ nombres }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Rol activo</span>
+                <span class="info-value">{{ rol or '—' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Empresa actual</span>
+                <span class="info-value">{{ empresa_nombre or '—' }}</span>
+            </div>
+            {% if num_empresas > 1 %}
+            <div class="info-item">
+                <span class="info-label">Empresas asociadas</span>
+                <span class="info-value">{{ num_empresas }} empresas</span>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</body>
+</html>

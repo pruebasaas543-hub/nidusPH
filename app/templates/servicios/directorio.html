@@ -1,0 +1,1054 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Directorio de Funcionarios</title>
+  <style>
+    html { zoom: 0.8; }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #080e2e;
+      --bg2:     #0d1540;
+      --bg3:     #111d52;
+      --accent:  #00d4ff;
+      --red:     #ff4d6d;
+      --green:   #00e676;
+      --yellow:  #ffd600;
+      --purple:  #bf5af2;
+      --text:    #e8eaf6;
+      --muted:   rgba(232,234,246,.45);
+      --border:  rgba(0,212,255,.18);
+      --radius:  12px;
+      --sidebar: 220px;
+    }
+
+    html, body {
+      height: 100%; overflow: hidden;
+      font-family: 'Outfit','Segoe UI',sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+
+    /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .layout { display: flex; height: 100%; overflow: hidden; }
+
+    /* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .sidebar {
+      width: var(--sidebar); flex-shrink: 0;
+      background: var(--bg2); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 18px 0;
+      overflow-y: auto;
+    }
+    .sidebar-title {
+      font-size: .6rem; font-weight: 700; letter-spacing: 1.8px;
+      color: var(--muted); text-transform: uppercase;
+      padding: 0 18px 14px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 18px; cursor: pointer;
+      font-size: .86rem; color: var(--muted);
+      border-left: 3px solid transparent;
+      transition: background .15s, color .15s, border-color .15s;
+      user-select: none;
+    }
+    .nav-item:hover  { background: rgba(0,212,255,.06); color: var(--text); }
+    .nav-item.active {
+      background: rgba(0,212,255,.1); color: var(--accent);
+      border-left-color: var(--accent); font-weight: 600;
+    }
+
+    /* â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .main { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+
+    .panel-section { display: none; flex-direction: column; gap: 18px; }
+    .panel-section.visible { display: flex; }
+
+    /* â”€â”€ Sub-tabs (dentro de un panel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .stabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); padding-bottom: 0; margin-bottom: 18px; }
+    .stab {
+      padding: 7px 16px; font-size: .8rem; font-weight: 600;
+      color: var(--muted); cursor: pointer; border-radius: 8px 8px 0 0;
+      border: 1px solid transparent; border-bottom: none;
+      transition: color .15s, background .15s, border-color .15s;
+      position: relative; bottom: -1px;
+    }
+    .stab:hover  { color: var(--text); background: rgba(0,212,255,.05); }
+    .stab.active {
+      color: var(--accent); background: var(--bg2);
+      border-color: var(--border);
+    }
+    .stab-content { display: none; flex-direction: column; gap: 16px; }
+    .stab-content.visible { display: flex; }
+
+    /* â”€â”€ Section header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .sec-hdr { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .sec-hdr h2 { font-size: 1.1rem; font-weight: 700; }
+
+    /* â”€â”€ Search bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .search-row input { flex: 1; min-width: 180px; }
+
+    /* â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    thead th {
+      background: var(--bg3); color: var(--muted); text-transform: uppercase;
+      font-size: .68rem; letter-spacing: .8px; padding: 10px 12px; text-align: left;
+    }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .12s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(0,212,255,.04); }
+    tbody td { padding: 9px 12px; }
+    .tr-empty td { text-align: center; color: var(--muted); font-size: .82rem; padding: 28px; }
+
+    /* â”€â”€ Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .badge {
+      display: inline-block; padding: 2px 9px; border-radius: 20px;
+      font-size: .68rem; font-weight: 600; letter-spacing: .4px; white-space: nowrap;
+    }
+    .b-ok   { background: rgba(0,230,118,.12); color: var(--green); }
+    .b-err  { background: rgba(255,77,109,.12); color: var(--red); }
+    .b-info { background: rgba(0,212,255,.12);  color: var(--accent); }
+    .b-warn { background: rgba(255,214,0,.12);  color: var(--yellow); }
+    .b-pur  { background: rgba(191,90,242,.12); color: var(--purple); }
+
+    /* â”€â”€ Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .btn {
+      padding: 7px 16px; border: none; border-radius: 8px;
+      cursor: pointer; font-family: inherit; font-size: .82rem; font-weight: 600;
+      transition: opacity .2s, transform .1s; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: var(--bg); }
+    .btn-primary:hover { opacity: .88; }
+    .btn-danger  { background: var(--red);   color: #fff; }
+    .btn-danger:hover  { opacity: .85; }
+    .btn-success { background: var(--green); color: var(--bg); }
+    .btn-success:hover { opacity: .85; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--accent); }
+    .btn-outline:hover { background: rgba(0,212,255,.08); }
+    .btn-sm { padding: 4px 11px; font-size: .75rem; }
+    .btn:disabled { opacity: .35; cursor: not-allowed; transform: none !important; }
+
+    /* â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .card-title {
+      font-size: .78rem; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .9px; margin-bottom: 14px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+
+    /* â”€â”€ Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .fgrid  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fgrid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .fgroup { display: flex; flex-direction: column; gap: 5px; }
+    .fgroup.full { grid-column: 1 / -1; }
+    label.flabel {
+      font-size: .7rem; color: var(--muted); font-weight: 600;
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+    input, select, textarea {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit;
+      font-size: .84rem; padding: 8px 11px; outline: none;
+      transition: border-color .2s; width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    input:disabled, select:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* â”€â”€ DÃ­as de semana widget â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .dias-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .dia-btn {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 8px 4px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--bg3);
+      transition: background .15s, border-color .15s;
+      user-select: none;
+    }
+    .dia-btn:hover { border-color: var(--accent); }
+    .dia-letra {
+      font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
+    }
+    .dia-estado {
+      font-size: .62rem; font-weight: 600; padding: 2px 5px;
+      border-radius: 4px; min-width: 36px; text-align: center;
+      background: rgba(255,255,255,.06); color: var(--muted);
+    }
+    /* estados */
+    .dia-btn[data-estado="dia"]      { background: rgba(0,230,118,.1); border-color: var(--green); }
+    .dia-btn[data-estado="dia"]      .dia-letra { color: var(--green); }
+    .dia-btn[data-estado="dia"]      .dia-estado { background: rgba(0,230,118,.15); color: var(--green); }
+    .dia-btn[data-estado="noche"]    { background: rgba(191,90,242,.1); border-color: var(--purple); }
+    .dia-btn[data-estado="noche"]    .dia-letra { color: var(--purple); }
+    .dia-btn[data-estado="noche"]    .dia-estado { background: rgba(191,90,242,.15); color: var(--purple); }
+    .dia-btn[data-estado="descanso"] { background: rgba(255,214,0,.07); border-color: var(--yellow); }
+    .dia-btn[data-estado="descanso"] .dia-letra { color: var(--yellow); }
+    .dia-btn[data-estado="descanso"] .dia-estado { background: rgba(255,214,0,.12); color: var(--yellow); }
+
+    .dias-legend {
+      display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px;
+    }
+    .dias-legend span {
+      font-size: .7rem; display: flex; align-items: center; gap: 5px; color: var(--muted);
+    }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 3px;
+    }
+
+    /* â”€â”€ Habeas Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .habeas-wrap {
+      background: rgba(0,212,255,.04); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .habeas-hdr {
+      font-size: .76rem; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .8px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .habeas-text {
+      display: none; max-height: 160px; overflow-y: auto;
+      background: rgba(0,0,0,.2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; font-size: .76rem;
+      color: var(--muted); line-height: 1.7; margin-bottom: 12px;
+    }
+    .habeas-text.open { display: block; }
+    .habeas-row {
+      display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+    }
+    .habeas-row input[type="checkbox"] {
+      width: 17px; height: 17px; margin-top: 2px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+    .habeas-row span { font-size: .82rem; line-height: 1.5; }
+    .info-pill {
+      display: inline-block; width: 15px; height: 15px; border-radius: 50%;
+      background: var(--accent); color: var(--bg); font-size: .6rem; font-weight: 700;
+      text-align: center; line-height: 15px; cursor: pointer; margin-left: 6px;
+      vertical-align: middle; flex-shrink: 0;
+    }
+    .habeas-hint {
+      font-size: .72rem; color: var(--red); margin-top: 8px;
+      display: none;
+    }
+    .habeas-hint.visible { display: block; }
+
+    /* â”€â”€ Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .modal-ov {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-ov.open { display: flex; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; width: min(500px,94vw);
+      max-height: 88vh; overflow-y: auto;
+    }
+    .modal h3 { font-size: 1rem; margin-bottom: 18px; color: var(--accent); }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    /* â”€â”€ Toggle row (cargos) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .toggle-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; cursor: pointer;
+    }
+    .toggle-row label { font-size: .84rem; cursor: pointer; }
+    input[type="checkbox"].tgl { width: 36px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+
+    /* â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 18px;
+      font-size: .82rem; color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      transform: translateY(16px); opacity: 0;
+      transition: transform .28s, opacity .28s; pointer-events: none; z-index: 9999;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.ok-t  { border-color: var(--green); }
+    #toast.err-t { border-color: var(--red); }
+
+    /* ── Topbar (mobile only) ─────────────────────────────────────────── */
+    .topbar {
+      display: none; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .topbar-logo { font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+    .topbar-title { font-size: .9rem; color: var(--muted); }
+    .topbar-back {
+      margin-left: auto; text-decoration: none;
+      color: var(--muted); font-size: .78rem;
+      padding: 5px 12px; border: 1px solid var(--border);
+      border-radius: 20px; transition: color .2s, border-color .2s;
+    }
+    .topbar-back:hover { color: var(--accent); border-color: var(--accent); }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer;
+      padding: 4px; color: var(--text); font-size: 1.4rem; line-height: 1;
+    }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 149;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    @media (max-width: 900px) {
+      .topbar { display: flex; }
+      .hamburger { display: flex; align-items: center; }
+      .layout { flex-direction: column; }
+      .sidebar {
+        position: fixed; top: 0; left: 0; height: 100%; z-index: 150;
+        transform: translateX(-100%); transition: transform .3s ease;
+        box-shadow: 4px 0 24px rgba(0,0,0,.5); padding: 20px 0;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .fgrid, .fgrid3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .main { padding: 14px; gap: 14px; }
+      .sec-hdr { flex-direction: column; align-items: flex-start; }
+      .stabs { flex-wrap: wrap; }
+      .flt-bar { flex-direction: column; gap: 8px; }
+      .flt-bar .form-group { min-width: unset; width: 100%; }
+      .dias-grid { grid-template-columns: repeat(4,1fr); }
+      .modal { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <button class="hamburger" onclick="toggleSidebar()" title="Menú">☰</button>
+  <span class="topbar-logo">Nidus</span>
+  <span class="topbar-title">/ Directorio</span>
+  <a class="topbar-back" href="javascript:history.back()">← Volver</a>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="layout">
+
+  <!-- â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <nav class="sidebar">
+    <div class="sidebar-title">Directorio</div>
+
+    <div class="nav-item active" data-panel="p-funcionarios" onclick="DIR.nav(this)">
+      ðŸ‘¥ Funcionarios
+    </div>
+    <div class="nav-item" data-panel="p-historico" onclick="DIR.nav(this)">
+      ðŸ—‚ï¸ HistÃ³rico
+    </div>
+    <div class="nav-item" data-panel="p-cargos" onclick="DIR.nav(this)">
+      âš™ï¸ Config. Cargos
+    </div>
+  </nav>
+
+  <!-- â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <main class="main">
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         PANEL FUNCIONARIOS (lista + formulario como sub-tabs)
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <section id="p-funcionarios" class="panel-section visible">
+
+      <div class="stabs">
+        <div class="stab active" id="stab-lista" onclick="DIR.stab(this,'sc-lista')">ðŸ“‹ Lista de Funcionarios</div>
+        <div class="stab"        id="stab-form"  onclick="DIR.stab(this,'sc-form')">âž• <span id="stab-form-txt">Nuevo Funcionario</span></div>
+      </div>
+
+      <!-- Sub-tab: Lista ------------------------------------------------ -->
+      <div id="sc-lista" class="stab-content visible">
+        <div class="search-row">
+          <input id="buscar-lista" type="text" placeholder="Buscar por nombre, cargo o categorÃ­aâ€¦"
+                 oninput="DIR.filtrarTabla('tb-activos', this.value)">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre Completo</th>
+                <th>Cargo</th>
+                <th>CategorÃ­a</th>
+                <th>TelÃ©fono</th>
+                <th>Correo</th>
+                <th>Inicio</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tb-activos">
+              <tr class="tr-empty"><td colspan="7">Cargandoâ€¦</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sub-tab: Formulario ------------------------------------------- -->
+      <div id="sc-form" class="stab-content">
+        <form id="frm-func" onsubmit="DIR.guardarFuncionario(event)" autocomplete="off">
+          <input type="hidden" id="f-id">
+
+          <!-- Datos generales -->
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-title">Datos Generales</div>
+            <div class="fgrid">
+              <div class="fgroup">
+                <label class="flabel">Nombres *</label>
+                <input id="f-nombres" name="nombres" type="text" required placeholder="Ej: Juan Carlos">
+              </div>
+              <div class="fgroup">
+                <label class="flabel">Apellidos *</label>
+                <input id="f-apellidos" name="apellidos" type="text" required placeholder="Ej: RamÃ­rez PÃ©rez">
+              </div>
+              <div class="fgroup">
+                <label class="flabel">Cargo *</label>
+                <select id="f-cargo" name="cargo_id" required onchange="DIR.onCargoCambia(this)">
+                  <option value="">â€” Seleccione un cargo â€”</option>
+                </select>
+              </div>
+              <div class="fgroup">
+                <label class="flabel">Fecha de Inicio *</label>
+                <input id="f-inicio" name="fecha_inicio" type="date" required>
+              </div>
+              <div class="fgroup">
+                <label class="flabel">TelÃ©fono / WhatsApp</label>
+                <input id="f-tel" name="telefono" type="tel" placeholder="Ej: 3001234567">
+              </div>
+              <div class="fgroup">
+                <label class="flabel">Correo ElectrÃ³nico</label>
+                <input id="f-email" name="email" type="email" placeholder="Ej: juan@ejemplo.com">
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloque horario (dinÃ¡mico) -->
+          <div id="bloque-horario" class="card" style="margin-bottom:14px; display:none">
+            <div class="card-title">Turno y Horario</div>
+
+            <div class="fgrid" style="margin-bottom:14px">
+              <div class="fgroup">
+                <label class="flabel">Empresa Proveedora</label>
+                <input id="h-empresa" type="text" placeholder="Ej: Seguridad Omega Ltda.">
+              </div>
+              <div class="fgroup">
+                <label class="flabel">Tipo de Turno</label>
+                <select id="h-tipo">
+                  <option value="">â€” Seleccione â€”</option>
+                  <option value="2x2">2Ã—2 (2 dÃ­as trabajo, 2 dÃ­as descanso)</option>
+                  <option value="4x2">4Ã—2 (4 dÃ­as trabajo, 2 dÃ­as descanso)</option>
+                  <option value="Rotativo">Rotativo</option>
+                  <option value="Fijo">Fijo</option>
+                </select>
+              </div>
+              <div class="fgroup">
+                <label class="flabel">Hora de Entrada *</label>
+                <input id="h-entrada" type="time">
+              </div>
+              <div class="fgroup">
+                <label class="flabel">Hora de Salida *</label>
+                <input id="h-salida" type="time">
+              </div>
+              <div class="fgroup full">
+                <label class="flabel">Puesto Asignado</label>
+                <input id="h-puesto" type="text" placeholder="Ej: PorterÃ­a Principal, Rondas">
+              </div>
+            </div>
+
+            <!-- Selector de dÃ­as de la semana -->
+            <label class="flabel" style="display:block;margin-bottom:8px">
+              PatrÃ³n Semanal â€” clic para cambiar estado
+            </label>
+            <div class="dias-grid" id="dias-grid">
+              <!-- generado por JS -->
+            </div>
+            <div class="dias-legend">
+              <span><span class="legend-dot" style="background:var(--green)"></span> DÃ­a</span>
+              <span><span class="legend-dot" style="background:var(--purple)"></span> Noche</span>
+              <span><span class="legend-dot" style="background:var(--yellow)"></span> Descanso</span>
+              <span><span class="legend-dot" style="background:rgba(255,255,255,.15)"></span> Sin asignar</span>
+            </div>
+          </div>
+
+          <!-- Habeas Data -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="habeas-wrap">
+              <div class="habeas-hdr">ðŸ”’ AutorizaciÃ³n de Tratamiento de Datos Personales</div>
+              <div id="habeas-texto" class="habeas-text">
+                <strong>POLÃTICA DE TRATAMIENTO DE DATOS PERSONALES Y HABEAS DATA</strong><br><br>
+                De conformidad con lo dispuesto en la normativa vigente sobre protecciÃ³n de datos personales (Ley 1581 de 2012 y sus decretos reglamentarios), mediante la marcaciÃ³n de esta casilla, autorizo de manera libre, previa, expresa e informada a la AdministraciÃ³n de la Propiedad Horizontal y al proveedor del Software para la recolecciÃ³n, almacenamiento, uso, circulaciÃ³n y supresiÃ³n de mis datos personales aquÃ­ suministrados.<br><br>
+                Entiendo y acepto que la finalidad de la recolecciÃ³n de esta informaciÃ³n es estrictamente para: 1) La gestiÃ³n administrativa, operativa y de seguridad de la copropiedad; 2) El envÃ­o de comunicaciones, notificaciones legales y citaciones relacionadas con mis funciones o mi calidad de residente/propietario; 3) El mantenimiento de un registro histÃ³rico de funcionarios y Ã³rganos de control de la copropiedad.<br><br>
+                Declaro que he sido informado de mis derechos como titular de los datos, los cuales incluyen conocer, actualizar y rectificar mi informaciÃ³n, asÃ­ como solicitar la prueba de esta autorizaciÃ³n y la supresiÃ³n de mis datos cuando no exista un deber legal o contractual que me obligue a permanecer en la base de datos de la copropiedad.
+              </div>
+              <label class="habeas-row" for="f-habeas">
+                <input type="checkbox" id="f-habeas" onchange="DIR.onHabeas(this)">
+                <span>
+                  Autorizo el tratamiento de mis datos personales
+                  <span class="info-pill" onclick="DIR.toggleHabeasTexto(event)" title="Ver polÃ­tica completa">i</span>
+                </span>
+              </label>
+              <div id="habeas-hint" class="habeas-hint">
+                âš ï¸ Debe marcar esta casilla para poder guardar el registro.
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end; align-items:center">
+            <span id="btn-hint" style="font-size:.74rem;color:var(--muted);display:none">
+              Marque la autorizaciÃ³n de datos para habilitar el guardado
+            </span>
+            <button type="button" class="btn btn-outline btn-sm" onclick="DIR.limpiarForm()">Cancelar</button>
+            <button type="submit" id="btn-guardar" class="btn btn-primary" disabled>ðŸ’¾ Guardar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         PANEL HISTÃ“RICO
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <section id="p-historico" class="panel-section">
+      <div class="sec-hdr">
+        <h2>ðŸ—‚ï¸ HistÃ³rico de Funcionarios</h2>
+        <button class="btn btn-outline btn-sm" onclick="DIR.cargarHistorico()">ðŸ”„ Actualizar</button>
+      </div>
+      <div class="search-row">
+        <input id="buscar-hist" type="text" placeholder="Buscarâ€¦"
+               oninput="DIR.filtrarTabla('tb-hist', this.value)">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Cargo</th>
+              <th>CategorÃ­a</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Inactivado Por</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tb-hist">
+            <tr class="tr-empty"><td colspan="7">Seleccione esta secciÃ³n para cargar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+         PANEL CONFIG. CARGOS
+    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <section id="p-cargos" class="panel-section">
+      <div class="sec-hdr">
+        <h2>âš™ï¸ ConfiguraciÃ³n de Cargos</h2>
+        <button class="btn btn-primary btn-sm" onclick="DIR.abrirModalCargo()">âž• Nuevo Cargo</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre del Cargo</th>
+              <th>CategorÃ­a</th>
+              <th>Â¿Requiere Horario?</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tb-cargos">
+            <tr class="tr-empty"><td colspan="5">Cargandoâ€¦</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MODAL: Inactivar Funcionario
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="modal-inact" class="modal-ov">
+  <div class="modal">
+    <h3>ðŸš« Inactivar Funcionario</h3>
+    <p style="color:var(--muted);font-size:.82rem;margin-bottom:18px">
+      El registro se conserva en el histÃ³rico (RN-DIR-03). No se elimina.
+    </p>
+    <input type="hidden" id="inact-id">
+    <div class="fgroup" style="margin-bottom:18px">
+      <label class="flabel">Fecha de Fin de Labores *</label>
+      <input id="inact-fecha" type="date">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="DIR.cerrarModal('modal-inact')">Cancelar</button>
+      <button class="btn btn-danger"  onclick="DIR.confirmarInactivar()">ðŸš« Inactivar</button>
+    </div>
+  </div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MODAL: Crear / Editar Cargo
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="modal-cargo" class="modal-ov">
+  <div class="modal">
+    <h3 id="mc-titulo">âž• Nuevo Cargo</h3>
+    <input type="hidden" id="mc-id">
+    <div class="fgrid" style="margin-bottom:14px">
+      <div class="fgroup full">
+        <label class="flabel">Nombre del Cargo *</label>
+        <input id="mc-nombre" type="text" placeholder="Ej: Guarda de Seguridad">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">CategorÃ­a *</label>
+        <select id="mc-cat">
+          <option value="AdministraciÃ³n">AdministraciÃ³n</option>
+          <option value="Seguridad">Seguridad</option>
+          <option value="Ã“rganos de Control">Ã“rganos de Control</option>
+        </select>
+      </div>
+      <div class="fgroup" style="justify-content:flex-end;padding-top:16px">
+        <div class="toggle-row" onclick="document.getElementById('mc-horario').click()">
+          <input type="checkbox" class="tgl" id="mc-horario">
+          <label for="mc-horario">Â¿Requiere Horario / Turno?</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="DIR.cerrarModal('modal-cargo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="DIR.guardarCargo()">ðŸ’¾ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ==========================================================================
+   DIR â€” mÃ³dulo Directorio
+   ========================================================================== */
+const DIR = {
+
+  _cargos:      [],
+  _activos:     [],
+  _historico:   [],
+  _editId:      null,
+  _reqHorario:  false,
+
+  DIAS: [
+    { key:'lunes',     lbl:'Lu' },
+    { key:'martes',    lbl:'Ma' },
+    { key:'miercoles', lbl:'Mi' },
+    { key:'jueves',    lbl:'Ju' },
+    { key:'viernes',   lbl:'Vi' },
+    { key:'sabado',    lbl:'Sa' },
+    { key:'domingo',   lbl:'Do' },
+  ],
+
+  ESTADOS_DIA: ['', 'dia', 'noche', 'descanso'],
+  LABELS_DIA:  { '':'â€”', dia:'DÃ­a', noche:'Noche', descanso:'Desc' },
+
+  /* â”€â”€ InicializaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  async init() {
+    this._buildDiasGrid();
+    await Promise.all([this.cargarActivos(), this.cargarCargos()]);
+  },
+
+  _buildDiasGrid() {
+    const grid = document.getElementById('dias-grid');
+    grid.innerHTML = this.DIAS.map(d => `
+      <div class="dia-btn" data-dia="${d.key}" data-estado=""
+           onclick="DIR.toggleDia(this)" title="${d.key}">
+        <span class="dia-letra">${d.lbl}</span>
+        <span class="dia-estado">â€”</span>
+      </div>`).join('');
+  },
+
+  toggleDia(btn) {
+    const estados = this.ESTADOS_DIA;
+    const idx  = estados.indexOf(btn.dataset.estado);
+    const next = estados[(idx + 1) % estados.length];
+    btn.dataset.estado = next;
+    btn.querySelector('.dia-estado').textContent = this.LABELS_DIA[next];
+  },
+
+  getDias() {
+    const result = {};
+    document.querySelectorAll('.dia-btn').forEach(b => {
+      result[b.dataset.dia] = b.dataset.estado || null;
+    });
+    return result;
+  },
+
+  setDias(dias) {
+    document.querySelectorAll('.dia-btn').forEach(b => {
+      const est = (dias && dias[b.dataset.dia]) || '';
+      b.dataset.estado = est;
+      b.querySelector('.dia-estado').textContent = this.LABELS_DIA[est] || 'â€”';
+    });
+  },
+
+  /* â”€â”€ NavegaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  nav(el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    const pid = el.dataset.panel;
+    document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('visible'));
+    document.getElementById(pid).classList.add('visible');
+    if (pid === 'p-historico' && !this._historico.length) this.cargarHistorico();
+    if (pid === 'p-cargos') this.renderCargos();
+    if (pid === 'p-funcionarios') this.poblarCargosSelect();
+  },
+
+  stab(el, contentId) {
+    el.closest('.panel-section').querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    el.closest('.panel-section').querySelectorAll('.stab-content').forEach(c => c.classList.remove('visible'));
+    document.getElementById(contentId).classList.add('visible');
+    if (contentId === 'sc-form' && !this._editId) this.limpiarForm();
+    if (contentId === 'sc-lista') this._editId = null;
+  },
+
+  abrirFormNuevo() {
+    this.limpiarForm();
+    document.getElementById('stab-form').click();
+  },
+
+  /* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  async apiFetch(url, method = 'GET', data = null) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' };
+    if (data) opts.body = JSON.stringify(data);
+    try {
+      const r = await fetch(url, opts);
+      return await r.json();
+    } catch(e) {
+      return { ok: false, error: 'Error de red: ' + e.message };
+    }
+  },
+
+  toast(msg, isErr = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + (isErr ? 'err-t' : 'ok-t');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => t.className = '', 3400);
+  },
+
+  filtrarTabla(tbodyId, q) {
+    const lq = q.toLowerCase();
+    document.querySelectorAll(`#${tbodyId} tr:not(.tr-empty)`).forEach(r => {
+      r.style.display = r.textContent.toLowerCase().includes(lq) ? '' : 'none';
+    });
+  },
+
+  cerrarModal(id) { document.getElementById(id).classList.remove('open'); },
+
+  /* â”€â”€ CARGOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  async cargarCargos() {
+    const d = await this.apiFetch('/servicios/directorio/cargos?solo_activos=0');
+    if (d.ok) { this._cargos = d.data || []; this.renderCargos(); this.poblarCargosSelect(); }
+  },
+
+  renderCargos() {
+    const tbody = document.getElementById('tb-cargos');
+    if (!this._cargos.length) {
+      tbody.innerHTML = '<tr class="tr-empty"><td colspan="5">No hay cargos. Crea el primero con âž• Nuevo Cargo.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = this._cargos.map(c => `
+      <tr>
+        <td><strong>${esc(c.nombre)}</strong></td>
+        <td><span class="badge b-info">${esc(c.categoria)}</span></td>
+        <td>${c.requiere_horario ? '<span class="badge b-ok">SÃ­</span>' : '<span class="badge b-warn">No</span>'}</td>
+        <td>${c.activo ? '<span class="badge b-ok">Activo</span>' : '<span class="badge b-err">Inactivo</span>'}</td>
+        <td style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick='DIR.editarCargo(${jsq(c)})'>âœï¸</button>
+          <button class="btn btn-sm ${c.activo ? 'btn-danger' : 'btn-success'}"
+                  onclick="DIR.toggleCargo('${c._id}',${!c.activo})">
+            ${c.activo ? 'ðŸš« Inactivar' : 'âœ… Activar'}
+          </button>
+        </td>
+      </tr>`).join('');
+  },
+
+  poblarCargosSelect() {
+    const sel = document.getElementById('f-cargo');
+    const cur = sel.value;
+    const activos = this._cargos.filter(c => c.activo);
+    sel.innerHTML = '<option value="">â€” Seleccione un cargo â€”</option>'
+      + activos.map(c =>
+          `<option value="${c._id}" data-req="${c.requiere_horario}">${esc(c.nombre)} (${esc(c.categoria)})</option>`
+        ).join('');
+    if (cur) sel.value = cur;
+  },
+
+  abrirModalCargo() {
+    document.getElementById('mc-id').value  = '';
+    document.getElementById('mc-nombre').value = '';
+    document.getElementById('mc-cat').value = 'AdministraciÃ³n';
+    document.getElementById('mc-horario').checked = false;
+    document.getElementById('mc-titulo').textContent = 'âž• Nuevo Cargo';
+    document.getElementById('modal-cargo').classList.add('open');
+  },
+
+  editarCargo(c) {
+    document.getElementById('mc-id').value       = c._id;
+    document.getElementById('mc-nombre').value   = c.nombre;
+    document.getElementById('mc-cat').value      = c.categoria;
+    document.getElementById('mc-horario').checked = c.requiere_horario;
+    document.getElementById('mc-titulo').textContent = 'âœï¸ Editar Cargo';
+    document.getElementById('modal-cargo').classList.add('open');
+  },
+
+  async guardarCargo() {
+    const nombre = document.getElementById('mc-nombre').value.trim();
+    if (!nombre) { this.toast('El nombre del cargo es obligatorio', true); return; }
+    const id    = document.getElementById('mc-id').value.trim();
+    const datos = {
+      nombre,
+      categoria:        document.getElementById('mc-cat').value,
+      requiere_horario: document.getElementById('mc-horario').checked,
+    };
+    const d = await this.apiFetch(
+      id ? `/servicios/directorio/cargos/${id}` : '/servicios/directorio/cargos',
+      id ? 'PUT' : 'POST',
+      datos
+    );
+    if (!d.ok) { this.toast('âŒ ' + d.error, true); return; }
+    this.toast(id ? 'âœ… Cargo actualizado' : 'âœ… Cargo creado');
+    this.cerrarModal('modal-cargo');
+    await this.cargarCargos();
+  },
+
+  async toggleCargo(id, activo) {
+    const d = await this.apiFetch(`/servicios/directorio/cargos/${id}/estado`, 'PATCH', { activo });
+    if (!d.ok) { this.toast('âŒ ' + d.error, true); return; }
+    this.toast('âœ… ' + d.mensaje);
+    await this.cargarCargos();
+  },
+
+  /* â”€â”€ FUNCIONARIOS â€” lista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  async cargarActivos() {
+    const d = await this.apiFetch('/servicios/directorio/funcionarios?solo_activos=1');
+    if (d.ok) { this._activos = d.data || []; this.renderActivos(); }
+  },
+
+  renderActivos() {
+    const tbody = document.getElementById('tb-activos');
+    if (!this._activos.length) {
+      tbody.innerHTML = '<tr class="tr-empty"><td colspan="7">No hay funcionarios activos. Usa la pestaÃ±a "Nuevo Funcionario".</td></tr>';
+      return;
+    }
+    tbody.innerHTML = this._activos.map(f => `
+      <tr>
+        <td><strong>${esc(f.nombres)} ${esc(f.apellidos)}</strong></td>
+        <td>${esc(f.cargo_nombre)}</td>
+        <td><span class="badge b-info">${esc(f.cargo_categoria)}</span></td>
+        <td>${esc(f.telefono || 'â€”')}</td>
+        <td>${esc(f.email    || 'â€”')}</td>
+        <td>${esc(f.fecha_inicio || 'â€”')}</td>
+        <td style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick='DIR.editarFuncionario(${jsq(f)})'>âœï¸</button>
+          <button class="btn btn-danger  btn-sm" onclick="DIR.abrirInactivar('${f._id}')">ðŸš«</button>
+        </td>
+      </tr>`).join('');
+  },
+
+  /* â”€â”€ FUNCIONARIOS â€” formulario â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  onCargoCambia(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const req = opt && opt.dataset.req === 'true';
+    this._reqHorario = req;
+    document.getElementById('bloque-horario').style.display = req ? 'block' : 'none';
+    document.getElementById('h-entrada').required = req;
+    document.getElementById('h-salida').required  = req;
+  },
+
+  onHabeas(chk) {
+    document.getElementById('btn-guardar').disabled = !chk.checked;
+    document.getElementById('btn-hint').style.display    = !chk.checked ? 'inline' : 'none';
+    document.getElementById('habeas-hint').classList.toggle('visible', !chk.checked);
+  },
+
+  toggleHabeasTexto(e) {
+    e.stopPropagation();
+    document.getElementById('habeas-texto').classList.toggle('open');
+  },
+
+  limpiarForm() {
+    this._editId     = null;
+    this._reqHorario = false;
+    document.getElementById('frm-func').reset();
+    document.getElementById('f-id').value = '';
+    document.getElementById('bloque-horario').style.display = 'none';
+    document.getElementById('btn-guardar').disabled   = true;
+    document.getElementById('btn-hint').style.display = 'inline';
+    document.getElementById('habeas-hint').classList.add('visible');
+    document.getElementById('habeas-texto').classList.remove('open');
+    document.getElementById('stab-form-txt').textContent = 'Nuevo Funcionario';
+    this.setDias({});
+    this.poblarCargosSelect();
+  },
+
+  editarFuncionario(f) {
+    this._editId = f._id;
+    document.getElementById('stab-form-txt').textContent = 'Editar Funcionario';
+    // Ir a sub-tab form
+    document.getElementById('stab-form').click();
+    this.poblarCargosSelect();
+
+    document.getElementById('f-id').value      = f._id;
+    document.getElementById('f-nombres').value = f.nombres    || '';
+    document.getElementById('f-apellidos').value = f.apellidos || '';
+    document.getElementById('f-inicio').value  = f.fecha_inicio || '';
+    document.getElementById('f-tel').value     = f.telefono   || '';
+    document.getElementById('f-email').value   = f.email      || '';
+    document.getElementById('f-cargo').value   = f.cargo_id   || '';
+    // Disparar dinÃ¡micos
+    this.onCargoCambia(document.getElementById('f-cargo'));
+    // Horario
+    const h = f.horario || {};
+    document.getElementById('h-empresa').value = h.empresa_proveedora || '';
+    document.getElementById('h-tipo').value    = h.tipo_turno         || '';
+    document.getElementById('h-entrada').value = h.hora_entrada       || '';
+    document.getElementById('h-salida').value  = h.hora_salida        || '';
+    document.getElementById('h-puesto').value  = h.puesto_asignado    || '';
+    this.setDias(h.dias || {});
+    // En ediciÃ³n habeas ya fue aceptado en creaciÃ³n; desbloqueamos
+    document.getElementById('f-habeas').checked = true;
+    document.getElementById('btn-guardar').disabled    = false;
+    document.getElementById('btn-hint').style.display  = 'none';
+    document.getElementById('habeas-hint').classList.remove('visible');
+  },
+
+  async guardarFuncionario(e) {
+    e.preventDefault();
+    if (!document.getElementById('f-habeas').checked) {
+      document.getElementById('habeas-hint').classList.add('visible');
+      this.toast('âš ï¸ Debe aceptar la autorizaciÃ³n de datos personales', true);
+      return;
+    }
+    const id = document.getElementById('f-id').value.trim();
+    const horario = this._reqHorario ? {
+      empresa_proveedora: document.getElementById('h-empresa').value.trim(),
+      tipo_turno:         document.getElementById('h-tipo').value,
+      hora_entrada:       document.getElementById('h-entrada').value,
+      hora_salida:        document.getElementById('h-salida').value,
+      puesto_asignado:    document.getElementById('h-puesto').value.trim(),
+      dias:               this.getDias(),
+    } : null;
+
+    const datos = {
+      nombres:      document.getElementById('f-nombres').value.trim(),
+      apellidos:    document.getElementById('f-apellidos').value.trim(),
+      cargo_id:     document.getElementById('f-cargo').value,
+      fecha_inicio: document.getElementById('f-inicio').value,
+      telefono:     document.getElementById('f-tel').value.trim(),
+      email:        document.getElementById('f-email').value.trim(),
+      horario,
+      habeas_data:  true,
+    };
+
+    const d = await this.apiFetch(
+      id ? `/servicios/directorio/funcionarios/${id}` : '/servicios/directorio/funcionarios',
+      id ? 'PUT' : 'POST',
+      datos
+    );
+    if (!d.ok) { this.toast('âŒ ' + d.error, true); return; }
+    this.toast(id ? 'âœ… Funcionario actualizado' : 'âœ… Funcionario creado');
+    this.limpiarForm();
+    // Volver a la lista
+    document.getElementById('stab-lista').click();
+    await this.cargarActivos();
+  },
+
+  /* â”€â”€ INACTIVAR (RN-DIR-03) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  abrirInactivar(id) {
+    document.getElementById('inact-id').value    = id;
+    document.getElementById('inact-fecha').value = new Date().toISOString().slice(0,10);
+    document.getElementById('modal-inact').classList.add('open');
+  },
+
+  async confirmarInactivar() {
+    const id   = document.getElementById('inact-id').value;
+    const date = document.getElementById('inact-fecha').value;
+    if (!date) { this.toast('Ingrese la fecha de fin', true); return; }
+    const d = await this.apiFetch(`/servicios/directorio/funcionarios/${id}/inactivar`, 'PATCH', { fecha_fin: date });
+    if (!d.ok) { this.toast('âŒ ' + d.error, true); return; }
+    this.toast('âœ… ' + d.mensaje);
+    this.cerrarModal('modal-inact');
+    this._historico = [];
+    await this.cargarActivos();
+  },
+
+  /* â”€â”€ HISTÃ“RICO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  async cargarHistorico() {
+    const d = await this.apiFetch('/servicios/directorio/funcionarios?solo_activos=0');
+    if (d.ok) {
+      this._historico = (d.data || []).filter(f => !f.activo);
+      this.renderHistorico();
+    }
+  },
+
+  renderHistorico() {
+    const tbody = document.getElementById('tb-hist');
+    if (!this._historico.length) {
+      tbody.innerHTML = '<tr class="tr-empty"><td colspan="7">Sin registros en el histÃ³rico.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = this._historico.map(f => `
+      <tr>
+        <td><strong>${esc(f.nombres)} ${esc(f.apellidos)}</strong></td>
+        <td>${esc(f.cargo_nombre)}</td>
+        <td><span class="badge b-info">${esc(f.cargo_categoria)}</span></td>
+        <td>${esc(f.fecha_inicio || 'â€”')}</td>
+        <td>${esc(f.fecha_fin    || 'â€”')}</td>
+        <td>${esc(f.inactivado_por || 'â€”')}</td>
+        <td>
+          <button class="btn btn-success btn-sm" onclick="DIR.reactivar('${f._id}')">â™»ï¸ Reactivar</button>
+        </td>
+      </tr>`).join('');
+  },
+
+  async reactivar(id) {
+    const d = await this.apiFetch(`/servicios/directorio/funcionarios/${id}/reactivar`, 'PATCH', {});
+    if (!d.ok) { this.toast('âŒ ' + d.error, true); return; }
+    this.toast('âœ… ' + d.mensaje);
+    this._historico = [];
+    await Promise.all([this.cargarActivos(), this.cargarHistorico()]);
+  },
+};
+
+/* â”€â”€ Utilidades â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function jsq(obj) { return JSON.stringify(obj).replace(/'/g,'&#39;'); }
+
+/* Cerrar modales al clic exterior */
+document.querySelectorAll('.modal-ov').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+DIR.init();
+
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+</script>
+</body>
+</html>

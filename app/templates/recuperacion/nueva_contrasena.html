@@ -1,0 +1,275 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva contraseña — Nidus</title>
+    <style>
+    html { zoom: 0.8; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #EEF2FF 0%, #DCE7FF 50%, #EEF2FF 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 24px 16px;
+            position: relative; overflow-x: hidden;
+        }
+
+        .bg-orb {
+            position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.35;
+            pointer-events: none; animation: float 22s infinite ease-in-out;
+        }
+        .orb1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,200,240,0.4) 0%, transparent 70%); top: -120px; left: -120px; }
+        .orb2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(61,143,255,0.35) 0%, transparent 70%); bottom: -80px; right: -80px; animation-delay: 7s; }
+        @keyframes float {
+            0%, 100% { transform: translate(0,0) scale(1); }
+            33%       { transform: translate(35px,-35px) scale(1.06); }
+            66%       { transform: translate(-25px,35px) scale(0.94); }
+        }
+
+        .card {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 460px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(180,210,255,0.7);
+            border-radius: 20px;
+            padding: 40px 36px 36px;
+            backdrop-filter: blur(18px);
+            box-shadow: 0 24px 80px rgba(30,60,180,0.12);
+        }
+
+        .logo-wrap { text-align: center; margin-bottom: 28px; }
+        .logo-wrap img { height: 52px; filter: drop-shadow(0 4px 16px rgba(0,180,220,.25)); }
+
+        h1 {
+            text-align: center; margin-bottom: 6px;
+            font-size: 1.45rem; font-weight: 800; color: #1E2756;
+        }
+        .subtitle {
+            text-align: center; margin-bottom: 28px;
+            font-size: .85rem; color: #8A9CC8; line-height: 1.5;
+        }
+
+        .alert {
+            padding: 12px 16px; border-radius: 10px; margin-bottom: 18px;
+            font-size: .84rem; font-weight: 500; display: none;
+        }
+        .alert-err { background: rgba(220,40,80,0.07); border: 1px solid rgba(220,40,80,0.25); color: #C0304A; }
+        .alert-ok  { background: rgba(0,160,80,0.07);  border: 1px solid rgba(0,160,80,0.22); color: #007A40; }
+        .alert.show { display: block; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block; margin-bottom: 7px;
+            font-size: .8rem; font-weight: 600; color: #6B7AAD;
+            letter-spacing: .3px;
+        }
+
+        .input-wrap { position: relative; }
+        .input-wrap input {
+            width: 100%; padding: 13px 44px 13px 16px;
+            background: rgba(190,210,245,0.95);
+            border: 2px solid #2787F5;
+            border-radius: 12px;
+            color: #1E2756; font-size: .95rem; font-family: inherit;
+            outline: none; transition: border-color .25s, box-shadow .25s, background .25s;
+        }
+        .input-wrap input::placeholder { color: #AAB4D8; }
+        .input-wrap input:focus {
+            border-color: #1260c4;
+            background: rgba(255,255,255,0.98);
+            box-shadow: 0 0 0 3px rgba(0,200,240,.15);
+        }
+        .input-wrap input.err { border-color: #D63050; }
+        .toggle-pwd {
+            position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: #AAB4D8; font-size: 1rem; transition: color .2s; z-index: 3;
+        }
+        .toggle-pwd:hover { color: #1E2756; }
+
+        .strength-bar {
+            height: 4px; border-radius: 2px;
+            background: rgba(180,205,240,0.3); margin-top: 8px; overflow: hidden;
+        }
+        .strength-fill { height: 100%; width: 0; border-radius: 2px; transition: width .3s, background .3s; }
+        .strength-label { font-size: .72rem; color: #8A9CC8; margin-top: 4px; }
+
+        .btn-submit {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, #00c8f0, #3d8fff);
+            color: #fff; font-weight: 800; font-size: 1rem;
+            letter-spacing: 1.2px; text-transform: uppercase; cursor: pointer;
+            box-shadow: 0 6px 28px rgba(0,200,240,.28);
+            transition: all .3s ease; position: relative; overflow: hidden; margin-top: 6px;
+        }
+        .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(0,200,240,.40); }
+        .btn-submit:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+        .btn-submit.loading { color: transparent; }
+        .btn-submit.loading::after {
+            content: ''; position: absolute; width: 18px; height: 18px;
+            top: 50%; left: 50%; margin: -9px 0 0 -9px;
+            border: 3px solid rgba(255,255,255,.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .back-link {
+            display: block; text-align: center; margin-top: 20px;
+            font-size: .8rem; color: #8A9CC8;
+            text-decoration: none; transition: color .2s;
+        }
+        .back-link:hover { color: #1E2756; }
+
+        .success-popup {
+            position: fixed; inset: 0;
+            background: rgba(180,200,240,0.50);
+            backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.4s, visibility 0.4s;
+        }
+        .success-popup.show { opacity: 1; visibility: visible; }
+        .success-box {
+            background: linear-gradient(135deg, #F0FFF8, #F0F8FF);
+            border: 2px solid rgba(0,200,100,0.3);
+            border-radius: 20px;
+            padding: 40px 36px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(30,60,180,0.12), 0 0 40px rgba(0,200,100,0.10);
+            transform: scale(0.9); transition: transform 0.4s;
+            max-width: 380px; width: 90%;
+        }
+        .success-popup.show .success-box { transform: scale(1); }
+        .success-check { font-size: 3.5rem; margin-bottom: 16px; animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+        @keyframes popIn { from { transform: scale(0); opacity:0; } to { transform: scale(1); opacity:1; } }
+        .success-title { color: #007A40; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+        .success-msg   { color: #5A6A9A; font-size: 0.85rem; line-height: 1.6; }
+        .countdown-bar { width: 100%; height: 4px; background: rgba(0,180,100,0.15); border-radius: 2px; margin-top: 20px; overflow: hidden; }
+        .countdown-fill { height: 100%; background: linear-gradient(90deg, #00CC77, #2787F5); border-radius: 2px; width: 100%; transition: width 3s linear; }
+    </style>
+</head>
+<body>
+    <div class="bg-orb orb1"></div>
+    <div class="bg-orb orb2"></div>
+
+    <div class="card">
+        <div class="logo-wrap">
+            <img src="{{ url_for('static', filename='images/Logo-Caminos-1.png') }}" alt="Nidus">
+        </div>
+
+        <h1>Nueva contraseña</h1>
+        <p class="subtitle">Ingresa y confirma tu nueva contraseña para completar la recuperación.</p>
+
+        <div class="alert alert-err" id="alert-err"></div>
+        <div class="alert alert-ok"  id="alert-ok"></div>
+
+        <form id="form-nueva" method="POST" action="{{ url_for('recuperacion.nueva_password_post', token=token) }}">
+            <div class="form-group">
+                <label>Nueva contraseña</label>
+                <div class="input-wrap">
+                    <input type="password" id="pwd1" name="password" placeholder="Mínimo 8 caracteres"
+                           autocomplete="new-password" oninput="checkStrength(this.value)">
+                    <button type="button" class="toggle-pwd" onclick="togglePwd('pwd1', this)">👁️</button>
+                </div>
+                <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+                <div class="strength-label" id="strength-label">Ingresa tu contraseña</div>
+            </div>
+
+            <div class="form-group">
+                <label>Confirmar contraseña</label>
+                <div class="input-wrap">
+                    <input type="password" id="pwd2" name="confirmar" placeholder="Repite la contraseña"
+                           autocomplete="new-password">
+                    <button type="button" class="toggle-pwd" onclick="togglePwd('pwd2', this)">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btn-submit">Cambiar contraseña</button>
+        </form>
+
+        <a href="{{ url_for('auth.login_get') }}" class="back-link">← Volver al inicio de sesión</a>
+    </div>
+
+    <div class="success-popup" id="successPopup">
+        <div class="success-box">
+            <div class="success-check">✅</div>
+            <div class="success-title">¡Contraseña actualizada!</div>
+            <div class="success-msg">Tu contraseña fue cambiada exitosamente.<br>Serás redirigido al inicio de sesión.</div>
+            <div class="countdown-bar">
+                <div class="countdown-fill" id="countdownFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePwd(fieldId, btn) {
+            const f = document.getElementById(fieldId);
+            f.type = f.type === 'password' ? 'text' : 'password';
+            btn.textContent = f.type === 'password' ? '👁️' : '🙈';
+        }
+
+        function checkStrength(val) {
+            const fill  = document.getElementById('strength-fill');
+            const label = document.getElementById('strength-label');
+            let score = 0;
+            if (val.length >= 8)           score++;
+            if (/[A-Z]/.test(val))         score++;
+            if (/[0-9]/.test(val))         score++;
+            if (/[^A-Za-z0-9]/.test(val))  score++;
+            const cfg = [
+                { w:'0%',   color:'transparent', text:'Ingresa tu contraseña' },
+                { w:'25%',  color:'#ff4d6d',     text:'Débil' },
+                { w:'50%',  color:'#ffd600',     text:'Regular' },
+                { w:'75%',  color:'#00c8f0',     text:'Buena' },
+                { w:'100%', color:'#00e676',     text:'Excelente' },
+            ][score];
+            fill.style.width      = cfg.w;
+            fill.style.background = cfg.color;
+            label.textContent     = cfg.text;
+        }
+
+        document.getElementById('form-nueva').addEventListener('submit', function(e) {
+            const p1 = document.getElementById('pwd1').value;
+            const p2 = document.getElementById('pwd2').value;
+            const errEl = document.getElementById('alert-err');
+            errEl.classList.remove('show');
+            document.getElementById('pwd1').classList.remove('err');
+            document.getElementById('pwd2').classList.remove('err');
+
+            if (p1.length < 8) {
+                errEl.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+                errEl.classList.add('show');
+                document.getElementById('pwd1').classList.add('err');
+                e.preventDefault(); return;
+            }
+            if (p1 !== p2) {
+                errEl.textContent = 'Las contraseñas no coinciden.';
+                errEl.classList.add('show');
+                document.getElementById('pwd2').classList.add('err');
+                e.preventDefault(); return;
+            }
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true; btn.classList.add('loading');
+        });
+
+        {% if error %}
+        document.getElementById('alert-err').textContent = '{{ error }}';
+        document.getElementById('alert-err').classList.add('show');
+        {% endif %}
+
+        {% if cambio_exitoso %}
+        document.getElementById('form-nueva').style.display = 'none';
+        const popup = document.getElementById('successPopup');
+        popup.classList.add('show');
+        const fill = document.getElementById('countdownFill');
+        fill.style.width = '100%';
+        requestAnimationFrame(() => { fill.style.width = '0%'; });
+        setTimeout(() => { window.location.href = "{{ url_for('auth.login_get') }}"; }, 3000);
+        {% endif %}
+    </script>
+</body>
+</html>

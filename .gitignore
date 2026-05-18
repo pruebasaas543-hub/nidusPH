@@ -1,0 +1,16 @@
+venv/
+.venv/
+.env
+*.env
+__pycache__/
+*.pyc
+logs/
+*.log
+*.db
+*.sqlite3
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+subir_github.bat
