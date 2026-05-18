@@ -129,11 +129,6 @@ class RecuperacionController:
             account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
             auth_token  = os.environ.get("TWILIO_AUTH_TOKEN")
             from_number = os.environ.get("TWILIO_WHATSAPP_FROM")  # 'whatsapp:+1XXXXXXXXXX'
-            
-                # ← Agrega esto temporalmente
-            logger.debug("TWILIO vars: SID=%s TOKEN=%s FROM=%s",
-                bool(account_sid), bool(auth_token), from_number)
-            logger.debug("Teléfono recibido: '%s'", telefono_destino)
 
             if not all([account_sid, auth_token, from_number]):
                 logger.error("Credenciales de Twilio incompletas en variables de entorno")

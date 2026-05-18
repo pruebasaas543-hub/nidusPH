@@ -133,6 +133,7 @@ def recuperar_post():
             return render_template(
                 "recuperacion/recuperar.html",
                 error="No tienes un número de teléfono registrado. Usa el canal de correo.",
+                tipos_doc=_tipos_documento(),
                 form_data=request.form
             )
     else:
@@ -168,7 +169,9 @@ def nueva_password_get(token):
     valido, resultado = RecuperacionController.validar_token(token)
     if not valido:
         logger.warning("Token inválido en GET: %s", resultado)
-        return render_template("recuperacion/recuperar.html", error=resultado)
+        return render_template("recuperacion/recuperar.html",
+                               error=resultado,
+                               tipos_doc=_tipos_documento())
     return render_template("recuperacion/nueva_contrasena.html", token=token)
 
 
