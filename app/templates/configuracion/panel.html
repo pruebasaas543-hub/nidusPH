@@ -1391,67 +1391,23 @@
             <div class="config-panel-title">🧩 <span>Servicios</span></div>
             <div class="config-panel-subtitle">Crea y administra los módulos funcionales del sistema. Cada servicio tendrá su propio panel de trabajo.</div>
 
-            <div class="panel-tabs">
-                <div class="ptab active" onclick="switchPTab(this,'srv-lista')">📋 Servicios registrados</div>
-                <div class="ptab" onclick="switchPTab(this,'srv-form');SRV.limpiar()">➕ Nuevo servicio</div>
-            </div>
-
-            <!-- Lista -->
-            <div class="ptab-content active" id="srv-lista">
-                <div class="config-form-card">
-                    <div class="table-toolbar">
-                        <div class="table-search">
-                            <span>🔍</span>
-                            <input type="text" placeholder="Buscar servicio..." oninput="filterTable('tbl-servicios',this.value)">
-                        </div>
-                        <button class="btn-primary" onclick="switchPTabById('srv-form');SRV.limpiar()">➕ Nuevo servicio</button>
+            <div class="config-form-card">
+                <div class="table-toolbar">
+                    <div class="table-search">
+                        <span>🔍</span>
+                        <input type="text" placeholder="Buscar servicio..." oninput="filterTable('tbl-servicios',this.value)">
                     </div>
-                    <div class="data-table-wrap">
-                        <table class="data-table" id="tbl-servicios">
-                            <thead><tr>
-                                <th>Icono</th><th>Nombre</th><th>Código</th><th>Orden</th><th>Estado</th><th>Acciones</th>
-                            </tr></thead>
-                            <tbody id="tbody-servicios">
-                                <tr><td colspan="6" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <button class="btn-primary" onclick="SRV.abrirModal()">➕ Nuevo Servicio</button>
                 </div>
-            </div>
-
-            <!-- Formulario -->
-            <div class="ptab-content" id="srv-form">
-                <div class="config-form-card">
-                    <div class="config-form-card-title" id="srv-form-title">➕ Nuevo Servicio</div>
-                    <input type="hidden" id="srv-id">
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label>Nombre *</label>
-                            <input class="form-control" id="srv-nombre" type="text" placeholder="Ej: Pagos, PQRS, Reservas...">
-                        </div>
-                        <div class="form-group">
-                            <label>Código (auto)</label>
-                            <input class="form-control" id="srv-codigo" type="text" placeholder="pagos, pqrs, reservas..." style="opacity:.7;">
-                        </div>
-                        <div class="form-group">
-                            <label>Icono (emoji)</label>
-                            <input class="form-control" id="srv-icono" type="text" placeholder="📋" maxlength="4">
-                        </div>
-                        <div class="form-group">
-                            <label>Orden de aparición</label>
-                            <input class="form-control" id="srv-orden" type="number" min="1" value="99">
-                        </div>
-                        <div class="form-group form-full">
-                            <label>Descripción</label>
-                            <textarea class="form-control" id="srv-descripcion" rows="2" placeholder="Descripción breve del servicio..."></textarea>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="switchPTabById('srv-lista')">← Volver</button>
-                        <button type="button" class="btn-primary" id="srv-btn" onclick="SRV.guardar()">
-                            💾 <span id="srv-btn-txt">Crear Servicio</span>
-                        </button>
-                    </div>
+                <div class="data-table-wrap">
+                    <table class="data-table" id="tbl-servicios">
+                        <thead><tr>
+                            <th>Icono</th><th>Nombre</th><th>Código</th><th>Orden</th><th>Estado</th><th>Acciones</th>
+                        </tr></thead>
+                        <tbody id="tbody-servicios">
+                            <tr><td colspan="6" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div><!-- /cfg-servicios -->
@@ -1655,6 +1611,42 @@
     </div><!-- /main-content -->
 </div><!-- /main-layout -->
 
+<!-- Modal Servicios (crear / editar) -->
+<div class="modal-overlay" id="modal-srv">
+    <div class="modal-box" style="width:clamp(340px,95vw,560px);">
+        <div class="modal-title" id="modal-srv-title">➕ Nuevo Servicio</div>
+        <input type="hidden" id="srv-id">
+        <div class="form-grid-2" style="margin-top:16px;">
+            <div class="form-group">
+                <label>Nombre *</label>
+                <input class="form-control" id="srv-nombre" type="text" placeholder="Ej: Pagos, PQRS, Reservas...">
+            </div>
+            <div class="form-group">
+                <label>Código *</label>
+                <input class="form-control" id="srv-codigo" type="text" placeholder="pagos, pqrs, reservas...">
+            </div>
+            <div class="form-group">
+                <label>Icono (emoji) *</label>
+                <input class="form-control" id="srv-icono" type="text" placeholder="📋" maxlength="4">
+            </div>
+            <div class="form-group">
+                <label>Orden de aparición *</label>
+                <input class="form-control" id="srv-orden" type="number" min="1" value="99">
+            </div>
+            <div class="form-group form-full">
+                <label>Descripción</label>
+                <textarea class="form-control" id="srv-descripcion" rows="2" placeholder="Descripción breve del servicio..."></textarea>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary" onclick="SRV.cerrarModal()">Cancelar</button>
+            <button type="button" class="btn-primary" id="srv-btn" onclick="SRV.guardar()">
+                💾 <span id="srv-btn-txt">Crear Servicio</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast -->
 <div class="toast-notification" id="toastGlobal"></div>
 
@@ -1767,7 +1759,6 @@ function mostrarPanel(panelId) {
     document.getElementById(panelId)?.classList.add('active');
     localStorage.setItem('activePanelId', panelId);
 
-    if (panelId === 'cfg-servicios') switchPTabById('srv-lista');
     if (panelId === 'cfg-planes') PLN.tabById?.('pl-lista');
 }
 
@@ -3631,12 +3622,35 @@ const ASOC = {
 // SERVICIOS — CRUD + sidebar dinámico
 // ══════════════════════════════════════════════════════════════════════════
 
+// ── Confirmación reutilizable ─────────────────────────────────────────────
+function confirmar(titulo, mensaje, textoBoton = 'Confirmar') {
+    return new Promise(resolve => {
+        const modal   = document.getElementById('modal-confirmacion');
+        const titleEl = document.getElementById('modal-confirmacion-title');
+        const msgEl   = document.getElementById('modal-confirmacion-message');
+        const btnOk   = document.getElementById('modal-confirmacion-confirm');
+        const btnNo   = document.getElementById('modal-confirmacion-cancel');
+        titleEl.textContent = titulo;
+        msgEl.textContent   = mensaje;
+        btnOk.textContent   = textoBoton;
+        modal.classList.add('active');
+        const cleanup = (val) => {
+            modal.classList.remove('active');
+            btnOk.removeEventListener('click', onOk);
+            btnNo.removeEventListener('click', onNo);
+            resolve(val);
+        };
+        const onOk = () => cleanup(true);
+        const onNo = () => cleanup(false);
+        btnOk.addEventListener('click', onOk);
+        btnNo.addEventListener('click', onNo);
+    });
+}
+
 const SRV = {
     _data: [],
 
-    async init() {
-        await this.listar();
-    },
+    async init() { await this.listar(); },
 
     async listar() {
         const d = await apiFetch('/config/servicios?solo_activos=0');
@@ -3654,26 +3668,27 @@ const SRV = {
             return;
         }
         tbody.innerHTML = this._data.map(s => `
-            <tr style="opacity:${s.activo?'1':'.65'};background:${s.activo?'transparent':'rgba(255,255,255,.02)'};">
+            <tr style="opacity:${s.activo?'1':'.65'};">
                 <td style="font-size:1.3rem;text-align:center;">${s.icono || '📋'}</td>
                 <td><strong>${s.nombre}</strong></td>
-                <td><code style="font-size:.78rem;color:rgba(0,212,255,.8);">${s.codigo}</code></td>
+                <td><code style="font-size:.78rem;">${s.codigo}</code></td>
                 <td style="text-align:center;">${s.orden}</td>
                 <td>
                     <span style="font-size:.72rem;padding:2px 10px;border-radius:12px;
-                        background:${s.activo?'rgba(0,255,136,.1)':'rgba(255,80,80,.1)'};
-                        color:${s.activo?'#00ff88':'#ff5050'};
-                        border:1px solid ${s.activo?'rgba(0,255,136,.3)':'rgba(255,80,80,.3)'};">
+                        background:${s.activo?'rgba(0,200,100,.1)':'rgba(220,50,50,.1)'};
+                        color:${s.activo?'#00c864':'#dc3232'};
+                        border:1px solid ${s.activo?'rgba(0,200,100,.3)':'rgba(220,50,50,.3)'};">
                         ${s.activo ? 'Activo' : 'Inactivo'}
                     </span>
                 </td>
                 <td style="display:flex;gap:6px;">
-                    <button class="btn-icon btn-icon-edit" title="${s.activo ? 'Editar' : 'Ver/Editar'}" onclick="SRV.editar('${s._id}')">✏️</button>
-                    <button class="btn-icon ${s.activo ? 'btn-icon-del' : 'btn-icon-ok'}" title="${s.activo ? 'Desactivar' : 'Activar'}"
+                    <button class="btn-icon btn-icon-edit" title="Editar" onclick="SRV.editar('${s._id}')">✏️</button>
+                    <button class="btn-icon ${s.activo?'btn-icon-del':'btn-icon-ok'}" title="${s.activo?'Desactivar':'Activar'}"
                         onclick="SRV.toggleEstado('${s._id}',${!s.activo})">
                         ${s.activo ? '⏸' : '▶'}
                     </button>
-                    <button class="btn-icon btn-icon-del" title="Eliminar" style="opacity:${s.activo?'1':'.3'};cursor:${s.activo?'pointer':'not-allowed'}" ${s.activo ? `onclick="SRV.eliminar('${s._id}')"` : ''}>🗑️</button>
+                    <button class="btn-icon btn-icon-del" title="Eliminar"
+                        onclick="SRV.eliminar('${s._id}','${s.nombre.replace(/'/g,"\\'").replace(/"/g,"&quot;")}')">🗑️</button>
                 </td>
             </tr>`).join('');
     },
@@ -3702,8 +3717,8 @@ const SRV = {
                 <div class="config-panel-subtitle">${s.descripcion || 'Módulo en desarrollo.'}</div>
                 <div style="margin-top:60px;text-align:center;">
                     <div style="font-size:4rem;margin-bottom:20px;">${s.icono || '📋'}</div>
-                    <h2 style="font-size:1.6rem;font-weight:700;color:rgba(255,255,255,.9);">${s.nombre}</h2>
-                    <p style="color:rgba(255,255,255,.4);margin-top:10px;font-size:.9rem;">
+                    <h2 style="font-size:1.6rem;font-weight:700;">${s.nombre}</h2>
+                    <p style="opacity:.5;margin-top:10px;font-size:.9rem;">
                         ${s.descripcion || 'Este módulo está en construcción. Pronto estará disponible.'}
                     </p>
                     <div style="display:inline-block;margin-top:24px;padding:6px 20px;border-radius:20px;
@@ -3723,41 +3738,55 @@ const SRV = {
         document.getElementById('srv-orden').value = '99';
         document.getElementById('srv-descripcion').value = '';
         document.getElementById('srv-btn-txt').textContent = 'Crear Servicio';
-        document.getElementById('srv-form-title').textContent = '➕ Nuevo Servicio';
-        document.getElementById('srv-nombre').addEventListener('input', SRV._autocodigo, { once: false });
+        document.getElementById('modal-srv-title').textContent = '➕ Nuevo Servicio';
+    },
+
+    abrirModal() {
+        this.limpiar();
+        document.getElementById('modal-srv').classList.add('show');
+    },
+
+    cerrarModal() {
+        document.getElementById('modal-srv').classList.remove('show');
+        this.limpiar();
     },
 
     _autocodigo() {
-        const codigo = document.getElementById('srv-nombre').value
+        const v = document.getElementById('srv-nombre').value;
+        document.getElementById('srv-codigo').value = v
             .toLowerCase().trim()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
             .replace(/\s+/g, '_')
             .replace(/[^a-z0-9_]/g, '');
-        document.getElementById('srv-codigo').value = codigo;
     },
 
     editar(id) {
         const s = this._data.find(x => x._id === id);
         if (!s) return;
-        switchPTabById('srv-form');
-        document.getElementById('srv-id').value = id;
-        document.getElementById('srv-nombre').value = s.nombre;
-        document.getElementById('srv-codigo').value = s.codigo;
-        document.getElementById('srv-icono').value = s.icono || '';
-        document.getElementById('srv-orden').value = s.orden;
+        document.getElementById('srv-id').value          = id;
+        document.getElementById('srv-nombre').value      = s.nombre;
+        document.getElementById('srv-codigo').value      = s.codigo;
+        document.getElementById('srv-icono').value       = s.icono || '';
+        document.getElementById('srv-orden').value       = s.orden;
         document.getElementById('srv-descripcion').value = s.descripcion || '';
-        document.getElementById('srv-btn-txt').textContent = 'Actualizar Servicio';
-        document.getElementById('srv-form-title').textContent = '✏️ Editar Servicio';
+        document.getElementById('srv-btn-txt').textContent       = 'Actualizar Servicio';
+        document.getElementById('modal-srv-title').textContent   = '✏️ Editar Servicio';
+        document.getElementById('modal-srv').classList.add('show');
     },
 
     async guardar() {
         const id     = document.getElementById('srv-id').value;
         const nombre = document.getElementById('srv-nombre').value.trim();
+        const codigo = document.getElementById('srv-codigo').value.trim();
+        const icono  = document.getElementById('srv-icono').value.trim();
+        const orden  = document.getElementById('srv-orden').value;
         if (!nombre) { showToast('❌ El nombre es obligatorio', true); return; }
+        if (!codigo) { showToast('❌ El código es obligatorio', true); return; }
+        if (!icono)  { showToast('❌ El icono es obligatorio', true); return; }
+        if (!orden)  { showToast('❌ El orden es obligatorio', true); return; }
         const payload = {
-            nombre,
-            codigo:      document.getElementById('srv-codigo').value.trim() || nombre.toLowerCase().replace(/\s+/g,'_'),
-            icono:       document.getElementById('srv-icono').value.trim() || '📋',
-            orden:       parseInt(document.getElementById('srv-orden').value) || 99,
+            nombre, codigo, icono,
+            orden: parseInt(orden) || 99,
             descripcion: document.getElementById('srv-descripcion').value.trim(),
         };
         const btn = document.getElementById('srv-btn');
@@ -3768,21 +3797,35 @@ const SRV = {
         btn.disabled = false;
         if (d.ok) {
             showToast('✅ Servicio ' + (id ? 'actualizado' : 'creado'));
+            this.cerrarModal();
             await this.listar();
-            switchPTabById('srv-lista');
-            this.limpiar();
         } else {
             showToast('❌ ' + d.error, true);
         }
     },
 
     async toggleEstado(id, activo) {
+        const s = this._data.find(x => x._id === id);
+        const nombre = s ? s.nombre : 'este servicio';
         if (!activo) {
             const check = await apiFetch(`/config/servicios/${id}/en_uso`);
             if (check.ok && check.data?.en_uso) {
                 showToast(`⚠️ ${check.data.mensaje}`, true);
                 return;
             }
+            const ok = await confirmar(
+                '⏸ Desactivar servicio',
+                `¿Deseas desactivar "${nombre}"?\nLos usuarios no podrán acceder a este módulo.`,
+                'Desactivar'
+            );
+            if (!ok) return;
+        } else {
+            const ok = await confirmar(
+                '▶ Activar servicio',
+                `¿Deseas activar "${nombre}"?`,
+                'Activar'
+            );
+            if (!ok) return;
         }
         const d = await apiFetch(`/config/servicios/${id}/estado`, 'PATCH', { activo });
         if (d.ok) {
@@ -3790,23 +3833,21 @@ const SRV = {
             await this.listar();
             await PLN.cargarModulos();
             await cargarModulosSistema();
-        }
-        else showToast('❌ ' + d.error, true);
+        } else showToast('❌ ' + d.error, true);
     },
 
-    async eliminar(id) {
-        if (!confirm('¿Eliminar este servicio? Esta acción no se puede deshacer.')) return;
+    async eliminar(id, nombre) {
+        const ok = await confirmar(
+            '🗑️ Eliminar servicio',
+            `¿Eliminar "${nombre}"?\nEsta acción no se puede deshacer.`,
+            'Eliminar'
+        );
+        if (!ok) return;
         const d = await apiFetch(`/config/servicios/${id}`, 'DELETE');
         if (d.ok) { showToast('✅ Servicio eliminado'); await this.listar(); }
         else showToast('❌ ' + d.error, true);
     }
 };
-
-// Auto-código al escribir el nombre
-document.addEventListener('DOMContentLoaded', () => {
-    const nombreInput = document.getElementById('srv-nombre');
-    if (nombreInput) nombreInput.addEventListener('input', SRV._autocodigo.bind(SRV));
-});
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarCatalogos();
@@ -3840,9 +3881,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Close modal pago on overlay click
+    // Auto-código al escribir nombre de servicio
+    const srvNombreInput = document.getElementById('srv-nombre');
+    if (srvNombreInput) srvNombreInput.addEventListener('input', SRV._autocodigo.bind(SRV));
+
+    // Cerrar modales al hacer click en overlay
     document.getElementById('modal-pago').addEventListener('click', function(e) {
         if (e.target === this) cerrarModalPago();
+    });
+    document.getElementById('modal-srv').addEventListener('click', function(e) {
+        if (e.target === this) SRV.cerrarModal();
     });
 });
 
