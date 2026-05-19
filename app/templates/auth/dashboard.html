@@ -1,31 +1,30 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if empresa_nombre %}{{ empresa_nombre }}{% else %}arIAna{% endif %} — Panel</title>
+    <title>{% if empresa_nombre %}{{ empresa_nombre }}{% else %}Nidus{% endif %} — Panel</title>
     <style>
-    html { zoom: 0.8; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #0a1628 0%, #0d1a5a 60%, #080e2e 100%);
-            color: #fff;
+            background: #EEF2FF;
+            color: #1E2756;
         }
 
         /* ── TOPBAR ── */
         .topbar {
             position: fixed; top: 0; left: 0; right: 0; z-index: 100;
             height: 58px;
-            background: rgba(10,22,40,0.92);
-            backdrop-filter: blur(14px);
-            border-bottom: 1px solid rgba(255,255,255,.08);
+            background: #2787F5;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
             display: flex; align-items: center; padding: 0 24px; gap: 16px;
+            box-shadow: 0 2px 20px rgba(39,135,245,0.3);
         }
         .topbar-logo img {
-            height: 32px; filter: drop-shadow(0 2px 8px rgba(0,212,255,.4));
+            height: 34px; filter: drop-shadow(0 2px 8px rgba(255,255,255,0.3));
         }
         .topbar-empresa {
             flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0;
@@ -33,17 +32,17 @@
         .empresa-badge {
             font-size: .78rem; font-weight: 700;
             padding: 4px 12px; border-radius: 20px;
-            background: rgba(0,212,255,.12);
-            border: 1px solid rgba(0,212,255,.3);
-            color: #00d4ff; white-space: nowrap; overflow: hidden;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: #ffffff; white-space: nowrap; overflow: hidden;
             text-overflow: ellipsis; max-width: 280px;
         }
         .rol-badge {
             font-size: .72rem; font-weight: 600;
             padding: 3px 10px; border-radius: 20px;
-            background: rgba(230,0,255,.1);
-            border: 1px solid rgba(230,0,255,.25);
-            color: #e600ff; white-space: nowrap;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #e0f0ff; white-space: nowrap;
         }
         .topbar-actions { display: flex; align-items: center; gap: 10px; }
         .btn-topbar {
@@ -53,19 +52,19 @@
             letter-spacing: .3px;
         }
         .btn-cambiar {
-            background: rgba(0,212,255,.1);
-            border: 1px solid rgba(0,212,255,.3);
-            color: #00d4ff;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: #ffffff;
         }
-        .btn-cambiar:hover { background: rgba(0,212,255,.2); }
+        .btn-cambiar:hover { background: rgba(255,255,255,0.28); }
         .btn-salir {
-            background: rgba(255,75,75,.1);
-            border: 1px solid rgba(255,75,75,.25);
-            color: #ff6b6b;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,80,80,0.5);
+            color: #ffcccc;
         }
-        .btn-salir:hover { background: rgba(255,75,75,.2); }
+        .btn-salir:hover { background: rgba(255,80,80,0.25); color: #fff; }
         .user-info {
-            font-size: .8rem; color: rgba(255,255,255,.55);
+            font-size: .8rem; color: rgba(255,255,255,0.85);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             max-width: 180px;
         }
@@ -79,17 +78,22 @@
         .welcome-section { margin-bottom: 36px; }
         .welcome-title {
             font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;
-            background: linear-gradient(135deg, #fff 30%, #00d4ff);
+            color: #1E2756;
+        }
+        .welcome-title span {
+            background: linear-gradient(135deg, #2787F5, #00c8f0);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .welcome-sub {
-            font-size: .88rem; color: rgba(255,255,255,.45);
+            font-size: .88rem; color: #8A9CC8;
         }
+        .welcome-sub strong { color: #1E2756; }
+        .welcome-sub em { color: #2787F5; font-style: normal; font-weight: 600; }
 
         /* ── MÓDULOS GRID ── */
         .section-title {
             font-size: .72rem; font-weight: 700; letter-spacing: 2px;
-            color: rgba(255,255,255,.35); text-transform: uppercase;
+            color: #8A9CC8; text-transform: uppercase;
             margin-bottom: 16px;
         }
         .modules-grid {
@@ -98,51 +102,72 @@
             gap: 16px; margin-bottom: 36px;
         }
         .module-card {
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.09);
+            background: rgba(255,255,255,0.92);
+            border: 1.5px solid rgba(39,135,245,0.15);
             border-radius: 14px; padding: 22px 18px;
             text-align: center; cursor: pointer;
             transition: all .25s cubic-bezier(.4,0,.2,1);
             text-decoration: none; color: inherit;
+            box-shadow: 0 2px 12px rgba(39,135,245,0.07);
         }
         .module-card:hover {
-            background: rgba(0,212,255,.07);
-            border-color: rgba(0,212,255,.35);
+            background: #ffffff;
+            border-color: #2787F5;
             transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0,212,255,.15);
+            box-shadow: 0 10px 30px rgba(39,135,245,0.18);
         }
         .module-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
         .module-name {
-            font-size: .82rem; font-weight: 700; color: rgba(255,255,255,.85);
+            font-size: .82rem; font-weight: 700; color: #1E2756;
         }
         .module-desc {
-            font-size: .7rem; color: rgba(255,255,255,.35);
+            font-size: .7rem; color: #8A9CC8;
             margin-top: 4px; line-height: 1.4;
         }
         .module-card.disabled {
-            opacity: .35; cursor: not-allowed;
+            opacity: .45; cursor: not-allowed;
         }
         .module-card.disabled:hover {
-            background: rgba(255,255,255,.04);
-            border-color: rgba(255,255,255,.09);
-            transform: none; box-shadow: none;
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(39,135,245,0.15);
+            transform: none; box-shadow: 0 2px 12px rgba(39,135,245,0.07);
         }
 
         /* ── INFO SESION ── */
         .session-info {
-            background: rgba(255,255,255,.03);
-            border: 1px solid rgba(255,255,255,.07);
+            background: rgba(255,255,255,0.85);
+            border: 1.5px solid rgba(39,135,245,0.18);
             border-radius: 12px; padding: 18px 22px;
             display: flex; gap: 32px; flex-wrap: wrap;
+            box-shadow: 0 2px 12px rgba(39,135,245,0.07);
         }
         .info-item { display: flex; flex-direction: column; gap: 4px; }
-        .info-label { font-size: .67rem; color: rgba(255,255,255,.35); letter-spacing: 1px; text-transform: uppercase; }
-        .info-value { font-size: .88rem; color: rgba(255,255,255,.8); font-weight: 600; }
+        .info-label { font-size: .67rem; color: #8A9CC8; letter-spacing: 1px; text-transform: uppercase; }
+        .info-value { font-size: .88rem; color: #1E2756; font-weight: 600; }
 
         /* Responsive */
-        @media (max-width: 600px) {
-            .user-info, .empresa-badge { max-width: 120px; }
-            .content { padding: 72px 16px 24px; }
+        @media (max-width: 768px) {
+            .topbar { padding: 0 16px; gap: 10px; }
+            .empresa-badge { max-width: 160px; font-size: .72rem; }
+            .rol-badge { display: none; }
+            .user-info { max-width: 130px; }
+            .content { padding: 74px 16px 24px; }
+            .modules-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+            .module-card { padding: 18px 14px; }
+            .session-info { gap: 20px; }
+        }
+        @media (max-width: 480px) {
+            .topbar { height: 52px; padding: 0 12px; }
+            .user-info { display: none; }
+            .empresa-badge { max-width: 130px; font-size: .7rem; }
+            .btn-topbar { padding: 6px 10px; font-size: .72rem; }
+            .content { padding: 64px 12px 20px; }
+            .modules-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .module-card { padding: 16px 12px; }
+            .module-icon { font-size: 1.6rem; margin-bottom: 8px; }
+            .module-name { font-size: .78rem; }
+            .welcome-title { font-size: 1.3rem; }
+            .session-info { flex-direction: column; gap: 12px; }
         }
     </style>
 </head>
@@ -151,7 +176,7 @@
     <!-- ── TOPBAR ── -->
     <div class="topbar">
         <div class="topbar-logo">
-            <img src="{{ url_for('static', filename='images/Logo-Caminos-1.png') }}" alt="arIAna">
+            <img src="{{ url_for('static', filename='images/Logo-Caminos-1.png') }}" alt="Nidus">
         </div>
 
         <div class="topbar-empresa">
@@ -182,11 +207,11 @@
     <div class="content">
 
         <div class="welcome-section">
-            <h1 class="welcome-title">Bienvenido, {{ nombres.split()[0] if nombres else 'Usuario' }}</h1>
+            <h1 class="welcome-title">Bienvenido, <span>{{ nombres.split()[0] if nombres else 'Usuario' }}</span></h1>
             <p class="welcome-sub">
                 {% if empresa_nombre %}
-                    Estás operando en <strong style="color:rgba(255,255,255,.7)">{{ empresa_nombre }}</strong>
-                    como <strong style="color:#00d4ff">{{ rol }}</strong>.
+                    Estás operando en <strong>{{ empresa_nombre }}</strong>
+                    como <em>{{ rol }}</em>.
                 {% else %}
                     Selecciona un módulo para comenzar.
                 {% endif %}
