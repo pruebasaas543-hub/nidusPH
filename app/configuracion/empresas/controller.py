@@ -12,9 +12,10 @@ class EmpresaController:
     @staticmethod
     def obtener_catalogos():
         return True, {
-            "departamentos": CatalogoModel.departamentos(),
-            "tipos_ph":      CatalogoModel.tipos_ph(),
-            "planes_saas":   CatalogoModel.planes_saas(),
+            "departamentos":    CatalogoModel.departamentos(),
+            "tipos_ph":         CatalogoModel.tipos_ph(),
+            "planes_saas":      CatalogoModel.planes_saas(),
+            "mapa_municipios":  CatalogoModel.mapa_municipios(),
         }
 
     @staticmethod

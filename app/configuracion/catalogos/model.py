@@ -30,6 +30,19 @@ class CatalogoModel:
         return sorted(doc.get("municipios", []), key=lambda m: m["nombre"]) if doc else []
 
     @staticmethod
+    def mapa_municipios() -> dict:
+        """Retorna {codigo: nombre} para todos los municipios de todos los departamentos."""
+        docs = list(_col("geografia").find({}, {"_id": 0, "municipios": 1}))
+        result = {}
+        for doc in docs:
+            for m in doc.get("municipios", []):
+                codigo = m.get("codigo") or m.get("codigo_dane", "")
+                nombre = m.get("nombre", "")
+                if codigo and nombre:
+                    result[str(codigo)] = nombre
+        return result
+
+    @staticmethod
     def tipos_ph() -> list:
         docs = list(_col("tipos_ph").find({}, {"_id": 1, "nombre": 1}).sort("nombre", 1))
         if not docs:
@@ -157,17 +170,3 @@ class CatalogoModel:
             for d in docs
         ]
 
-    @staticmethod
-    def modulos_sistema() -> list:
-        """Lee módulos desde BD; fallback a lista hardcodeada si la colección está vacía."""
-        docs = list(
-            _col("modulos_sistema")
-            .find({"activo": True}, {"_id": 0, "nombre": 1, "codigo": 1, "icono": 1, "orden": 1})
-            .sort("orden", 1)
-        )
-        if docs:
-            return docs
-        # Fallback para entornos sin migración ejecutada
-        from app.configuracion.roles.model import MODULOS_SISTEMA
-        return [{"nombre": m, "codigo": m.upper().replace(" ", "_"), "icono": ""}
-                for m in MODULOS_SISTEMA]

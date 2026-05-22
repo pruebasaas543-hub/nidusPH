@@ -200,17 +200,19 @@ class HabilitacionRolModel:
         return _col_hab().find_one({"empresa_id": ObjectId(empresa_id)})
 
     @staticmethod
-    def guardar(empresa_id: str, roles_activos: list, actualizado_por: str):
-        _col_hab().update_one(
-            {"empresa_id": ObjectId(empresa_id)},
-            {"$set": {
-                "empresa_id":      ObjectId(empresa_id),
-                "roles_activos":   roles_activos,
-                "actualizado_en":  datetime.utcnow(),
-                "actualizado_por": actualizado_por,
-            }},
-            upsert=True
-        )
+    def guardar(empresa_id: str, roles_activos: list, usuario_id: str = ""):
+        ahora = datetime.utcnow()
+        existe = _col_hab().find_one({"empresa_id": ObjectId(empresa_id)}, {"_id": 1})
+        set_fields = {
+            "empresa_id":        ObjectId(empresa_id),
+            "roles_activos":     roles_activos,
+            "actualizado_en":    ahora,
+            "id_actualizado_por": usuario_id,
+        }
+        update = {"$set": set_fields}
+        if not existe:
+            update["$setOnInsert"] = {"creado_en": ahora, "usuario_id_creador": usuario_id}
+        _col_hab().update_one({"empresa_id": ObjectId(empresa_id)}, update, upsert=True)
 
     @staticmethod
     def roles_activos_para_empresa(empresa_id: str) -> list:

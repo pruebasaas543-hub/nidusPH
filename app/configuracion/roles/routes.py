@@ -10,15 +10,6 @@ from app.configuracion.roles.model import MODULOS_SISTEMA
 roles_bp = Blueprint("config_roles", __name__, url_prefix="/config")
 
 
-# ── Módulos del sistema ───────────────────────────────────────────────────
-
-@roles_bp.route("/modulos", methods=["GET"])
-@requiere_superadmin
-def modulos_listar():
-    from app.configuracion.catalogos.model import CatalogoModel
-    return ok(CatalogoModel.modulos_sistema())
-
-
 # ── Roles ─────────────────────────────────────────────────────────────────
 
 @roles_bp.route("/roles", methods=["GET"])
@@ -153,8 +144,25 @@ def roles_verificar_en_uso(rol_id):
 @requiere_superadmin
 def habilitacion_todas():
     from app import db
-    docs = list(db["habilitacion_roles"].find({}, {"_id": 0, "empresa_id": 1, "roles_activos": 1}))
-    resultado = {str(d["empresa_id"]): d.get("roles_activos", []) for d in docs}
+    from bson import ObjectId
+    from app.configuracion.roles.model import RolModel
+    docs = list(db["habilitacion_roles"].find({}))
+    roles_idx = {str(r["_id"]): r.get("nombre", "") for r in RolModel.listar(solo_activos=False, excluir_internos=True)}
+    resultado = []
+    for d in docs:
+        emp_id = str(d.get("empresa_id", ""))
+        emp = db["empresas"].find_one({"_id": d["empresa_id"]}, {"razon_social": 1, "activo": 1}) if d.get("empresa_id") else None
+        resultado.append({
+            "empresa_id":    emp_id,
+            "razon_social":  emp.get("razon_social", "") if emp else "—",
+            "empresa_activa": emp.get("activo", False) if emp else False,
+            "roles_activos": d.get("roles_activos", []),
+            "roles_nombres": [roles_idx.get(r, r) for r in d.get("roles_activos", [])],
+            "creado_en":          serializar(d.get("creado_en")),
+            "actualizado_en":     serializar(d.get("actualizado_en")),
+            "id_actualizado_por": d.get("id_actualizado_por", ""),
+        })
+    resultado.sort(key=lambda x: x["razon_social"].lower())
     return ok(resultado)
 
 
@@ -219,6 +227,22 @@ def habilitacion_guardar(empresa_id):
                 f"Elimina primero esas asociaciones en 'Asociacion Usuario Empresa Rol'."
             )
 
-    exito, resultado = HabilitacionRolController.guardar(empresa_id, roles_nuevos, session["num_doc"])
+    exito, resultado = HabilitacionRolController.guardar(
+        empresa_id, roles_nuevos, session.get("usuario_id", "")
+    )
     if not exito: return err(resultado)
     return ok(mensaje=resultado)
+
+
+@roles_bp.route("/habilitacion/<empresa_id>", methods=["DELETE"])
+@requiere_superadmin
+def habilitacion_eliminar(empresa_id):
+    from app import db
+    from bson import ObjectId
+    try:
+        result = db["habilitacion_roles"].delete_one({"empresa_id": ObjectId(empresa_id)})
+    except Exception:
+        return err("ID de empresa inválido")
+    if result.deleted_count == 0:
+        return err("No existe configuración para esta empresa")
+    return ok(mensaje="Configuración de roles eliminada")

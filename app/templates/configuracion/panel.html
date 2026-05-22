@@ -358,6 +358,7 @@
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-planes')"><span class="nav-icon">📦</span> Planes</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-roles')"><span class="nav-icon">🛡️</span> Roles</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-empresas')"><span class="nav-icon">🏢</span> Creacion Empresas</a>
+                <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-roles-empresa')"><span class="nav-icon">🔐</span> Roles a Empresa</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-datos-ph')"><span class="nav-icon">📑</span> Datos Generales PH</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-usuarios')"><span class="nav-icon">👤</span> Usuarios</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-asociaciones')"><span class="nav-icon">🔗</span> Asociacion Usuario Empresa Rol</a>
@@ -389,282 +390,224 @@
             <div class="config-panel-title">🏢 <span>Creacion</span> Empresas</div>
             <div class="config-panel-subtitle">Registra y administra los conjuntos residenciales o empresas clientes de Nidus PH.</div>
 
-            <div class="panel-tabs">
-                <div class="ptab active" onclick="switchPTab(this,'et-lista')">📋 Empresas registradas</div>
-                <div class="ptab" onclick="switchPTab(this,'et-nueva')">➕ Nueva empresa</div>
-            </div>
-
-            <!-- ── LISTA ───────────────────────────────────────────── -->
-            <div class="ptab-content active" id="et-lista">
-                <div class="config-form-card">
-                    <div class="table-toolbar">
-                        <div class="table-search">
-                            <span>🔍</span>
-                            <input type="text" placeholder="Buscar empresa..." oninput="filterTable('tbl-empresas',this.value)">
-                        </div>
-                        <button class="btn-primary" onclick="switchPTabById('et-nueva');limpiarFormEmpresa()">➕ Nueva empresa</button>
+            <div class="config-form-card">
+                <div class="table-toolbar">
+                    <div class="table-search">
+                        <span>🔍</span>
+                        <input type="text" placeholder="Buscar empresa..." autocomplete="off" oninput="filterTable('tbl-empresas',this.value)">
                     </div>
-                    <div class="data-table-wrap">
-                        <table class="data-table" id="tbl-empresas">
-                            <thead>
-                                <tr>
-                                    <th>Logo</th>
-                                    <th>NIT</th>
-                                    <th>Razón Social</th>
-                                    <th>Depto / Municipio</th>
-                                    <th>Plan</th>
-                                    <th>Slug</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-empresas">
-                                <tr><td colspan="8" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <button class="btn-primary" onclick="abrirModalEmpresa()">➕ Nueva empresa</button>
+                </div>
+                <div class="data-table-wrap">
+                    <table class="data-table" id="tbl-empresas">
+                        <thead>
+                            <tr>
+                                <th style="width:44px;">Logo</th>
+                                <th>NIT</th>
+                                <th>Razón Social</th>
+                                <th>Ubicación</th>
+                                <th>Plan</th>
+                                <th class="col-sm-hide">Slug</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-empresas">
+                            <tr><td colspan="8" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-
-            <!-- ── FORMULARIO CREAR / EDITAR ──────────────────────── -->
-            <div class="ptab-content" id="et-nueva">
-
-                <!-- BANNER empresa inactiva — solo visible al editar una inactiva -->
-                <div class="banner-inactiva" id="banner-inactiva" style="display:none;">
-                    <span class="bi-icon">🚫</span>
-                    <div class="banner-inactiva-texto">
-                        <strong>Empresa desactivada</strong>
-                        <span>Los usuarios vinculados a esta empresa verán un aviso de servicio no disponible hasta que la reactives.</span>
-                    </div>
-                </div>
-
-                <form id="form-empresa" enctype="multipart/form-data">
-                    <!-- ID oculto para modo edición -->
-                    <input type="hidden" id="emp-id" value="">
-
-                    <!-- ─── SECCIÓN 1: IDENTIFICACIÓN ─────────────── -->
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">🏢 Identificación</div>
-                        <div class="form-grid-2">
-
-                            <!-- NIT + DV -->
-                            <div class="form-group">
-                                <label>NIT *</label>
-                                <div class="nit-wrapper">
-                                    <input class="form-control" id="emp-nit" name="nit" type="text"
-                                           placeholder="900123456" style="border-radius:10px 0 0 10px; border-right:none;">
-                                    <div class="nit-dash">–</div>
-                                    <input class="form-control nit-dv" id="emp-dv" name="digito_verificacion"
-                                           type="text" maxlength="1" placeholder="7"
-                                           style="border-radius:0 10px 10px 0; width:64px; text-align:center;">
-                                </div>
-                                <span style="font-size:0.67rem;color:rgba(255,255,255,0.35);margin-top:2px;">Número sin puntos ni guiones · Dígito de verificación</span>
-                            </div>
-
-                            <!-- Razón social -->
-                            <div class="form-group">
-                                <label>Razón Social / Nombre *</label>
-                                <input class="form-control" id="emp-nombre" name="razon_social" type="text"
-                                       placeholder="Conjunto Residencial Los Pinos">
-                            </div>
-
-                            <!-- Tipo de entidad (desde tipos_ph) -->
-                            <div class="form-group">
-                                <label>Tipo de entidad</label>
-                                <select class="form-control" id="emp-tipo" name="tipo_entidad">
-                                    <option value="">Cargando...</option>
-                                </select>
-                            </div>
-
-                            <!-- Plan contratado (desde planes_saas) -->
-                            <div class="form-group">
-                                <label>Plan contratado</label>
-                                <select class="form-control" id="emp-plan" name="plan">
-                                    <option value="">Cargando...</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Slug -->
-                        <div class="form-group" style="margin-top:16px;">
-                            <label>Slug (subdirectorio) *</label>
-                            <div class="slug-input-wrap">
-                                <span class="slug-prefix">Nidus.app/</span>
-                                <input class="form-control" id="emp-slug" name="slug" type="text"
-                                       placeholder="conjunto-los-pinos"
-                                       oninput="this.value=this.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/-+/g,'-')"
-                                       onchange="this.value=this.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/-+/g,'-')">
-                            </div>
-                            <span style="font-size:0.67rem;color:rgba(255,255,255,0.35);margin-top:2px;">Solo letras minúsculas, números y guiones. Se auto-genera del nombre si se deja vacío.</span>
-                        </div>
-                    </div>
-
-                    <!-- ─── SECCIÓN 2: UBICACIÓN ──────────────────── -->
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">📍 Ubicación</div>
-                        <div class="form-grid-2">
-
-                            <!-- Departamento -->
-                            <div class="form-group">
-                                <label>Departamento *</label>
-                                <select class="form-control" id="emp-depto" name="departamento"
-                                        onchange="cargarMunicipios(this.value)">
-                                    <option value="">— Seleccione departamento —</option>
-                                </select>
-                            </div>
-
-                            <!-- Municipio -->
-                            <div class="form-group">
-                                <label>Municipio *</label>
-                                <select class="form-control" id="emp-municipio" name="municipio" disabled>
-                                    <option value="">— Primero seleccione departamento —</option>
-                                </select>
-                                <!-- Campo oculto para código DANE del municipio -->
-                                <input type="hidden" id="emp-cod-municipio" name="codigo_municipio">
-                            </div>
-
-                            <!-- Dirección -->
-                            <div class="form-group form-full">
-                                <label>Dirección</label>
-                                <input class="form-control" id="emp-direccion" name="direccion" type="text"
-                                       placeholder="Calle 123 # 45-67">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ─── SECCIÓN 3: CONTACTO ───────────────────── -->
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">📞 Contacto</div>
-                        <div class="form-grid-2">
-                            <div class="form-group">
-                                <label>Correo de contacto *</label>
-                                <input class="form-control" id="emp-email" name="email" type="email"
-                                       placeholder="admin@empresa.com">
-                            </div>
-                            <div class="form-group">
-                                <label>Teléfono</label>
-                                <input class="form-control" id="emp-telefono" name="telefono" type="text"
-                                       placeholder="601 123 4567">
-                            </div>
-                            <div class="form-group form-full">
-                                <label>Observaciones internas</label>
-                                <textarea class="form-control" id="emp-obs" name="observaciones"
-                                          placeholder="Notas relevantes sobre la empresa..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ─── SECCIÓN 4: APARIENCIA ─────────────────── -->
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">🎨 Apariencia e Identidad Visual</div>
-
-                        <!-- Logo -->
-                        <div class="form-grid-2" style="margin-bottom:20px;">
-                            <div class="form-group">
-                                <label>Logo del PH / Empresa</label>
-                                <div class="upload-zone" id="zone-logo" onclick="document.getElementById('inp-logo').click()">
-                                    <img id="prev-logo" class="upload-preview" alt="Logo">
-                                    <span id="zone-logo-text">🖼️<br><p>Clic para subir logo<br>(PNG, SVG, JPG · max 3MB)</p></span>
-                                    <div class="upload-overlay">📷 Cambiar</div>
-                                </div>
-                                <input type="file" id="inp-logo" name="logo" style="display:none;"
-                                       accept=".png,.svg,.jpg,.jpeg,.webp"
-                                       onchange="previewImagen(this,'prev-logo','zone-logo-text')">
-                            </div>
-
-                            <!-- Colores -->
-                            <div style="display:flex;flex-direction:column;gap:14px;">
-                                <div class="form-group">
-                                    <label>Color Topbar (barra superior)</label>
-                                    <div class="color-row">
-                                        <input type="color" id="pick-topbar" class="color-picker-btn"
-                                               value="#0a1250" oninput="syncColor(this,'txt-topbar')">
-                                        <input class="form-control" type="text" id="txt-topbar"
-                                               name="color_topbar" value="#0a1250" placeholder="#0a1250"
-                                               oninput="syncColorText(this,'pick-topbar')">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Color Panel Izquierdo (sidebar)</label>
-                                    <div class="color-row">
-                                        <input type="color" id="pick-sidebar" class="color-picker-btn"
-                                               value="#0b1120" oninput="syncColor(this,'txt-sidebar')">
-                                        <input class="form-control" type="text" id="txt-sidebar"
-                                               name="color_panel_izq" value="#0b1120" placeholder="#0b1120"
-                                               oninput="syncColorText(this,'pick-sidebar')">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Carrusel: 3 imágenes -->
-                        <div class="form-group" style="margin-bottom:12px;">
-                            <label>Imágenes del carrusel (login · recuperación · cambio de contraseña)</label>
-                        </div>
-                        <div class="form-grid-3">
-                            <div class="form-group">
-                                <label>Imagen 1</label>
-                                <div class="upload-zone" onclick="document.getElementById('inp-car1').click()">
-                                    <img id="prev-car1" class="upload-preview" alt="">
-                                    <span id="zt-car1" style="font-size:0.75rem;color:rgba(255,255,255,0.35);">📷 Subir imagen</span>
-                                    <div class="upload-overlay">📷 Cambiar</div>
-                                </div>
-                                <input type="file" id="inp-car1" name="carousel_1" style="display:none;"
-                                       accept="image/*" onchange="previewImagen(this,'prev-car1','zt-car1')">
-                            </div>
-                            <div class="form-group">
-                                <label>Imagen 2</label>
-                                <div class="upload-zone" onclick="document.getElementById('inp-car2').click()">
-                                    <img id="prev-car2" class="upload-preview" alt="">
-                                    <span id="zt-car2" style="font-size:0.75rem;color:rgba(255,255,255,0.35);">📷 Subir imagen</span>
-                                    <div class="upload-overlay">📷 Cambiar</div>
-                                </div>
-                                <input type="file" id="inp-car2" name="carousel_2" style="display:none;"
-                                       accept="image/*" onchange="previewImagen(this,'prev-car2','zt-car2')">
-                            </div>
-                            <div class="form-group">
-                                <label>Imagen 3</label>
-                                <div class="upload-zone" onclick="document.getElementById('inp-car3').click()">
-                                    <img id="prev-car3" class="upload-preview" alt="">
-                                    <span id="zt-car3" style="font-size:0.75rem;color:rgba(255,255,255,0.35);">📷 Subir imagen</span>
-                                    <div class="upload-overlay">📷 Cambiar</div>
-                                </div>
-                                <input type="file" id="inp-car3" name="carousel_3" style="display:none;"
-                                       accept="image/*" onchange="previewImagen(this,'prev-car3','zt-car3')">
-                            </div>
-                        </div>
-                        <div class="info-box" style="margin-top:16px;">
-                            💡 Las imágenes del carrusel se mostrarán en la <strong>pantalla de login</strong>, <strong>recuperar contraseña</strong> y <strong>nueva contraseña</strong> de los usuarios de esta empresa. Se almacenan en MongoDB.
-                        </div>
-                    </div>
-
-                    <!-- ─── ESTADO (solo en modo edición) ────────── -->
-                    <div class="config-form-card" id="card-estado" style="display:none;">
-                        <div class="config-form-card-title">⚡ Estado de la empresa</div>
-                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;">
-                            <div>
-                                <div style="font-size:0.88rem;font-weight:600;" id="estado-label">Empresa activa</div>
-                                <div style="font-size:0.74rem;color:rgba(255,255,255,0.5);margin-top:2px;">Si se desactiva, sus usuarios verán un aviso de servicio no disponible</div>
-                            </div>
-                            <label style="position:relative;width:50px;height:26px;flex-shrink:0;">
-                                <input type="checkbox" id="chk-activo" style="opacity:0;width:0;height:0;"
-                                       onchange="actualizarEstadoLabel(this)">
-                                <span id="toggle-activo-slider" style="position:absolute;cursor:pointer;inset:0;background:rgba(255,80,80,0.4);border-radius:26px;transition:.3s;">
-                                    <span style="position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;"></span>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="switchPTabById('et-lista');limpiarFormEmpresa()">Cancelar</button>
-                        <button type="button" class="btn-primary" id="btn-guardar-empresa" onclick="guardarEmpresa()">
-                            💾 <span id="btn-guardar-txt">Guardar empresa</span>
-                        </button>
-                    </div>
-                </form>
-            </div><!-- /et-nueva -->
         </div><!-- /cfg-empresas -->
+
+<!-- Modal Empresa (crear / editar) -->
+<div class="modal-overlay" id="modal-emp" onclick="if(event.target===this)cerrarModalEmpresa()">
+    <div class="modal-box" style="width:clamp(360px,96vw,820px);max-height:92vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+        <div class="modal-title" id="modal-emp-title" style="padding:18px 24px 14px;border-bottom:1px solid rgba(4,34,67,0.1);flex-shrink:0;">➕ Nueva empresa</div>
+
+        <div style="overflow-y:auto;flex:1;padding:16px 20px;">
+
+        <!-- BANNER empresa inactiva -->
+        <div class="banner-inactiva" id="banner-inactiva" style="display:none;margin-bottom:12px;">
+            <span class="bi-icon">🚫</span>
+            <div class="banner-inactiva-texto">
+                <strong>Empresa desactivada</strong>
+                <span>Los usuarios vinculados verán un aviso de servicio no disponible hasta que la reactives.</span>
+            </div>
+        </div>
+
+        <form id="form-empresa" enctype="multipart/form-data">
+            <input type="hidden" id="emp-id" value="">
+
+            <!-- SECCIÓN 1: IDENTIFICACIÓN -->
+            <div style="font-size:.72rem;font-weight:700;color:rgba(4,34,67,0.45);text-transform:uppercase;letter-spacing:1px;margin:0 0 8px;">🏢 Identificación</div>
+            <div class="form-grid-2" style="margin-bottom:12px;">
+                <div class="form-group">
+                    <label>NIT *</label>
+                    <div class="nit-wrapper">
+                        <input class="form-control" id="emp-nit" name="nit" type="text" placeholder="900123456"
+                               style="border-radius:10px 0 0 10px;border-right:none;">
+                        <div class="nit-dash">–</div>
+                        <input class="form-control nit-dv" id="emp-dv" name="digito_verificacion"
+                               type="text" maxlength="1" placeholder="7"
+                               style="border-radius:0 10px 10px 0;width:56px;text-align:center;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Razón Social / Nombre *</label>
+                    <input class="form-control" id="emp-nombre" name="razon_social" type="text"
+                           placeholder="Conjunto Residencial Los Pinos">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Propiedad</label>
+                    <select class="form-control" id="emp-tipo" name="tipo_entidad">
+                        <option value="">Cargando...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Plan contratado</label>
+                    <select class="form-control" id="emp-plan" name="plan">
+                        <option value="">Cargando...</option>
+                    </select>
+                </div>
+                <div class="form-group form-full">
+                    <label>Slug (subdirectorio) *</label>
+                    <div class="slug-input-wrap">
+                        <span class="slug-prefix">Nidus.app/</span>
+                        <input class="form-control" id="emp-slug" name="slug" type="text" placeholder="conjunto-los-pinos"
+                               oninput="this.value=this.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/-+/g,'-')"
+                               onchange="this.value=this.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').replace(/-+/g,'-')">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 2: UBICACIÓN + CONTACTO -->
+            <div style="font-size:.72rem;font-weight:700;color:rgba(4,34,67,0.45);text-transform:uppercase;letter-spacing:1px;margin:4px 0 8px;">📍 Ubicación y Contacto</div>
+            <div class="form-grid-2" style="margin-bottom:12px;">
+                <div class="form-group">
+                    <label>Departamento *</label>
+                    <select class="form-control" id="emp-depto" name="departamento" onchange="seleccionarDepto(this)">
+                        <option value="">— Seleccione departamento —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Municipio *</label>
+                    <select class="form-control" id="emp-municipio" name="municipio" disabled>
+                        <option value="">— Primero seleccione departamento —</option>
+                    </select>
+                </div>
+                <div class="form-group form-full">
+                    <label>Dirección</label>
+                    <input class="form-control" id="emp-direccion" name="direccion" type="text" placeholder="Calle 123 # 45-67">
+                </div>
+                <div class="form-group">
+                    <label>Correo de contacto *</label>
+                    <input class="form-control" id="emp-email" name="email" type="email" placeholder="admin@empresa.com">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input class="form-control" id="emp-telefono" name="telefono" type="text" placeholder="601 123 4567">
+                </div>
+                <div class="form-group form-full">
+                    <label>Observaciones internas</label>
+                    <textarea class="form-control" id="emp-obs" name="observaciones" rows="2"
+                              placeholder="Notas relevantes sobre la empresa..."></textarea>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 3: APARIENCIA -->
+            <div style="font-size:.72rem;font-weight:700;color:rgba(4,34,67,0.45);text-transform:uppercase;letter-spacing:1px;margin:4px 0 8px;">🎨 Apariencia e Identidad Visual</div>
+            <div class="form-grid-2" style="margin-bottom:12px;">
+                <div class="form-group">
+                    <label>Logo del PH / Empresa</label>
+                    <div class="upload-zone" id="zone-logo" onclick="document.getElementById('inp-logo').click()">
+                        <img id="prev-logo" class="upload-preview" alt="Logo">
+                        <span id="zone-logo-text">🖼️<br><p>Clic para subir logo<br>(PNG, SVG, JPG · max 3MB)</p></span>
+                        <div class="upload-overlay">📷 Cambiar</div>
+                    </div>
+                    <input type="file" id="inp-logo" name="logo" style="display:none;"
+                           accept=".png,.svg,.jpg,.jpeg,.webp"
+                           onchange="previewImagen(this,'prev-logo','zone-logo-text')">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div class="form-group">
+                        <label>Color Topbar</label>
+                        <div class="color-row">
+                            <input type="color" id="pick-topbar" class="color-picker-btn" value="#0a1250" oninput="syncColor(this,'txt-topbar')">
+                            <input class="form-control" type="text" id="txt-topbar" name="color_topbar" value="#0a1250" placeholder="#0a1250" oninput="syncColorText(this,'pick-topbar')">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Color Panel Izquierdo (sidebar)</label>
+                        <div class="color-row">
+                            <input type="color" id="pick-sidebar" class="color-picker-btn" value="#0b1120" oninput="syncColor(this,'txt-sidebar')">
+                            <input class="form-control" type="text" id="txt-sidebar" name="color_panel_izq" value="#0b1120" placeholder="#0b1120" oninput="syncColorText(this,'pick-sidebar')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:.8rem;">Imágenes del carrusel (login · recuperación · cambio de contraseña)</label>
+            </div>
+            <div class="form-grid-3" style="margin-bottom:12px;">
+                <div class="form-group">
+                    <label>Imagen 1</label>
+                    <div class="upload-zone" onclick="document.getElementById('inp-car1').click()">
+                        <img id="prev-car1" class="upload-preview" alt="">
+                        <span id="zt-car1" style="font-size:0.75rem;color:rgba(255,255,255,0.35);">📷 Subir imagen</span>
+                        <div class="upload-overlay">📷 Cambiar</div>
+                    </div>
+                    <input type="file" id="inp-car1" name="carousel_1" style="display:none;" accept="image/*" onchange="previewImagen(this,'prev-car1','zt-car1')">
+                </div>
+                <div class="form-group">
+                    <label>Imagen 2</label>
+                    <div class="upload-zone" onclick="document.getElementById('inp-car2').click()">
+                        <img id="prev-car2" class="upload-preview" alt="">
+                        <span id="zt-car2" style="font-size:0.75rem;color:rgba(255,255,255,0.35);">📷 Subir imagen</span>
+                        <div class="upload-overlay">📷 Cambiar</div>
+                    </div>
+                    <input type="file" id="inp-car2" name="carousel_2" style="display:none;" accept="image/*" onchange="previewImagen(this,'prev-car2','zt-car2')">
+                </div>
+                <div class="form-group">
+                    <label>Imagen 3</label>
+                    <div class="upload-zone" onclick="document.getElementById('inp-car3').click()">
+                        <img id="prev-car3" class="upload-preview" alt="">
+                        <span id="zt-car3" style="font-size:0.75rem;color:rgba(255,255,255,0.35);">📷 Subir imagen</span>
+                        <div class="upload-overlay">📷 Cambiar</div>
+                    </div>
+                    <input type="file" id="inp-car3" name="carousel_3" style="display:none;" accept="image/*" onchange="previewImagen(this,'prev-car3','zt-car3')">
+                </div>
+            </div>
+
+            <!-- ESTADO (solo edición) -->
+            <div class="config-form-card" id="card-estado" style="display:none;padding:12px 16px;margin-bottom:0;">
+                <div style="font-size:.72rem;font-weight:700;color:rgba(4,34,67,0.45);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">⚡ Estado</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;">
+                    <div>
+                        <div style="font-size:0.84rem;font-weight:600;" id="estado-label">Empresa activa</div>
+                        <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:1px;">Si se desactiva, sus usuarios verán un aviso de servicio no disponible</div>
+                    </div>
+                    <label style="position:relative;width:50px;height:26px;flex-shrink:0;">
+                        <input type="checkbox" id="chk-activo" style="opacity:0;width:0;height:0;" onchange="actualizarEstadoLabel(this)">
+                        <span id="toggle-activo-slider" style="position:absolute;cursor:pointer;inset:0;background:rgba(255,80,80,0.4);border-radius:26px;transition:.3s;">
+                            <span style="position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </form>
+        </div><!-- /scrollable -->
+
+        <div class="modal-actions" style="padding:14px 20px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
+            <button type="button" class="btn-secondary" onclick="cerrarModalEmpresa()">Cancelar</button>
+            <button type="button" class="btn-primary" id="btn-guardar-empresa" onclick="guardarEmpresa()">
+                💾 <span id="btn-guardar-txt">Guardar empresa</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 
         <!-- ════════════════════════════════════════════════════════════
              CFG-5: ROLES
@@ -676,7 +619,7 @@
                 <div class="table-toolbar">
                     <div class="table-search">
                         <span>🔍</span>
-                        <input type="text" placeholder="Buscar rol..." oninput="filterTable('tbl-roles',this.value)">
+                        <input type="text" placeholder="Buscar rol..." autocomplete="off" oninput="filterTable('tbl-roles',this.value)">
                     </div>
                     <button class="btn-primary" onclick="abrirModalRol()">➕ Nuevo rol</button>
                 </div>
@@ -699,6 +642,63 @@
                 </div>
             </div>
         </div><!-- /cfg-roles -->
+
+        <!-- ════════════════════════════════════════════════════════════
+             CFG-ROLES-EMPRESA: Habilitación de roles por empresa
+        ════════════════════════════════════════════════════════════ -->
+        <div id="cfg-roles-empresa" class="config-panel">
+            <div class="config-panel-title">🔐 <span>Roles</span> a Empresa</div>
+            <div class="config-panel-subtitle">Gestiona qué roles están habilitados para cada empresa.</div>
+
+            <div class="config-form-card">
+                <div class="table-toolbar">
+                    <div class="table-search">
+                        <span>🔍</span>
+                        <input type="text" id="re-buscar" placeholder="Buscar empresa..." autocomplete="off" oninput="RE.filtrarTabla()">
+                    </div>
+                    <button class="btn-primary" onclick="RE.abrirModal()">➕ Asignar roles</button>
+                </div>
+                <div class="data-table-wrap">
+                    <table class="data-table" id="tbl-re">
+                        <thead><tr>
+                            <th style="width:44px;">Logo</th>
+                            <th>Empresa</th>
+                            <th>Roles asignados</th>
+                            <th class="col-sm-hide">Creado</th>
+                            <th class="col-sm-hide">Modificado</th>
+                            <th>Acciones</th>
+                        </tr></thead>
+                        <tbody id="tbody-re"><tr><td colspan="6" style="text-align:center;color:rgba(4,34,67,0.4);padding:24px;">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div><!-- /cfg-roles-empresa -->
+
+        <!-- Modal Roles a Empresa -->
+        <div class="modal-overlay" id="modal-re" onclick="if(event.target===this)RE.cerrarModal()">
+            <div class="modal-box" style="width:clamp(340px,94vw,680px);max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+                <div class="modal-title" id="modal-re-title" style="padding:18px 24px 14px;border-bottom:1px solid rgba(4,34,67,0.1);flex-shrink:0;">🔐 Asignar roles</div>
+                <div style="overflow-y:auto;flex:1;padding:18px 22px;">
+                    <div class="form-group" style="margin-bottom:18px;">
+                        <label>🏢 Empresa</label>
+                        <select class="form-control" id="re-modal-empresa" onchange="RE.cargarRolesModal(this.value)">
+                            <option value="">— Seleccione una empresa —</option>
+                        </select>
+                    </div>
+                    <div id="re-modal-estado" style="color:rgba(4,34,67,0.4);font-size:.82rem;padding:4px 0 10px;"></div>
+                    <div id="re-modal-roles" style="display:none;">
+                        <div style="font-size:.72rem;font-weight:700;color:rgba(4,34,67,0.45);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">
+                            🛡️ Roles disponibles
+                        </div>
+                        <div id="re-checkboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;"></div>
+                    </div>
+                </div>
+                <div class="modal-actions" style="padding:14px 22px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
+                    <button class="btn-secondary" onclick="RE.cerrarModal()">Cancelar</button>
+                    <button class="btn-primary" id="re-btn-guardar" onclick="RE.guardar()" disabled>💾 Guardar roles</button>
+                </div>
+            </div>
+        </div>
 
         <!-- ════════════════════════════════════════════════════════════
              CFG-2: DATOS GENERALES Y ESPECÍFICOS DEL PH
@@ -1291,7 +1291,7 @@
                 <div class="table-toolbar">
                     <div class="table-search">
                         <span>🔍</span>
-                        <input type="text" placeholder="Buscar servicio..." oninput="filterTable('tbl-servicios',this.value)">
+                        <input type="text" placeholder="Buscar servicio..." autocomplete="off" oninput="filterTable('tbl-servicios',this.value)">
                     </div>
                     <button class="btn-primary" onclick="SRV.abrirModal()">➕ Nuevo Servicio</button>
                 </div>
@@ -1907,6 +1907,22 @@ function calcularTotalesParqueaderos() {
     if (totalMEl) totalMEl.textContent = totalMotos;
 }
 
+function abrirModalEmpresa() {
+    limpiarFormEmpresa();
+    document.getElementById('modal-emp-title').textContent = '➕ Nueva empresa';
+    document.getElementById('modal-emp').classList.add('show');
+}
+
+function cerrarModalEmpresa() {
+    document.getElementById('modal-emp').classList.remove('show');
+    limpiarFormEmpresa();
+}
+
+function seleccionarDepto(sel) {
+    var opt = sel.options[sel.selectedIndex];
+    cargarMunicipios(opt?.dataset?.nombre || '');
+}
+
 async function cargarMunicipios(nombreDepto, seleccionado = '') {
     var selMun = document.getElementById('emp-municipio');
     selMun.innerHTML = '<option value="">Cargando...</option>';
@@ -1923,24 +1939,9 @@ async function cargarMunicipios(nombreDepto, seleccionado = '') {
 
     selMun.innerHTML = '<option value="">— Seleccione municipio —</option>' +
         data.data.map(m =>
-            `<option value="${m.nombre}" data-codigo="${m.codigo}" data-nombre="${m.nombre}" ${m.nombre === seleccionado ? 'selected' : ''}>${m.nombre}</option>`
+            `<option value="${m.codigo||m.nombre}" data-nombre="${m.nombre}" ${(m.codigo||m.nombre) === seleccionado ? 'selected' : ''}>${m.nombre}</option>`
         ).join('');
     selMun.disabled = false;
-
-    // Capturar código DANE al cambiar municipio - usar capturaMunicipioCode como ID
-    selMun.removeEventListener('change', capturaMunicipioCode);
-    selMun.addEventListener('change', capturaMunicipioCode);
-    
-    // Si ya hay seleccionado, disparar el change
-    if (seleccionado && selMun.value === seleccionado) {
-        selMun.dispatchEvent(new Event('change'));
-    }
-}
-
-function capturaMunicipioCode(e) {
-    var selMun = e.target;
-    var opt = selMun.options[selMun.selectedIndex];
-    document.getElementById('emp-cod-municipio').value = opt?.dataset?.codigo || '';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -1965,19 +1966,23 @@ function renderTablaEmpresas(lista) {
         return;
     }
     tb.innerHTML = lista.map(e => {
-        var nitCompleto = e.digito_verificacion ? `${e.nit}-${e.digito_verificacion}` : e.nit;
-        var ubicacion   = [e.departamento, e.municipio].filter(Boolean).join(' / ') || '—';
-        var estadoBadge = e.activo
+        var nitCompleto  = e.digito_verificacion ? `${e.nit}-${e.digito_verificacion}` : e.nit;
+        var deptoNombre  = _deptoMap[String(e.departamento||'')] || e.departamento || '';
+        var munNombre    = _munMap[String(e.municipio||'')]      || e.municipio    || '';
+        var ubicacion    = [deptoNombre, munNombre].filter(Boolean).join(' / ') || '—';
+        var tipoNombre   = _tipoMap[String(e.tipo_entidad||'')] || e.tipo_entidad || '';
+        var planNombre   = _planMap[String(e.plan||'')]         || e.plan         || '—';
+        var estadoBadge  = e.activo
             ? '<span class="badge badge-active">✅ Activo</span>'
             : '<span class="badge badge-inactive">🚫 Inactivo</span>';
 
         return `<tr>
-            <td id="logo-cell-${e._id}"><div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:0.8rem;"><span class="spinner"></span></div></td>
-            <td style="font-family:'Space Mono',monospace;font-size:0.78rem;">${nitCompleto}</td>
-            <td><strong>${e.razon_social}</strong><br><span style="font-size:0.73rem;color:rgba(255,255,255,0.4);">${e.tipo_entidad||''}</span></td>
-            <td style="font-size:0.8rem;">${ubicacion}</td>
-            <td><span class="badge badge-pending">${e.plan||'—'}</span></td>
-            <td style="font-size:0.75rem;color:rgba(0,212,255,0.6);">/${e.slug||'—'}</td>
+            <td id="logo-cell-${e._id}"><div style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:0.75rem;"><span class="spinner"></span></div></td>
+            <td style="font-family:'Space Mono',monospace;font-size:0.76rem;white-space:nowrap;">${nitCompleto}</td>
+            <td style="max-width:200px;"><div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.razon_social}</div><span style="font-size:0.68rem;color:rgba(255,255,255,0.38);">${tipoNombre}</span></td>
+            <td style="font-size:0.76rem;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">${ubicacion}</td>
+            <td><span class="badge badge-pending" style="font-size:0.7rem;">${planNombre}</span></td>
+            <td class="col-sm-hide" style="font-size:0.7rem;color:rgba(0,212,255,0.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">/${e.slug||'—'}</td>
             <td>${estadoBadge}</td>
             <td>
                 <div style="display:flex;gap:6px;align-items:center;">
@@ -2014,7 +2019,6 @@ function limpiarFormEmpresa() {
     document.getElementById('emp-depto').value     = '';
     document.getElementById('emp-municipio').innerHTML = '<option value="">— Primero seleccione departamento —</option>';
     document.getElementById('emp-municipio').disabled  = true;
-    document.getElementById('emp-cod-municipio').value = '';
     document.getElementById('emp-tipo').value      = '';
     document.getElementById('emp-plan').value      = '';
     document.getElementById('txt-topbar').value    = '#0a1250';
@@ -2044,8 +2048,9 @@ async function abrirEdicion(id) {
     var emp = _empresasData.find(e => e._id === id);
     if (!emp) return;
 
-    switchPTabById('et-nueva');
     limpiarFormEmpresa();
+    document.getElementById('modal-emp-title').textContent = '✏️ Editar empresa';
+    document.getElementById('modal-emp').classList.add('show');
 
     // Modo edición
     document.getElementById('emp-id').value        = id;
@@ -2069,19 +2074,13 @@ async function abrirEdicion(id) {
     document.getElementById('emp-tipo').value = emp.tipo_entidad || '';
     document.getElementById('emp-plan').value = emp.plan || '';
 
-    // Departamento + municipio
+    // Departamento + municipio (departamento y municipio guardan CÓDIGOS DANE)
     if (emp.departamento) {
         var selDepto = document.getElementById('emp-depto');
-        selDepto.value = emp.departamento;
-        // Cargar municipios y seleccionar el correcto
-        await cargarMunicipios(emp.departamento, emp.municipio || '');
-        // Seleccionar en el código DANE
-        var selMun = document.getElementById('emp-municipio');
-        var opt = Array.from(selMun.options).find(o => o.value === emp.municipio);
-        if (opt) {
-            selMun.value = emp.municipio;
-            document.getElementById('emp-cod-municipio').value = opt.dataset.codigo || '';
-        }
+        selDepto.value = emp.departamento;  // código p.ej. "11"
+        var dOpt = Array.from(selDepto.options).find(o => o.value === emp.departamento);
+        var nombreDepto = dOpt?.dataset?.nombre || emp.departamento;
+        await cargarMunicipios(nombreDepto, emp.municipio || '');  // municipio es código p.ej. "11001"
     }
 
     // Cargar logo e imágenes del formulario de edición
@@ -2177,8 +2176,7 @@ async function guardarEmpresa() {
         return;
     }
     showToast('✅ ' + data.mensaje);
-    switchPTabById('et-lista');
-    limpiarFormEmpresa();
+    cerrarModalEmpresa();
     cargarEmpresas();
 }
 
@@ -2195,30 +2193,39 @@ async function toggleEstado(id, activo) {
 // CATÁLOGOS EMPRESA (tipos_ph, planes_saas, departamentos)
 // ══════════════════════════════════════════════════════════════════════════
 
+var _deptoMap = {};
+var _munMap   = {};
+var _tipoMap  = {};
+var _planMap  = {};
+
 async function cargarCatalogos() {
     const data = await apiFetch('/config/empresas/catalogos');
     if (!data.ok) return;
-    const { departamentos = [], tipos_ph = [], planes_saas = [] } = data.data;
+    const { departamentos = [], tipos_ph = [], planes_saas = [], mapa_municipios = {} } = data.data;
+    _deptoMap = Object.fromEntries(departamentos.map(d => [String(d.codigo_dane||''), d.departamento]));
+    _munMap   = mapa_municipios;
+    _tipoMap  = Object.fromEntries(tipos_ph.map(t => [String(t._id||''), t.nombre]));
+    _planMap  = Object.fromEntries(planes_saas.map(p => [String(p._id||''), p.nombre]));
 
     // Departamentos
     const selDepto = document.getElementById('emp-depto');
     if (selDepto) {
         selDepto.innerHTML = '<option value="">— Seleccione departamento —</option>' +
-            departamentos.map(d => `<option value="${d.departamento}">${d.departamento}</option>`).join('');
+            departamentos.map(d => `<option value="${d.codigo_dane||''}" data-nombre="${d.departamento}">${d.departamento}</option>`).join('');
     }
 
-    // Tipo de entidad
+    // Tipo de Propiedad
     const selTipo = document.getElementById('emp-tipo');
     if (selTipo) {
         selTipo.innerHTML = '<option value="">— Seleccione tipo —</option>' +
-            tipos_ph.map(t => `<option value="${t}">${t}</option>`).join('');
+            tipos_ph.map(t => `<option value="${t._id}">${t.nombre}</option>`).join('');
     }
 
     // Plan contratado
     const selPlan = document.getElementById('emp-plan');
     if (selPlan) {
         selPlan.innerHTML = '<option value="">— Seleccione plan —</option>' +
-            planes_saas.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
+            planes_saas.map(p => `<option value="${p._id}">${p.nombre}</option>`).join('');
     }
 }
 
@@ -3832,6 +3839,229 @@ const SRV = {
     }
 };
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ROLES A EMPRESA (RE)
+// ══════════════════════════════════════════════════════════════════════════════
+const RE = {
+    _empresaId: null,
+    _todosRoles: [],
+    _rolesActivos: [],
+    _lista: [],
+    _empresas: [],
+
+    async init() {
+        const [dataEmpresas, dataHab] = await Promise.all([
+            apiFetch('/config/empresas'),
+            apiFetch('/config/habilitacion'),
+        ]);
+        if (dataEmpresas.ok) this._empresas = dataEmpresas.data || [];
+        if (dataHab.ok)      this._lista    = dataHab.data || [];
+        this._renderTabla();
+        this._poblarSelectModal();
+    },
+
+    _badge(texto, color) {
+        return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:600;
+                    background:${color}18;border:1px solid ${color}40;color:${color};white-space:nowrap;">${texto}</span>`;
+    },
+
+    _badgeInfo(icon, label, valor, color) {
+        return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+                    font-size:.7rem;font-weight:600;background:${color}15;border:1px solid ${color}40;color:${color};">
+                    ${icon} <span style="font-weight:400;">${label}:</span> ${valor}</span>`;
+    },
+
+    _renderTabla() {
+        const tbody = document.getElementById('tbody-re');
+        const filtro = (document.getElementById('re-buscar')?.value || '').toLowerCase();
+        const lista  = this._lista.filter(r => r.razon_social.toLowerCase().includes(filtro));
+
+        if (!lista.length) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:rgba(4,34,67,0.4);padding:28px;">
+                ${filtro ? 'Sin resultados para "' + filtro + '"' : 'No hay empresas con roles asignados.'}</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = lista.map(r => {
+            const roles = (r.roles_nombres || []).length
+                ? r.roles_nombres.map(n => this._badge(n, '#042243')).join(' ')
+                : `<span style="color:rgba(4,34,67,0.35);font-size:.75rem;">Sin roles</span>`;
+            const creadoTxt     = r.creado_en      ? new Date(r.creado_en).toLocaleDateString('es-CO')      : '—';
+            const modificadoTxt = r.actualizado_en  ? new Date(r.actualizado_en).toLocaleDateString('es-CO') : '—';
+            const nombreEmp = r.empresa_activa
+                ? `<span style="font-size:.83rem;font-weight:600;">${r.razon_social}</span>`
+                : `<span style="font-size:.83rem;color:#999;">${r.razon_social} <em style="font-size:.7rem;">(inactiva)</em></span>`;
+            return `<tr>
+                <td id="re-logo-${r.empresa_id}"><div style="width:34px;height:34px;border-radius:8px;background:rgba(4,34,67,0.06);display:flex;align-items:center;justify-content:center;"><span class="spinner"></span></div></td>
+                <td>${nombreEmp}</td>
+                <td style="font-size:.78rem;max-width:260px;white-space:normal;line-height:1.6;">${roles}</td>
+                <td class="col-sm-hide" style="font-size:.75rem;color:rgba(4,34,67,0.55);">${creadoTxt}</td>
+                <td class="col-sm-hide" style="font-size:.75rem;color:rgba(4,34,67,0.55);">${modificadoTxt}</td>
+                <td>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <button class="btn-icon btn-icon-edit" title="Editar" onclick="RE.abrirEdicion('${r.empresa_id}')">✏️</button>
+                        <button class="btn-icon btn-icon-del" title="Eliminar" onclick="RE.eliminar('${r.empresa_id}','${r.razon_social.replace(/'/g,"\\'")}')">🗑️</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+        lista.forEach(r => RE._cargarLogo(r.empresa_id));
+    },
+
+    filtrarTabla() { this._renderTabla(); },
+
+    async _cargarLogo(empresaId) {
+        const cell = document.getElementById('re-logo-' + empresaId);
+        if (!cell) return;
+        const data = await apiFetch(`/config/empresas/${empresaId}/imagen/logo`);
+        if (!data.ok || !data.data) {
+            cell.innerHTML = '<div style="width:34px;height:34px;border-radius:8px;background:rgba(4,34,67,0.06);display:flex;align-items:center;justify-content:center;color:rgba(4,34,67,0.3);font-size:.75rem;">—</div>';
+            return;
+        }
+        cell.innerHTML = `<img class="logo-thumb" src="data:${data.data.mimetype};base64,${data.data.data}" alt="Logo" style="width:34px;height:34px;border-radius:8px;object-fit:cover;">`;
+    },
+
+    _poblarSelectModal() {
+        const asignadas = new Set(this._lista.map(r => r.empresa_id));
+        const sel = document.getElementById('re-modal-empresa');
+        sel.innerHTML = '<option value="">— Seleccione una empresa —</option>' +
+            this._empresas
+                .filter(e => e.activo && !asignadas.has(String(e._id)))
+                .sort((a,b) => a.razon_social.localeCompare(b.razon_social))
+                .map(e => `<option value="${e._id}">${e.razon_social}</option>`)
+                .join('');
+    },
+
+    abrirModal() {
+        this._empresaId = null;
+        this._poblarSelectModal();
+        document.getElementById('modal-re-title').textContent  = '➕ Asignar roles a empresa';
+        document.getElementById('re-modal-empresa').value      = '';
+        document.getElementById('re-modal-estado').textContent = 'Selecciona una empresa para ver los roles.';
+        document.getElementById('re-modal-roles').style.display = 'none';
+        document.getElementById('re-modal-empresa').disabled   = false;
+        document.getElementById('re-btn-guardar').disabled     = true;
+        document.getElementById('modal-re').classList.add('show');
+    },
+
+    async abrirEdicion(empresaId) {
+        this._empresaId = empresaId;
+        const fila = this._lista.find(r => r.empresa_id === empresaId);
+        document.getElementById('modal-re-title').textContent = '✏️ Editar roles — ' + (fila?.razon_social || '');
+        const sel = document.getElementById('re-modal-empresa');
+        sel.innerHTML = `<option value="${empresaId}">${fila?.razon_social || empresaId}</option>`;
+        sel.disabled = true;
+        document.getElementById('re-modal-estado').innerHTML = '<span class="spinner"></span> Cargando...';
+        document.getElementById('re-modal-roles').style.display = 'none';
+        document.getElementById('re-btn-guardar').disabled = true;
+        document.getElementById('modal-re').classList.add('show');
+        await this.cargarRolesModal(empresaId);
+    },
+
+    async cargarRolesModal(empresaId) {
+        this._empresaId = empresaId;
+        const estado = document.getElementById('re-modal-estado');
+        const rolesDiv = document.getElementById('re-modal-roles');
+        const btn = document.getElementById('re-btn-guardar');
+
+        if (!empresaId) {
+            estado.textContent = 'Selecciona una empresa para ver los roles.';
+            rolesDiv.style.display = 'none';
+            btn.disabled = true;
+            return;
+        }
+
+        estado.innerHTML = '<span class="spinner"></span> Cargando roles...';
+        rolesDiv.style.display = 'none';
+        btn.disabled = true;
+
+        const data = await apiFetch(`/config/habilitacion/${empresaId}`);
+        if (!data.ok) { estado.textContent = '⚠ ' + data.error; return; }
+
+        this._todosRoles   = data.data.todos_roles  || [];
+        this._rolesActivos = data.data.roles_activos || [];
+        const hab = data.data;
+
+        this._renderRoles();
+
+        estado.style.display = 'none';
+        rolesDiv.style.display = '';
+        btn.disabled = false;
+    },
+
+    cerrarModal() {
+        document.getElementById('modal-re').classList.remove('show');
+        this._empresaId = null;
+    },
+
+    _renderRoles() {
+        const grid = document.getElementById('re-checkboxes');
+        if (!this._todosRoles.length) {
+            grid.innerHTML = '<span style="color:rgba(4,34,67,0.4);font-size:.82rem;">No hay roles disponibles.</span>';
+            return;
+        }
+        grid.innerHTML = this._todosRoles.map(rol => {
+            const activo  = this._rolesActivos.includes(String(rol._id));
+            const sistema = rol.es_sistema;
+            return `<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+                        background:rgba(4,34,67,${activo?'0.06':'0.04'});
+                        border:1px solid rgba(4,34,67,${activo?'0.22':'0.08'});
+                        border-radius:10px;cursor:${sistema?'default':'pointer'};
+                        transition:border-color .2s,background .2s;opacity:${sistema?'0.45':'1'};"
+                    title="${sistema?'Rol de sistema — no configurable':''}">
+                <input type="checkbox" data-rol-id="${rol._id}"
+                       ${activo?'checked':''}
+                       ${sistema?'disabled':''}
+                       onchange="RE._onCheck()"
+                       style="width:16px;height:16px;accent-color:#042243;cursor:${sistema?'default':'pointer'};">
+                <div>
+                    <div style="font-size:.82rem;font-weight:600;color:#042243;">${rol.nombre}</div>
+                    ${rol.descripcion?`<div style="font-size:.7rem;color:rgba(4,34,67,0.5);">${rol.descripcion}</div>`:''}
+                </div>
+            </label>`;
+        }).join('');
+    },
+
+    _onCheck() {
+        document.querySelectorAll('#re-checkboxes input[type=checkbox]').forEach(chk => {
+            const lbl = chk.closest('label');
+            if (!lbl) return;
+            lbl.style.borderColor = chk.checked ? 'rgba(4,34,67,0.22)' : 'rgba(4,34,67,0.08)';
+            lbl.style.background  = chk.checked ? 'rgba(4,34,67,0.06)' : 'rgba(4,34,67,0.04)';
+        });
+    },
+
+    async guardar() {
+        if (!this._empresaId) return;
+        const btn = document.getElementById('re-btn-guardar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+        const seleccionados = Array.from(
+            document.querySelectorAll('#re-checkboxes input[type=checkbox]:checked:not(:disabled)')
+        ).map(c => c.dataset.rolId);
+
+        const data = await apiFetch(`/config/habilitacion/${this._empresaId}`, 'POST',
+            { roles_activos: seleccionados });
+
+        btn.disabled = false;
+        btn.innerHTML = '💾 Guardar roles';
+
+        if (!data.ok) { showToast('⚠ ' + data.error, true); return; }
+        showToast('✅ Roles guardados correctamente');
+        this.cerrarModal();
+        await this.init();
+    },
+
+    async eliminar(empresaId, nombre) {
+        if (!confirm(`¿Eliminar la configuración de roles de "${nombre}"?\nEsta acción no se puede deshacer.`)) return;
+        const data = await apiFetch(`/config/habilitacion/${empresaId}`, 'DELETE');
+        if (!data.ok) { showToast('⚠ ' + data.error, true); return; }
+        showToast('✅ Configuración eliminada');
+        await this.init();
+    },
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     cargarCatalogos();
     cargarEmpresas();
@@ -3848,6 +4078,7 @@ document.addEventListener('DOMContentLoaded', () => {
     PLN.init();
     ASOC.init();
     SRV.init();
+    RE.init();
 
     // Restore saved theme (must run before panel restore)
     const savedTema = localStorage.getItem('nidus-tema');

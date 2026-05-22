@@ -68,15 +68,16 @@ class HabilitacionRolController:
         HabilitacionRolModel.migrar_roles_activos_a_ids()
         config = HabilitacionRolModel.obtener_para_empresa(empresa_id)
         return True, {
-            "empresa":       empresa,
-            # excluir_internos=True: SuperAdmin e ImplementadorNidus no aparecen
-            "todos_roles":   RolModel.listar(excluir_internos=True),
-            "roles_activos": config.get("roles_activos", []) if config
-                             else HabilitacionRolModel._ids_roles_default(),
+            "empresa":        empresa,
+            "todos_roles":    RolModel.listar(excluir_internos=True),
+            "roles_activos":  config.get("roles_activos", []) if config else [],
+            "creado_en":         config.get("creado_en")           if config else None,
+            "actualizado_en":    config.get("actualizado_en")      if config else None,
+            "id_actualizado_por":config.get("id_actualizado_por","") if config else "",
         }
 
     @staticmethod
-    def guardar(empresa_id: str, roles_activos: list, actualizado_por: str):
+    def guardar(empresa_id: str, roles_activos: list, usuario_id: str = ""):
         from app.configuracion.empresas.model import EmpresaModel
         if not EmpresaModel.buscar_por_id(empresa_id):
             return False, "Empresa no encontrada"
@@ -84,5 +85,5 @@ class HabilitacionRolController:
         invalidos = [r for r in roles_activos if r not in ids_validos]
         if invalidos:
             return False, f"Roles no reconocidos: {invalidos}"
-        HabilitacionRolModel.guardar(empresa_id, roles_activos, actualizado_por)
+        HabilitacionRolModel.guardar(empresa_id, roles_activos, usuario_id)
         return True, "Habilitación guardada"
