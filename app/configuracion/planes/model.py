@@ -30,8 +30,8 @@ def _generar_plan_id(nombre: str) -> str:
 class PlanModel:
 
     CAMPOS_EDITABLES = {
-        "nombre", "descripcion", "modulos_incluidos", "limites",
-        "precio", "destacado", "orden", "estado",
+        "nombre", "descripcion", "modulos_incluidos", "soporte",
+        "precio", "orden", "estado",
     }
 
     @staticmethod
@@ -41,6 +41,8 @@ class PlanModel:
         PlanModel.migrar_estado_a_id()
         PlanModel.migrar_pais_a_id()
         PlanModel.migrar_soporte_a_id()
+        PlanModel.migrar_limites_a_soporte()
+        PlanModel.eliminar_campo_destacado()
         filtro = {}
         if solo_activos:
             activo = db["estado_planes"].find_one({"nombre": "activo"})
@@ -65,22 +67,16 @@ class PlanModel:
     def crear(datos: dict, creado_por: str) -> str:
         nombre = datos["nombre"].strip()
         doc = {
-            # _id lo asigna MongoDB automáticamente
             "plan_id":           _generar_plan_id(nombre),
             "nombre":            nombre,
             "descripcion":       datos.get("descripcion", "").strip(),
             "modulos_incluidos": datos.get("modulos_incluidos", []),
-            "limites": {
-                "max_usuarios_ph":    int(datos.get("limites", {}).get("max_usuarios_ph",    0)),
-                "max_usuarios_admin": int(datos.get("limites", {}).get("max_usuarios_admin", 0)),
-                "soporte":            datos.get("limites", {}).get("soporte", []),
-            },
+            "soporte":           datos.get("soporte", []),
             "precio": {
                 "valor_copropiedad": float(datos.get("precio", {}).get("valor_copropiedad", 0)),
                 "pais":              datos.get("precio", {}).get("pais",   "").strip(),
                 "moneda":            datos.get("precio", {}).get("moneda", "").strip(),
             },
-            "destacado":      bool(datos.get("destacado", False)),
             "orden":          int(datos.get("orden", 99)),
             "estado":         datos.get("estado", "activo"),
             "creado_en":      datetime.utcnow(),
@@ -199,3 +195,22 @@ class PlanModel:
                 {"_id": doc["_id"]},
                 {"$set": {"limites.soporte": flat}}
             )
+
+    @staticmethod
+    def migrar_limites_a_soporte():
+        """Mueve limites.soporte al campo top-level soporte y elimina limites. Idempotente."""
+        for doc in _col().find({"limites": {"$exists": True}}):
+            soporte_en_limites = doc.get("limites", {}).get("soporte", [])
+            soporte_top = doc.get("soporte")
+            upd: dict = {"$unset": {"limites": ""}}
+            if soporte_en_limites and not soporte_top:
+                upd["$set"] = {"soporte": soporte_en_limites}
+            _col().update_one({"_id": doc["_id"]}, upd)
+
+    @staticmethod
+    def eliminar_campo_destacado():
+        """Elimina el campo 'destacado' de todos los documentos. Idempotente."""
+        _col().update_many(
+            {"destacado": {"$exists": True}},
+            {"$unset": {"destacado": ""}}
+        )

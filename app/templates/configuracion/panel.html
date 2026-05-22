@@ -270,12 +270,11 @@
 
         /* ══ PLAN CARDS ══ */
         .plan-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
-        .plan-card { background:rgba(255,255,255,0.85); border:1.5px solid rgba(4,34,67,0.15); border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:10px; }
-        .plan-card.destacado { border-color:#042243; background:rgba(4,34,67,0.06); }
+        .plan-card { background:#fff; border:1.5px solid rgba(4,34,67,0.1); border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:10px; box-shadow:0 2px 12px rgba(4,34,67,0.08); }
         .plan-card h3 { font-size:1.1rem; font-weight:700; color:#1E2756; }
-        .plan-card .precio { font-size:.9rem; color:#042243; }
+        .plan-card .precio { font-size:.9rem; color:#042243; font-weight:600; }
         .plan-card .modulos { display:flex; flex-wrap:wrap; gap:6px; }
-        .plan-mod { font-size:.68rem; padding:2px 8px; border-radius:12px; background:rgba(4,34,67,0.1); color:#1E2756; }
+        .plan-mod { font-size:.82rem; padding:3px 9px; border-radius:12px; background:rgba(4,34,67,0.08); color:#1E2756; }
 
         /* ══ CUSTOM MULTI-SELECT DROPDOWN ══ */
         .custom-multiselect { position:relative; }
@@ -1245,58 +1244,11 @@
         <div id="cfg-planes" class="config-panel">
             <div class="config-panel-title">📦 <span>Planes</span></div>
             <div class="config-panel-subtitle">Define los planes disponibles, sus módulos incluidos y sus límites de uso.</div>
-
-            <div class="panel-tabs">
-                <div class="ptab active" onclick="PLN.tab(this,'pl-lista')">📋 Planes</div>
-                <div class="ptab" onclick="PLN.tab(this,'pl-form');PLN.limpiar()">➕ Nuevo plan</div>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+                <button class="btn-primary" onclick="PLN.abrirModal()">➕ Nuevo plan</button>
             </div>
-
-            <div id="pl-lista" class="ptab-content active">
-                <div id="plan-cards-container" class="plan-cards">
-                    <div style="padding:32px;text-align:center;color:rgba(255,255,255,.3);font-size:.85rem;grid-column:1/-1;"><span class="spinner"></span> Cargando...</div>
-                </div>
-            </div>
-
-            <div id="pl-form" class="ptab-content">
-                <form id="plan-form">
-                    <input type="hidden" id="plan-id">
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">📦 Identificación del plan</div>
-                        <div class="form-grid-2">
-                            <div class="form-group"><label>Identificador (plan_id) *</label><input class="form-control" id="plan-slug" name="plan_id" placeholder="lite" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')"></div>
-                            <div class="form-group"><label>Nombre *</label><input class="form-control" id="plan-nombre" name="nombre" placeholder="Lite"></div>
-                            <div class="form-group form-full"><label>Descripción</label><textarea class="form-control" id="plan-descripcion" placeholder="Descripción visible para el cliente..."></textarea></div>
-                            <div class="form-group"><label>Orden de visualización</label><input class="form-control" id="plan-orden" type="number" min="1" value="1"></div>
-                            <div class="form-group"><label>Estado</label><select class="form-control" id="plan-estado"><option value="activo">Activo</option><option value="archivado">Archivado</option></select></div>
-                        </div>
-                    </div>
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">💰 Precio</div>
-                        <div class="form-grid-2">
-                            <div class="form-group"><label>Precio mensual (COP)</label><input class="form-control" id="plan-mensual" type="number" min="0" placeholder="150000" oninput="document.getElementById('plan-anual').value=Math.round((parseFloat(this.value)||0)*12)"></div>
-                            <div class="form-group"><label>Precio anual (COP) <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto: mensual × 12)</span></label><input class="form-control" id="plan-anual" type="number" min="0" placeholder="1500000" readonly style="opacity:.7;cursor:not-allowed;"></div>
-                        </div>
-                    </div>
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">🔒 Límites</div>
-                        <div class="form-grid-2">
-                            <div class="form-group"><label>Máx. unidades</label><input class="form-control" id="lim-unidades" type="number" min="0" placeholder="100"></div>
-                            <div class="form-group"><label>Máx. usuarios admin</label><input class="form-control" id="lim-admins" type="number" min="0" placeholder="5"></div>
-                            <div class="form-group"><label>Almacenamiento (MB)</label><input class="form-control" id="lim-almac" type="number" min="0" placeholder="500"></div>
-                            <div class="form-group"><label>Tipo de soporte</label><select class="form-control" id="lim-soporte"><option value="email">Email</option><option value="chat">Chat</option><option value="dedicado">Dedicado</option></select></div>
-                        </div>
-                    </div>
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">📦 Módulos incluidos</div>
-                        <div id="plan-modulos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
-                            <div style="color:rgba(255,255,255,.4);font-size:.8rem;padding:10px;"><span class="spinner"></span> Cargando...</div>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="PLN.tabById('pl-lista')">← Volver</button>
-                        <button type="button" class="btn-primary" id="plan-btn" onclick="PLN.guardar()">💾 <span id="plan-btn-txt">Crear plan</span></button>
-                    </div>
-                </form>
+            <div id="plan-cards-container" class="plan-cards">
+                <div style="padding:32px;text-align:center;color:rgba(30,39,86,.4);font-size:.85rem;grid-column:1/-1;"><span class="spinner"></span> Cargando...</div>
             </div>
         </div><!-- /cfg-planes -->
 
@@ -1643,6 +1595,36 @@
             <button type="button" class="btn-primary" id="srv-btn" onclick="SRV.guardar()">
                 💾 <span id="srv-btn-txt">Crear Servicio</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Planes (crear / editar) -->
+<div class="modal-overlay" id="modal-pln">
+    <div class="modal-box" style="width:clamp(360px,95vw,640px);max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+        <div class="modal-title" id="modal-pln-title" style="padding:20px 24px 16px;border-bottom:1px solid rgba(4,34,67,0.1);flex-shrink:0;">➕ Nuevo Plan</div>
+        <input type="hidden" id="plan-id">
+        <div style="overflow-y:auto;flex:1;padding:16px 24px;">
+            <div class="form-grid-2" style="margin-bottom:14px;">
+                <div class="form-group"><label>Nombre *</label><input class="form-control" id="plan-nombre" placeholder="Lite"></div>
+                <div class="form-group"><label>Orden</label><input class="form-control" id="plan-orden" type="number" min="1" value="1"></div>
+                <div class="form-group form-full"><label>Descripción</label><textarea class="form-control" id="plan-descripcion" rows="2" placeholder="Descripción visible para el cliente..."></textarea></div>
+                <div class="form-group"><label>Estado</label><select class="form-control" id="plan-estado"></select></div>
+            </div>
+            <div style="font-size:.75rem;font-weight:700;color:rgba(4,34,67,0.5);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">💰 Precio por copropiedad</div>
+            <div class="form-grid-2" style="margin-bottom:14px;">
+                <div class="form-group"><label>Valor *</label><input class="form-control" id="plan-precio-valor" type="number" min="0" placeholder="150000"></div>
+                <div class="form-group"><label>País</label><select class="form-control" id="plan-pais" onchange="PLN._syncMoneda(this.value)"></select></div>
+                <div class="form-group"><label>Moneda</label><input class="form-control" id="plan-moneda" readonly style="opacity:.7;cursor:not-allowed;"></div>
+            </div>
+            <div style="font-size:.75rem;font-weight:700;color:rgba(4,34,67,0.5);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">📞 Canales de soporte</div>
+            <div id="plan-soporte-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:14px;"></div>
+            <div style="font-size:.75rem;font-weight:700;color:rgba(4,34,67,0.5);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">📦 Módulos incluidos</div>
+            <div id="plan-modulos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:8px;"></div>
+        </div>
+        <div class="modal-actions" style="padding:16px 24px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
+            <button type="button" class="btn-secondary" onclick="PLN.cerrarModal()">Cancelar</button>
+            <button type="button" class="btn-primary" id="plan-btn" onclick="PLN.guardar()">💾 <span id="plan-btn-txt">Crear plan</span></button>
         </div>
     </div>
 </div>
@@ -3326,42 +3308,62 @@ async function eliminarMedioPago(configId, empresaId) {
 // ══════════════════════════════════════════════════════════════════════════
 
 const PLN = {
-    _data: [], _modulos: [],
-
-    tab(el, id) {
-        const panel = document.getElementById('cfg-planes');
-        el.closest('.panel-tabs').querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-        panel.querySelectorAll('.ptab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById(id)?.classList.add('active');
-    },
-
-    tabById(id) {
-        const panel = document.getElementById('cfg-planes');
-        const ids = ['pl-lista', 'pl-form'];
-        panel.querySelectorAll('.ptab-content').forEach(c => c.classList.remove('active'));
-        panel.querySelectorAll('.ptab').forEach((t, i) => {
-            t.classList.remove('active');
-            if (ids[i] === id) t.classList.add('active');
-        });
-        document.getElementById(id)?.classList.add('active');
-    },
+    _data: [], _modulos: [], _estados: [], _paises: [], _canales: [],
 
     async init() {
-        await Promise.all([this.listar(), this.cargarModulos()]);
+        await this.cargarCatalogos();
+        await this.listar();
     },
 
-    async cargarModulos() {
-        const d = await apiFetch('/config/servicios');
-        this._modulos = d.ok ? d.data.filter(s => s.activo).map(s => s.nombre) : [];
+    async cargarCatalogos() {
+        const [dSrv, dEst, dPais, dCan] = await Promise.all([
+            apiFetch('/config/servicios'),
+            apiFetch('/config/estado_planes'),
+            apiFetch('/config/tipo_moneda'),
+            apiFetch('/config/canales_soporte'),
+        ]);
+        this._modulos = dSrv.ok  ? dSrv.data.filter(s => s.activo) : [];
+        this._estados = dEst.ok  ? dEst.data  : [];
+        this._paises  = dPais.ok ? dPais.data  : [];
+        this._canales = dCan.ok  ? dCan.data   : [];
         this.renderModulos([]);
+        this.renderSoporte([]);
+        this.renderEstadoOpts('');
+        this.renderPaisOpts('');
     },
 
     renderModulos(sel = []) {
         document.getElementById('plan-modulos-grid').innerHTML = this._modulos.map(m => {
-            const id = 'pm-' + m.replace(/\s/g, '_');
-            return `<div class="modulo-check"><input type="checkbox" id="${id}" value="${m}" ${sel.includes(m) ? 'checked' : ''}><label for="${id}">${m}</label></div>`;
-        }).join('');
+            const id = 'pm-' + m._id;
+            return `<div class="modulo-check"><input type="checkbox" id="${id}" value="${m._id}" ${sel.includes(String(m._id)) ? 'checked' : ''}><label for="${id}">${m.nombre}</label></div>`;
+        }).join('') || '<div style="color:rgba(255,255,255,.4);font-size:.8rem;padding:10px;">Sin módulos disponibles</div>';
+    },
+
+    renderSoporte(sel = []) {
+        document.getElementById('plan-soporte-grid').innerHTML = this._canales.map(c => {
+            const id = 'pcs-' + c._id;
+            return `<div class="modulo-check"><input type="checkbox" id="${id}" value="${c._id}" ${sel.includes(String(c._id)) ? 'checked' : ''}><label for="${id}">${c.nombre}</label></div>`;
+        }).join('') || '<div style="color:rgba(255,255,255,.4);font-size:.8rem;padding:10px;">Sin canales disponibles</div>';
+    },
+
+    renderEstadoOpts(selId) {
+        document.getElementById('plan-estado').innerHTML = this._estados.map(e =>
+            `<option value="${e._id}" ${String(e._id) === selId ? 'selected' : ''}>${e.nombre}</option>`
+        ).join('') || '<option value="">Sin estados</option>';
+    },
+
+    renderPaisOpts(selId) {
+        document.getElementById('plan-pais').innerHTML =
+            '<option value="">— País / moneda —</option>' +
+            this._paises.map(p =>
+                `<option value="${p._id}" data-moneda="${p.abreviatura||''}" ${String(p._id) === selId ? 'selected' : ''}>${p.pais_uso}</option>`
+            ).join('');
+        this._syncMoneda(selId);
+    },
+
+    _syncMoneda(paisId) {
+        const opt = [...document.querySelectorAll('#plan-pais option')].find(o => o.value === paisId);
+        document.getElementById('plan-moneda').value = opt?.dataset.moneda || '';
     },
 
     async listar() {
@@ -3373,74 +3375,97 @@ const PLN = {
             container.innerHTML = '<div style="padding:32px;text-align:center;color:rgba(255,255,255,.3);grid-column:1/-1;">No hay planes registrados</div>';
             return;
         }
-        container.innerHTML = this._data.map(p => `
-            <div class="plan-card ${p.destacado ? 'destacado' : ''}">
+        container.innerHTML = this._data.map(p => {
+            const estadoDoc  = this._estados.find(e => String(e._id) === String(p.estado));
+            const estadoNom  = estadoDoc?.nombre || p.estado || '—';
+            const esActivo   = estadoNom === 'activo';
+            const sopNombres = (p.soporte||[]).map(cid => {
+                const can = this._canales.find(c => String(c._id) === String(cid));
+                return can ? can.nombre : cid;
+            });
+            return `
+            <div class="plan-card">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                     <h3>${p.nombre}</h3>
                     <div style="display:flex;gap:6px;">
                         <button class="btn-icon btn-icon-edit" onclick="PLN.editar('${p._id}')">✏️</button>
-                        <button class="btn-icon btn-icon-del" onclick="PLN.archivar('${p._id}')">🗑️</button>
+                        <button class="btn-icon btn-icon-del" onclick="PLN.archivar('${p._id}','${(p.nombre||'').replace(/'/g,"\\'")}')">🗑️</button>
                     </div>
                 </div>
-                <div class="precio">💰 $${(p.precio?.mensual||0).toLocaleString()} / mes · $${(p.precio?.anual||0).toLocaleString()} / año</div>
-                <div style="font-size:.78rem;color:rgba(255,255,255,.5);">${p.descripcion||''}</div>
-                <div class="modulos">${(p.modulos_incluidos||[]).map(m=>`<span class="plan-mod">${m}</span>`).join('')}</div>
-                <div style="font-size:.72rem;color:rgba(255,255,255,.4);">
-                    Máx. ${p.limites?.max_unidades||'—'} unidades · ${p.limites?.max_usuarios_admin||'—'} admins · ${p.limites?.soporte||'—'}
-                </div>
-                <span style="font-size:.68rem;padding:2px 8px;border-radius:12px;background:${p.estado==='activo'?'rgba(0,255,136,.1)':'rgba(255,80,80,.1)'};color:${p.estado==='activo'?'#00ff88':'#ff5050'};border:1px solid ${p.estado==='activo'?'rgba(0,255,136,.3)':'rgba(255,80,80,.3)'};">${p.estado}</span>
-            </div>`).join('');
+                <div class="precio">💰 $${(p.precio?.valor_copropiedad||0).toLocaleString()} / copropiedad</div>
+                ${p.descripcion ? `<div style="font-size:.78rem;color:rgba(30,39,86,0.55);">
+                    <span class="desc-short">${p.descripcion.length > 80 ? p.descripcion.slice(0,80) + '…' : p.descripcion}</span>
+                    ${p.descripcion.length > 80 ? `<span class="desc-full" style="display:none;">${p.descripcion}</span>
+                    <span class="desc-toggle" onclick="(function(el){const s=el.previousElementSibling.previousElementSibling;const f=el.previousElementSibling;const expanded=f.style.display!=='none';s.style.display=expanded?'':'none';f.style.display=expanded?'none':'';el.textContent=expanded?'ver más':'ver menos';})(this)" style="color:#042243;cursor:pointer;font-weight:600;margin-left:2px;">ver más</span>` : ''}
+                </div>` : ''}
+                <div class="modulos">${(p.modulos_incluidos||[]).map(mid => {
+                    const srv = this._modulos.find(m => String(m._id) === String(mid));
+                    return srv ? `<span class="plan-mod" title="${srv.nombre}">${srv.icono||'📋'}</span>` : '';
+                }).join('')}</div>
+                ${sopNombres.length ? `<div style="font-size:.72rem;color:rgba(30,39,86,0.45);margin-top:6px;">📞 ${sopNombres.join(' · ')}</div>` : ''}
+                <span style="font-size:.68rem;padding:2px 8px;border-radius:12px;background:${esActivo?'rgba(0,255,136,.1)':'rgba(255,80,80,.1)'};color:${esActivo?'#00ff88':'#ff5050'};border:1px solid ${esActivo?'rgba(0,255,136,.3)':'rgba(255,80,80,.3)'};">${estadoNom}</span>
+            </div>`;
+        }).join('');
+    },
+
+    abrirModal() {
+        this.limpiar();
+        document.getElementById('modal-pln-title').textContent = '➕ Nuevo Plan';
+        document.getElementById('plan-btn-txt').textContent = 'Crear plan';
+        document.getElementById('modal-pln').classList.add('show');
+    },
+
+    cerrarModal() {
+        document.getElementById('modal-pln').classList.remove('show');
     },
 
     limpiar() {
         document.getElementById('plan-id').value = '';
-        document.getElementById('plan-form').reset();
-        document.getElementById('plan-slug').disabled = false;
-        document.getElementById('plan-btn-txt').textContent = 'Crear plan';
+        document.getElementById('plan-nombre').value = '';
+        document.getElementById('plan-descripcion').value = '';
+        document.getElementById('plan-orden').value = 1;
+        document.getElementById('plan-precio-valor').value = '';
+        document.getElementById('plan-moneda').value = '';
         this.renderModulos([]);
+        this.renderSoporte([]);
+        this.renderEstadoOpts('');
+        this.renderPaisOpts('');
     },
 
     async editar(id) {
         const p = this._data.find(x => x._id === id);
         if (!p) return;
-        this.tabById('pl-form');
         document.getElementById('plan-id').value = id;
-        document.getElementById('plan-slug').value = p.plan_id || '';
-        document.getElementById('plan-slug').disabled = true;
         document.getElementById('plan-nombre').value = p.nombre || '';
         document.getElementById('plan-descripcion').value = p.descripcion || '';
         document.getElementById('plan-orden').value = p.orden || 1;
-        document.getElementById('plan-estado').value = p.estado || 'activo';
-        document.getElementById('plan-mensual').value = p.precio?.mensual || 0;
-        document.getElementById('plan-anual').value = p.precio?.anual || 0;
-        document.getElementById('lim-unidades').value = p.limites?.max_unidades || 0;
-        document.getElementById('lim-admins').value = p.limites?.max_usuarios_admin || 0;
-        document.getElementById('lim-almac').value = p.limites?.max_almac_mb || 0;
-        document.getElementById('lim-soporte').value = p.limites?.soporte || 'email';
-        this.renderModulos(p.modulos_incluidos || []);
+        this.renderEstadoOpts(String(p.estado || ''));
+        this.renderPaisOpts(String(p.precio?.pais || ''));
+        document.getElementById('plan-precio-valor').value = p.precio?.valor_copropiedad || 0;
+        this.renderModulos((p.modulos_incluidos||[]).map(String));
+        this.renderSoporte((p.soporte||[]).map(String));
+        document.getElementById('modal-pln-title').textContent = '✏️ Editar Plan';
         document.getElementById('plan-btn-txt').textContent = 'Actualizar plan';
+        document.getElementById('modal-pln').classList.add('show');
     },
 
     async guardar() {
-        const id = document.getElementById('plan-id').value;
+        const id      = document.getElementById('plan-id').value;
+        const nombre  = document.getElementById('plan-nombre').value.trim();
+        if (!nombre) { showToast('❌ El nombre es obligatorio', true); return; }
         const modulos = [...document.querySelectorAll('#plan-modulos-grid input:checked')].map(c => c.value);
+        const soporte = [...document.querySelectorAll('#plan-soporte-grid input:checked')].map(c => c.value);
         const payload = {
-            plan_id:     document.getElementById('plan-slug').value.trim(),
-            nombre:      document.getElementById('plan-nombre').value.trim(),
+            nombre,
             descripcion: document.getElementById('plan-descripcion').value.trim(),
             orden:       parseInt(document.getElementById('plan-orden').value) || 1,
             estado:      document.getElementById('plan-estado').value,
             precio: {
-                mensual: parseInt(document.getElementById('plan-mensual').value) || 0,
-                anual:   Math.round((parseInt(document.getElementById('plan-mensual').value) || 0) * 12),
-                moneda:  'COP',
+                valor_copropiedad: parseFloat(document.getElementById('plan-precio-valor').value) || 0,
+                pais:              document.getElementById('plan-pais').value,
+                moneda:            document.getElementById('plan-moneda').value,
             },
-            limites: {
-                max_unidades:       parseInt(document.getElementById('lim-unidades').value) || 0,
-                max_usuarios_admin: parseInt(document.getElementById('lim-admins').value) || 0,
-                max_almac_mb:       parseInt(document.getElementById('lim-almac').value) || 0,
-                soporte:            document.getElementById('lim-soporte').value,
-            },
+            soporte,
             modulos_incluidos: modulos,
         };
         const btn = document.getElementById('plan-btn');
@@ -3451,17 +3476,21 @@ const PLN = {
         btn.disabled = false;
         if (d.ok) {
             showToast('✅ Plan ' + (id ? 'actualizado' : 'creado'));
+            this.cerrarModal();
             await this.listar();
             await cargarCatalogos();
-            this.tabById('pl-lista');
-            this.limpiar();
         } else {
             showToast('❌ ' + d.error, true);
         }
     },
 
-    async archivar(id) {
-        if (!confirm('¿Archivar este plan? Las empresas que ya lo tienen no se verán afectadas.')) return;
+    async archivar(id, nombre) {
+        const ok = await confirmar(
+            '🗑️ Eliminar plan',
+            `¿Eliminar el plan "${nombre}"?\nLas empresas que ya lo tienen no se verán afectadas.`,
+            '🗑️ Eliminar'
+        );
+        if (!ok) return;
         const check = await apiFetch(`/config/planes/${id}/en_uso`);
         if (check.ok && check.data?.en_uso) {
             showToast(`⚠️ ${check.data.mensaje}`, true);
@@ -3469,7 +3498,7 @@ const PLN = {
         }
         const d = await apiFetch(`/config/planes/${id}`, 'DELETE');
         if (d.ok) {
-            showToast('✅ Plan archivado');
+            showToast('✅ Plan eliminado');
             await this.listar();
             await cargarCatalogos();
         }
@@ -3831,7 +3860,7 @@ const SRV = {
         if (d.ok) {
             showToast('✅ Estado actualizado');
             await this.listar();
-            await PLN.cargarModulos();
+            await PLN.cargarCatalogos();
             await cargarModulosSistema();
         } else showToast('❌ ' + d.error, true);
     },
@@ -3891,6 +3920,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('modal-srv').addEventListener('click', function(e) {
         if (e.target === this) SRV.cerrarModal();
+    });
+    document.getElementById('modal-pln').addEventListener('click', function(e) {
+        if (e.target === this) PLN.cerrarModal();
     });
 });
 

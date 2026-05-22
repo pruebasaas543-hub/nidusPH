@@ -36,13 +36,9 @@ class PlanController:
         if invalidos:
             return False, f"Módulos no válidos: {invalidos}"
 
-        limites = datos.get("limites", {})
-        if not isinstance(limites, dict):
-            return False, "limites debe ser un objeto"
-
-        soporte = limites.get("soporte", [])
+        soporte = datos.get("soporte", [])
         if not isinstance(soporte, list):
-            return False, "limites.soporte debe ser una lista"
+            return False, "soporte debe ser una lista"
 
         precio = datos.get("precio", {})
         if not isinstance(precio, dict):
@@ -66,9 +62,8 @@ class PlanController:
             if invalidos:
                 return False, f"Módulos no válidos: {invalidos}"
 
-        if "limites" in datos and "soporte" in datos["limites"]:
-            if not isinstance(datos["limites"]["soporte"], list):
-                return False, "limites.soporte debe ser una lista"
+        if "soporte" in datos and not isinstance(datos["soporte"], list):
+            return False, "soporte debe ser una lista"
 
         PlanModel.actualizar(plan_id, datos)
         return True, "Plan actualizado correctamente"
