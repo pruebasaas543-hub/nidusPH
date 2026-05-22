@@ -260,6 +260,7 @@
             .slug-prefix { border-radius:8px 8px 0 0; border-bottom:none; padding:8px 12px; }
             .slug-input-wrap .form-control { border-radius:0 0 8px 8px; border-left:1.5px solid rgba(4,34,67,.4); }
             .theme-grid { grid-template-columns:1fr 1fr; gap:10px; }
+            .col-sm-hide { display:none; }
         }
         @media (max-width: 380px) {
             .topbar-brand { display:none; }
@@ -684,11 +685,11 @@
                         <thead>
                             <tr>
                                 <th>Nombre</th>
-                                <th>Descripción</th>
+                                <th class="col-sm-hide">Descripción</th>
                                 <th>Módulos</th>
-                                <th>Tipo</th>
+                                <th class="col-sm-hide">Tipo</th>
                                 <th>Estado</th>
-                                <th>Acciones</th>
+                                <th style="text-align:center;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-roles">
@@ -2789,21 +2790,27 @@ async function cargarRoles() {
     tbody.innerHTML = _rolesData.map(r => {
         const modNombres = (r.modulos||[]).map(mid => {
             const srv = _modulosSistema.find(m => String(m._id) === String(mid));
-            return srv ? `<span style="font-size:.68rem;padding:2px 7px;border-radius:10px;background:rgba(4,34,67,0.08);color:#1E2756;">${srv.icono||'📋'} ${srv.nombre}</span>` : '';
+            return srv ? `<span title="${srv.nombre}" style="font-size:1.1rem;">${srv.icono||'📋'}</span>` : '';
         }).filter(Boolean);
         const modHtml = modNombres.length
-            ? modNombres.slice(0,3).join(' ') + (modNombres.length > 3 ? `<span style="font-size:.68rem;color:rgba(30,39,86,.4);"> +${modNombres.length-3}</span>` : '')
+            ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">${modNombres.join('')}</div>`
             : '<span style="color:rgba(30,39,86,.3);font-size:.75rem;">—</span>';
         return `<tr>
             <td><strong>${r.nombre}</strong></td>
-            <td style="font-size:0.8rem;color:rgba(30,39,86,0.6);">${r.descripcion || '—'}</td>
+            <td class="col-sm-hide" style="font-size:0.8rem;color:rgba(30,39,86,0.6);">${r.descripcion || '—'}</td>
             <td style="font-size:0.78rem;">${modHtml}</td>
-            <td>${r.es_sistema ? '<span class="badge badge-active">Sistema</span>' : '<span class="badge badge-pending">Personalizado</span>'}</td>
+            <td class="col-sm-hide">${r.es_sistema ? '<span class="badge badge-active">Sistema</span>' : '<span class="badge badge-pending">Personalizado</span>'}</td>
             <td>${r.activo ? '<span class="badge badge-active">Activo</span>' : '<span class="badge badge-inactive">Inactivo</span>'}</td>
-            <td style="display:flex;gap:6px;">
-                ${!r.es_sistema ? `<button class="btn-icon btn-icon-edit" title="Editar" onclick="abrirEdicionRol('${r._id}')">✏️</button>` : ''}
-                ${r.activo && !r.es_sistema ? `<button class="btn-icon btn-icon-del" title="Inactivar" onclick="cambiarEstadoRol('${r._id}',false,'${r.nombre.replace(/'/g,"\\'")}')">🔴</button>` : ''}
-                ${!r.activo && !r.es_sistema ? `<button class="btn-icon btn-icon-ok" title="Activar" onclick="cambiarEstadoRol('${r._id}',true,'${r.nombre.replace(/'/g,"\\'")}')">🟢</button>` : ''}
+            <td>
+                <div style="display:flex;gap:6px;align-items:center;justify-content:center;">
+                ${r.es_sistema
+                    ? `<span title="Rol protegido del sistema" style="font-size:.72rem;padding:3px 10px;border-radius:12px;background:rgba(4,34,67,0.07);color:rgba(4,34,67,0.4);border:1px solid rgba(4,34,67,0.12);white-space:nowrap;">🔒 Protegido</span>`
+                    : `<button class="btn-icon btn-icon-edit" title="Editar" onclick="abrirEdicionRol('${r._id}')">✏️</button>
+                       <button class="btn-icon ${r.activo ? 'btn-icon-del' : 'btn-icon-ok'}" title="${r.activo ? 'Inactivar' : 'Activar'}" onclick="cambiarEstadoRol('${r._id}',${!r.activo},'${r.nombre.replace(/'/g,"\\'")}')">
+                           ${r.activo ? '🔴' : '🟢'}
+                       </button>`
+                }
+                </div>
             </td>
         </tr>`;
     }).join('');
