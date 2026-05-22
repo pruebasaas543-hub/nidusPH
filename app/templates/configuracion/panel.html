@@ -671,88 +671,31 @@
         <div id="cfg-roles" class="config-panel">
             <div class="config-panel-title">🛡️ <span>Gestión de</span> Roles</div>
             <div class="config-panel-subtitle">Administra los roles del sistema y los permisos de acceso a módulos por rol.</div>
-
-            <div class="panel-tabs">
-                <div class="ptab active" onclick="switchPTab(this,'roles-lista')">📋 Roles registrados</div>
-                <div class="ptab" onclick="switchPTab(this,'roles-form');limpiarFormRol()">➕ Nuevo rol</div>
-            </div>
-
-            <!-- ── LISTA ─────────────────────────────────────────── -->
-            <div class="ptab-content active" id="roles-lista">
-                <div class="config-form-card">
-                    <div class="table-toolbar">
-                        <div class="table-search">
-                            <span>🔍</span>
-                            <input type="text" placeholder="Buscar rol..." oninput="filterTable('tbl-roles',this.value)">
-                        </div>
-                        <button class="btn-primary" onclick="switchPTabById('roles-form');limpiarFormRol()">➕ Nuevo rol</button>
+            <div class="config-form-card">
+                <div class="table-toolbar">
+                    <div class="table-search">
+                        <span>🔍</span>
+                        <input type="text" placeholder="Buscar rol..." oninput="filterTable('tbl-roles',this.value)">
                     </div>
-                    <div class="data-table-wrap">
-                        <table class="data-table" id="tbl-roles">
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Nivel</th>
-                                    <th>Descripción</th>
-                                    <th>Módulos</th>
-                                    <th>Tipo</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-roles">
-                                <tr><td colspan="7" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <button class="btn-primary" onclick="abrirModalRol()">➕ Nuevo rol</button>
                 </div>
-            </div>
-
-            <!-- ── FORMULARIO ──────────────────────────────────────── -->
-            <div class="ptab-content" id="roles-form">
-                <form id="form-rol">
-                    <input type="hidden" id="rol-id" value="">
-
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">🛡️ Datos del Rol</div>
-                        <div class="form-grid-2">
-                            <div class="form-group">
-                                <label>Nombre del Rol *</label>
-                                <input class="form-control" id="rol-nombre" name="nombre" type="text" placeholder="Ej: Contador" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Nivel Jerárquico *</label>
-                                <select class="form-control" id="rol-nivel" name="nivel" required>
-                                    <option value="">— Seleccione nivel —</option>
-                                    <option value="N1">N1 - Administrador total</option>
-                                    <option value="N2">N2 - Administrador de empresa</option>
-                                    <option value="N3">N3 - Operativo</option>
-                                    <option value="N4">N4 - Usuario final</option>
-                                    <option value="N5">N5 - Temporal</option>
-                                </select>
-                            </div>
-                            <div class="form-group form-full">
-                                <label>Descripción</label>
-                                <textarea class="form-control" id="rol-descripcion" name="descripcion" placeholder="Descripción del rol y sus responsabilidades..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">📦 Habilitación de Módulos</div>
-                        <p style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:14px;">Selecciona los módulos a los que tendrá acceso este rol. La lista se alimenta de los módulos configurados en el sistema.</p>
-                        <div id="modulos-check-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
-                            <div style="color:rgba(255,255,255,0.4);font-size:0.8rem;padding:10px;"><span class="spinner"></span> Cargando módulos...</div>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="switchPTabById('roles-lista')">← Volver</button>
-                        <button type="button" class="btn-primary" id="btn-guardar-rol" onclick="guardarRol()">
-                            💾 <span id="btn-guardar-rol-txt">Crear Rol</span>
-                        </button>
-                    </div>
-                </form>
+                <div class="data-table-wrap">
+                    <table class="data-table" id="tbl-roles">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Módulos</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-roles">
+                            <tr><td colspan="6" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div><!-- /cfg-roles -->
 
@@ -1595,6 +1538,28 @@
             <button type="button" class="btn-primary" id="srv-btn" onclick="SRV.guardar()">
                 💾 <span id="srv-btn-txt">Crear Servicio</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Roles (crear / editar) -->
+<div class="modal-overlay" id="modal-rol">
+    <div class="modal-box" style="width:clamp(340px,95vw,560px);max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+        <div class="modal-title" id="modal-rol-title" style="padding:20px 24px 16px;border-bottom:1px solid rgba(4,34,67,0.1);flex-shrink:0;">➕ Nuevo Rol</div>
+        <input type="hidden" id="rol-id">
+        <div style="overflow-y:auto;flex:1;padding:16px 24px;">
+            <div class="form-grid-2" style="margin-bottom:14px;">
+                <div class="form-group form-full"><label>Nombre *</label><input class="form-control" id="rol-nombre" type="text" placeholder="Ej: Contador"></div>
+                <div class="form-group form-full"><label>Descripción</label><textarea class="form-control" id="rol-descripcion" rows="2" placeholder="Descripción del rol y sus responsabilidades..."></textarea></div>
+            </div>
+            <div style="font-size:.75rem;font-weight:700;color:rgba(4,34,67,0.5);text-transform:uppercase;letter-spacing:1px;margin:4px 0 10px;">📦 Módulos habilitados</div>
+            <div id="modulos-check-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:8px;">
+                <div style="color:rgba(30,39,86,.4);font-size:.8rem;"><span class="spinner"></span> Cargando...</div>
+            </div>
+        </div>
+        <div class="modal-actions" style="padding:16px 24px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
+            <button type="button" class="btn-secondary" onclick="cerrarModalRol()">Cancelar</button>
+            <button type="button" class="btn-primary" id="btn-guardar-rol" onclick="guardarRol()">💾 <span id="btn-guardar-rol-txt">Crear Rol</span></button>
         </div>
     </div>
 </div>
@@ -2816,35 +2781,38 @@ let _modulosSistema = [];
 async function cargarRoles() {
     const tbody = document.getElementById('tbody-roles');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>';
     const data = await apiFetch('/config/roles?todos=1');
-    if (!data.ok) { tbody.innerHTML = '<tr><td colspan="7" class="data-table-empty">Error al cargar roles</td></tr>'; return; }
+    if (!data.ok) { tbody.innerHTML = '<tr><td colspan="6" class="data-table-empty">Error al cargar roles</td></tr>'; return; }
     _rolesData = data.data || [];
-    if (!_rolesData.length) { tbody.innerHTML = '<tr><td colspan="7" class="data-table-empty">No hay roles registrados</td></tr>'; return; }
-    tbody.innerHTML = _rolesData.map(r => `
-        <tr>
+    if (!_rolesData.length) { tbody.innerHTML = '<tr><td colspan="6" class="data-table-empty">No hay roles registrados</td></tr>'; return; }
+    tbody.innerHTML = _rolesData.map(r => {
+        const modNombres = (r.modulos||[]).map(mid => {
+            const srv = _modulosSistema.find(m => String(m._id) === String(mid));
+            return srv ? `<span style="font-size:.68rem;padding:2px 7px;border-radius:10px;background:rgba(4,34,67,0.08);color:#1E2756;">${srv.icono||'📋'} ${srv.nombre}</span>` : '';
+        }).filter(Boolean);
+        const modHtml = modNombres.length
+            ? modNombres.slice(0,3).join(' ') + (modNombres.length > 3 ? `<span style="font-size:.68rem;color:rgba(30,39,86,.4);"> +${modNombres.length-3}</span>` : '')
+            : '<span style="color:rgba(30,39,86,.3);font-size:.75rem;">—</span>';
+        return `<tr>
             <td><strong>${r.nombre}</strong></td>
-            <td><span class="badge badge-pending">${r.nivel || '—'}</span></td>
-            <td style="color:rgba(255,255,255,0.6);font-size:0.8rem;">${r.descripcion || '—'}</td>
-            <td style="font-size:0.78rem;color:rgba(0,212,255,0.8);">${(r.modulos||[]).slice(0,3).join(', ')}${(r.modulos||[]).length>3?'...':''}</td>
-            <td>${r.es_sistema ? '<span class="badge badge-active">Sistema</span>' : '<span class="badge badge-pending">Empresa</span>'}</td>
+            <td style="font-size:0.8rem;color:rgba(30,39,86,0.6);">${r.descripcion || '—'}</td>
+            <td style="font-size:0.78rem;">${modHtml}</td>
+            <td>${r.es_sistema ? '<span class="badge badge-active">Sistema</span>' : '<span class="badge badge-pending">Personalizado</span>'}</td>
             <td>${r.activo ? '<span class="badge badge-active">Activo</span>' : '<span class="badge badge-inactive">Inactivo</span>'}</td>
             <td style="display:flex;gap:6px;">
                 ${!r.es_sistema ? `<button class="btn-icon btn-icon-edit" title="Editar" onclick="abrirEdicionRol('${r._id}')">✏️</button>` : ''}
-                ${r.activo && !r.es_sistema ? `<button class="btn-icon btn-icon-del" title="Inactivar" onclick="cambiarEstadoRol('${r._id}',false)">🔴</button>` : ''}
-                ${!r.activo && !r.es_sistema ? `<button class="btn-icon btn-icon-ok" title="Activar" onclick="cambiarEstadoRol('${r._id}',true)">🟢</button>` : ''}
+                ${r.activo && !r.es_sistema ? `<button class="btn-icon btn-icon-del" title="Inactivar" onclick="cambiarEstadoRol('${r._id}',false,'${r.nombre.replace(/'/g,"\\'")}')">🔴</button>` : ''}
+                ${!r.activo && !r.es_sistema ? `<button class="btn-icon btn-icon-ok" title="Activar" onclick="cambiarEstadoRol('${r._id}',true,'${r.nombre.replace(/'/g,"\\'")}')">🟢</button>` : ''}
             </td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
 }
 
 async function cargarModulosSistema() {
     try {
         const data = await apiFetch('/config/servicios');
-        if (data.ok && data.data && data.data.length) {
-            _modulosSistema = data.data.filter(s => s.activo).map(s => s.nombre);
-        } else {
-            _modulosSistema = [];
-        }
+        _modulosSistema = (data.ok && data.data) ? data.data.filter(s => s.activo) : [];
     } catch(e) {
         _modulosSistema = [];
     }
@@ -2855,105 +2823,84 @@ function renderModulosCheckboxes(seleccionados = []) {
     const grid = document.getElementById('modulos-check-grid');
     if (!grid) return;
     grid.innerHTML = _modulosSistema.map(mod => {
-        const checked = seleccionados.includes(mod) ? 'checked' : '';
-        const id = `chk-mod-${mod.replace(/\s/g,'_')}`;
+        const checked = seleccionados.includes(String(mod._id)) ? 'checked' : '';
+        const id = `chk-mod-${mod._id}`;
         return `<div class="modulo-check">
-            <input type="checkbox" id="${id}" name="modulos" value="${mod}" ${checked}>
-            <label for="${id}">${mod}</label>
+            <input type="checkbox" id="${id}" name="modulos" value="${mod._id}" ${checked}>
+            <label for="${id}">${mod.icono||'📋'} ${mod.nombre}</label>
         </div>`;
-    }).join('');
+    }).join('') || '<div style="color:rgba(30,39,86,.4);font-size:.8rem;">Sin módulos disponibles</div>';
 }
 
-function limpiarFormRol() {
+function abrirModalRol() {
     document.getElementById('rol-id').value = '';
     document.getElementById('rol-nombre').value = '';
-    document.getElementById('rol-nivel').value = '';
     document.getElementById('rol-descripcion').value = '';
+    document.getElementById('modal-rol-title').textContent = '➕ Nuevo Rol';
     document.getElementById('btn-guardar-rol-txt').textContent = 'Crear Rol';
     renderModulosCheckboxes([]);
+    document.getElementById('modal-rol').classList.add('show');
+}
+
+function cerrarModalRol() {
+    document.getElementById('modal-rol').classList.remove('show');
 }
 
 async function guardarRol() {
-    const rolId = document.getElementById('rol-id').value;
+    const rolId  = document.getElementById('rol-id').value;
     const nombre = document.getElementById('rol-nombre').value.trim();
-    const nivel = document.getElementById('rol-nivel').value;
-    const descripcion = document.getElementById('rol-descripcion').value.trim();
-    const modulos = [...document.querySelectorAll('#modulos-check-grid input[type="checkbox"]:checked')].map(c => c.value);
-
-    if (!nombre || !nivel) { showToast('❌ Nombre y nivel son obligatorios', true); return; }
-
+    if (!nombre) { showToast('❌ El nombre es obligatorio', true); return; }
+    const modulos = [...document.querySelectorAll('#modulos-check-grid input:checked')].map(c => c.value);
+    const payload = { nombre, descripcion: document.getElementById('rol-descripcion').value.trim(), modulos };
     const btn = document.getElementById('btn-guardar-rol');
     btn.disabled = true;
-
-    const payload = { nombre, nivel, descripcion, modulos };
-    let res, json;
-    try {
-        if (rolId) {
-            res = await fetch(`/config/roles/${rolId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        } else {
-            res = await fetch('/config/roles', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        }
-        json = await res.json();
-        if (json.ok) {
-            showToast('✅ Rol ' + (rolId ? 'actualizado' : 'creado') + ' correctamente');
-            await cargarRoles();
-            await cargarRolesParaUsuarios();
-            switchPTabById('roles-lista');
-            limpiarFormRol();
-        } else {
-            showToast('❌ ' + (json.error || 'Error'), true);
-        }
-    } catch(e) {
-        showToast('❌ Error: ' + e.message, true);
-    } finally {
-        btn.disabled = false;
+    const d = rolId
+        ? await apiFetch(`/config/roles/${rolId}`, 'PUT', payload)
+        : await apiFetch('/config/roles', 'POST', payload);
+    btn.disabled = false;
+    if (d.ok) {
+        showToast('✅ Rol ' + (rolId ? 'actualizado' : 'creado') + ' correctamente');
+        cerrarModalRol();
+        await cargarRoles();
+        await cargarRolesParaUsuarios();
+    } else {
+        showToast('❌ ' + (d.error || 'Error'), true);
     }
 }
 
 async function abrirEdicionRol(rolId) {
     const rol = _rolesData.find(r => r._id === rolId);
     if (!rol) return;
-    switchPTabById('roles-form');
     document.getElementById('rol-id').value = rolId;
     document.getElementById('rol-nombre').value = rol.nombre || '';
-    document.getElementById('rol-nivel').value = rol.nivel || '';
     document.getElementById('rol-descripcion').value = rol.descripcion || '';
+    document.getElementById('modal-rol-title').textContent = '✏️ Editar Rol';
     document.getElementById('btn-guardar-rol-txt').textContent = 'Actualizar Rol';
-    renderModulosCheckboxes(rol.modulos || []);
+    renderModulosCheckboxes((rol.modulos || []).map(String));
+    document.getElementById('modal-rol').classList.add('show');
 }
 
-async function cambiarEstadoRol(rolId, activo) {
-    console.log('🔴 CLICK EN BOTÓN - cambiarEstadoRol INICIADO:', { rolId, activo });
-    console.log('🔴 activo es:', activo, 'tipo:', typeof activo);
-
+async function cambiarEstadoRol(rolId, activo, nombre) {
     if (!activo) {
         const check = await apiFetch(`/config/roles/${rolId}/en_uso`);
-        console.log('📌 Verificación en_uso:', check);
         if (check.ok && check.data?.en_uso) {
             showToast(`⚠️ ${check.data.mensaje}`, true);
             return;
         }
     }
-
-    const titulo = activo ? '¿Activar este rol?' : '¿Inactivar este rol?';
-    const confirmado = await mostrarConfirmacion(titulo, `Esta acción ${activo ? 'activará' : 'inactivará'} el rol.\n¿Deseas continuar?`);
-    console.log('✅ Usuario confirmó:', confirmado);
-    if (!confirmado) return;
-
-    console.log('📤 Enviando PUT a /config/roles/' + rolId);
+    const ok = await confirmar(
+        activo ? '▶ Activar rol' : '⏸ Inactivar rol',
+        `¿Deseas ${activo ? 'activar' : 'inactivar'} el rol "${nombre}"?`,
+        activo ? 'Activar' : 'Inactivar'
+    );
+    if (!ok) return;
     const result = await apiFetch(`/config/roles/${rolId}`, 'PUT', { activo });
-    console.log('📥 Respuesta:', result);
-
     if (result.ok) {
         showToast('✅ Estado actualizado');
-        console.log('🔄 Recargando roles...');
         await cargarRoles();
         await cargarRolesParaUsuarios();
-        console.log('✅ Roles recargados');
-    }
-    else {
-        console.error('❌ Error en respuesta:', result);
-        showToast('❌ ' + (result.error || result.mensaje || 'No se pudo actualizar'), true);
+    } else {
+        showToast('❌ ' + (result.error || 'No se pudo actualizar'), true);
     }
 }
 
@@ -3923,6 +3870,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('modal-pln').addEventListener('click', function(e) {
         if (e.target === this) PLN.cerrarModal();
+    });
+    document.getElementById('modal-rol').addEventListener('click', function(e) {
+        if (e.target === this) cerrarModalRol();
     });
 });
 

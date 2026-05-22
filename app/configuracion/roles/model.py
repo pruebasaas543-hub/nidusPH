@@ -85,26 +85,12 @@ class RolModel:
     @staticmethod
     def inicializar_roles_base(creado_por="sistema"):
         base = [
-            {"nombre": "SuperAdmin",
-             "descripcion": "Control total del SaaS",
-             "modulos": MODULOS_SISTEMA,
-             "es_sistema": True},
-            {"nombre": "AdministradorImplementador",
-             "descripcion": "Tecnico de implementacion",
-             "modulos": MODULOS_SISTEMA,
-             "es_sistema": True},
-            {"nombre": "AdminCliente",
-             "descripcion": "Administra un conjunto",
-             "modulos": ["Pagos","PQRS","Reservas","Asambleas","Cartera","Facturación","Comunicados"]},
-            {"nombre": "AdministradorPH",
-             "descripcion": "Gestion operativa",
-             "modulos": ["PQRS","Reservas","Control Acceso","Comunicados"]},
-            {"nombre": "Residente",
-             "descripcion": "Propietario o arrendatario",
-             "modulos": ["Pagos","PQRS","Reservas","Comunicados"]},
-            {"nombre": "Visitante",
-             "descripcion": "Acceso temporal",
-             "modulos": ["Comunicados"]},
+            {"nombre": "SuperAdmin",              "descripcion": "Control total del SaaS",          "modulos": MODULOS_SISTEMA, "es_sistema": True},
+            {"nombre": "AdministradorImplementador", "descripcion": "Tecnico de implementacion",    "modulos": MODULOS_SISTEMA, "es_sistema": True},
+            {"nombre": "AdminCliente",            "descripcion": "Administra un conjunto",           "modulos": ["Pagos","PQRS","Reservas","Asambleas","Cartera","Facturación","Comunicados"]},
+            {"nombre": "AdministradorPH",         "descripcion": "Gestion operativa",               "modulos": ["PQRS","Reservas","Control Acceso","Comunicados"]},
+            {"nombre": "Residente",               "descripcion": "Propietario o arrendatario",      "modulos": ["Pagos","PQRS","Reservas","Comunicados"]},
+            {"nombre": "Visitante",               "descripcion": "Acceso temporal",                 "modulos": ["Comunicados"]},
         ]
         for r in base:
             existente = _col().find_one({"nombre": r["nombre"]})
@@ -131,6 +117,7 @@ class RolModel:
     @staticmethod
     def listar(solo_activos=True, excluir_internos=False) -> list:
         RolModel.migrar_modulos_a_ids()
+        RolModel.migrar_eliminar_nivel()
         filtro = {}
         if solo_activos:
             filtro["activo"] = True
@@ -152,12 +139,13 @@ class RolModel:
     @staticmethod
     def crear(datos: dict, creado_por: str) -> str:
         doc = {
-            "nombre":      datos["nombre"].strip(),
-            "descripcion": datos.get("descripcion", "").strip(),
-            "modulos":     datos.get("modulos", []),
-            "activo":      True,
-            "creado_en":   datetime.utcnow(),
-            "creado_por":  creado_por,
+            "nombre":       datos["nombre"].strip(),
+            "descripcion":  datos.get("descripcion", "").strip(),
+            "modulos":      datos.get("modulos", []),
+            "activo":       True,
+            "creado_en":    datetime.utcnow(),
+            "creado_por":   creado_por,
+            "actualizado_en": None,
         }
         return str(_col().insert_one(doc).inserted_id)
 
@@ -173,6 +161,14 @@ class RolModel:
             return False
         _col().delete_one({"_id": ObjectId(rol_id)})
         return True
+
+    @staticmethod
+    def migrar_eliminar_nivel():
+        """Elimina el campo 'nivel' de todos los documentos. Idempotente."""
+        _col().update_many(
+            {"nivel": {"$exists": True}},
+            {"$unset": {"nivel": ""}}
+        )
 
 
 class HabilitacionRolModel:
