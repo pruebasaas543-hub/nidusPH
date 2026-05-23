@@ -82,6 +82,7 @@ class AuthController:
             session.update({
                 "usuario_id":     str(usuario["_id"]),
                 "rol":            rol_en_users,
+                "es_sistema":     True,
                 "num_doc":        usuario["numero_documento"],
                 "tipo_doc":       usuario["tipo_documento"],
                 "nombres":        usuario.get("nombres", ""),
@@ -122,6 +123,7 @@ class AuthController:
                 session.update({
                     "usuario_id":     str(usuario["_id"]),
                     "rol":            nombre_rol,
+                    "es_sistema":     True,
                     "num_doc":        usuario["numero_documento"],
                     "tipo_doc":       usuario["tipo_documento"],
                     "nombres":        usuario.get("nombres", ""),

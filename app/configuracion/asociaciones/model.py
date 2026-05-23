@@ -102,9 +102,11 @@ class AsociacionModel:
 
     @staticmethod
     def usuarios_sin_empresa() -> list:
-        ids = _col().distinct("user_id", {"activo": True, "empresa_id": {"$ne": None}})
+        # Excluir solo usuarios con rol de sistema (empresa_id: null)
+        ids_sistema = _col().distinct("user_id", {"activo": True, "empresa_id": None})
+        excluir_oids = [ObjectId(i) for i in ids_sistema]
         return list(_col_u().find(
-            {"_id": {"$nin": ids}, "activo": True},
+            {"_id": {"$nin": excluir_oids}, "activo": True},
             {"nombres": 1, "apellidos": 1, "tipo_documento": 1, "numero_documento": 1}
         ))
 

@@ -19,28 +19,46 @@ class UsuarioController:
         return True, UsuarioConfigModel.listar()
 
     @staticmethod
-    def crear(datos: dict, creado_por: str):
-        tipo_doc  = datos.get("tipo_documento", "").strip().upper()
-        num_doc   = datos.get("numero_documento", "").strip()
-        nombres   = datos.get("nombres", "").strip()
-        apellidos = datos.get("apellidos", "").strip()
-        email     = datos.get("email", "").strip()
+    def crear(datos: dict, creado_por: str, creado_por_id: str = "", rol_sesion: str = ""):
+        tipo_doc    = datos.get("tipo_documento", "").strip().upper()
+        num_doc     = datos.get("numero_documento", "").strip()
+        nombres     = datos.get("nombres", "").strip()
+        apellidos   = datos.get("apellidos", "").strip()
+        email       = datos.get("email", "").strip()
+        rol_sistema = datos.get("rol_sistema", "").strip()
 
-        if tipo_doc not in SIGLAS_VALIDAS:  return False, "Tipo de documento no válido"
-        if not num_doc or len(num_doc) < 3: return False, "Número de documento inválido"
-        if not nombres:                     return False, "El nombre es obligatorio"
-        if not apellidos:                   return False, "El apellido es obligatorio"
-        if not email or not email_ok(email):return False, "Correo no válido"
+        if tipo_doc not in SIGLAS_VALIDAS:   return False, "Tipo de documento no válido"
+        if not num_doc or len(num_doc) < 3:  return False, "Número de documento inválido"
+        if not nombres:                      return False, "El nombre es obligatorio"
+        if not apellidos:                    return False, "El apellido es obligatorio"
+        if not email or not email_ok(email): return False, "Correo no válido"
 
         if UsuarioConfigModel.buscar_por_documento(tipo_doc, num_doc):
             return False, f"Ya existe un usuario con {tipo_doc} {num_doc}"
 
+        if rol_sistema:
+            from app.configuracion.roles.model import RolModel
+            asignables = {r["nombre"] for r in RolModel.roles_sistema_asignables(rol_sesion)}
+            if rol_sistema not in asignables:
+                return False, f"No tienes permiso para asignar el rol '{rol_sistema}'"
+
         user_id = UserModel.crear_usuario(
             tipo_doc=tipo_doc, num_doc=num_doc, password=num_doc,
             nombres=nombres, apellidos=apellidos,
-            email=email, telefono=datos.get("telefono", "").strip(),
-            creado_por=creado_por,
+            email=email,
+            telefono=datos.get("telefono", "").strip(),
+            nombre_contacto_emergencia=datos.get("nombre_contacto_emergencia", "").strip(),
+            telefono_contacto_emergencia=datos.get("telefono_contacto_emergencia", "").strip(),
+            creado_por=creado_por_id or creado_por,
         )
+
+        if rol_sistema:
+            exito, msg = UsuarioController.asignar_rol_sistema(
+                user_id, rol_sistema, creado_por, rol_sesion
+            )
+            if not exito:
+                return False, msg
+
         return True, {"user_id": user_id, "mensaje": "Usuario creado correctamente"}
 
     @staticmethod
@@ -48,8 +66,6 @@ class UsuarioController:
         usuario = UsuarioConfigModel.buscar_por_id(user_id)
         if not usuario:
             return False, "Usuario no encontrado"
-        if _es_sistema(usuario):
-            return False, "No se puede editar un usuario de sistema"
         email = datos.get("email", "").strip()
         if email and not email_ok(email):
             return False, "Correo no válido"
@@ -61,8 +77,6 @@ class UsuarioController:
         usuario = UsuarioConfigModel.buscar_por_id(user_id)
         if not usuario:
             return False, "Usuario no encontrado"
-        if _es_sistema(usuario):
-            return False, "No se puede cambiar el estado de un usuario de sistema"
         UsuarioConfigModel.cambiar_estado(user_id, activo)
         return True, "Estado actualizado"
 
@@ -92,7 +106,7 @@ class UsuarioController:
         return True, "Usuario eliminado correctamente"
 
     @staticmethod
-    def asignar_rol_sistema(user_id: str, rol_nombre: str, asignado_por: str):
+    def asignar_rol_sistema(user_id: str, rol_nombre: str, asignado_por: str, rol_sesion: str = ""):
         from app.configuracion.roles.model import RolModel
         from app import db
         from bson import ObjectId
@@ -105,6 +119,10 @@ class UsuarioController:
         rol = RolModel.buscar_por_nombre(rol_nombre)
         if not rol or not rol.get("es_sistema"):
             return False, f"'{rol_nombre}' no es un rol de sistema válido"
+
+        asignables = {r["nombre"] for r in RolModel.roles_sistema_asignables(rol_sesion)}
+        if rol_nombre not in asignables:
+            return False, f"No tienes permiso para asignar el rol '{rol_nombre}'"
 
         ya_tiene = db["asociaciones"].find_one({
             "user_id": ObjectId(user_id), "empresa_id": None, "activo": True

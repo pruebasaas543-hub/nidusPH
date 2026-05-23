@@ -36,8 +36,14 @@ def requiere_superadmin(f):
                 return jsonify({"ok": False, "error": "No autenticado"}), 401
             from flask import redirect, url_for
             return redirect(url_for("auth.login_get"))
-        from app.configuracion.roles.model import RolModel
-        if session.get("rol") not in RolModel.nombres_sistema():
+        # es_sistema en sesión (post-login con nuevo código); fallback para sesiones antiguas
+        tiene_acceso = session.get("es_sistema") or (
+            "es_sistema" not in session and
+            session.get("rol") in __import__(
+                "app.configuracion.roles.model", fromlist=["RolModel"]
+            ).RolModel.nombres_sistema()
+        )
+        if not tiene_acceso:
             if es_api or _req.is_json or _req.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return jsonify({"ok": False, "error": "Acceso denegado"}), 403
             from flask import redirect, url_for

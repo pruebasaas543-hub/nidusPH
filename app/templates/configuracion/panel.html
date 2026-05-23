@@ -220,6 +220,11 @@
         .theme-swatches { display:flex; gap:4px; margin-top:8px; }
         .swatch { width:16px; height:16px; border-radius:50%; border:1.5px solid rgba(255,255,255,.5); }
 
+        /* ══ ZOOM GLOBAL EN ESCRITORIO ══ */
+        @media (min-width: 641px) {
+            body { zoom: 0.9; }
+        }
+
         /* ══ RESPONSIVE ══ */
         @media (max-width: 1024px) {
             .sidebar { position:fixed; top:0; left:-280px; height:100%; width:260px; z-index:500; transition:left .3s cubic-bezier(.4,0,.2,1); box-shadow:4px 0 24px rgba(0,0,0,.15); }
@@ -249,9 +254,9 @@
             .ptab { white-space:nowrap; flex-shrink:0; padding:8px 14px; font-size:0.75rem; }
             .table-toolbar { flex-direction:column; align-items:stretch; gap:8px; }
             .table-search { max-width:100%; }
-            .data-table-wrap { border-radius:8px; overflow:hidden; }
-            .data-table th { font-size:0.62rem; padding:8px 10px; }
-            .data-table td { font-size:0.8rem; padding:10px; }
+            .data-table-wrap { border-radius:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+            .data-table th { font-size:0.62rem; padding:8px 8px; white-space:normal; }
+            .data-table td { font-size:0.78rem; padding:8px; }
             .btn-icon { width:38px; height:38px; border-radius:8px; }
             .btn-primary { padding:11px 18px; font-size:0.86rem; }
             .btn-secondary { padding:11px 14px; font-size:0.84rem; }
@@ -407,10 +412,10 @@
                         <thead>
                             <tr>
                                 <th style="width:44px;">Logo</th>
-                                <th>NIT</th>
+                                <th class="col-sm-hide">NIT</th>
                                 <th>Razón Social</th>
-                                <th>Ubicación</th>
-                                <th>Plan</th>
+                                <th class="col-sm-hide">Ubicación</th>
+                                <th class="col-sm-hide">Plan</th>
                                 <th class="col-sm-hide">Slug</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
@@ -633,7 +638,7 @@
                             <tr>
                                 <th>Nombre</th>
                                 <th class="col-sm-hide">Descripción</th>
-                                <th>Módulos</th>
+                                <th class="col-sm-hide">Módulos</th>
                                 <th class="col-sm-hide">Tipo</th>
                                 <th>Estado</th>
                                 <th style="text-align:center;">Acciones</th>
@@ -667,7 +672,7 @@
                         <thead><tr>
                             <th style="width:44px;">Logo</th>
                             <th>Empresa</th>
-                            <th>Roles asignados</th>
+                            <th class="col-sm-hide">Roles asignados</th>
                             <th class="col-sm-hide">Creado</th>
                             <th class="col-sm-hide">Modificado</th>
                             <th>Acciones</th>
@@ -731,10 +736,10 @@
                             <thead>
                                 <tr>
                                     <th>Empresa</th>
-                                    <th>Régimen Tributario</th>
-                                    <th>Estrato</th>
-                                    <th>Unidades</th>
-                                    <th>Rep. Legal</th>
+                                    <th class="col-sm-hide">Régimen Tributario</th>
+                                    <th class="col-sm-hide">Estrato</th>
+                                    <th class="col-sm-hide">Unidades</th>
+                                    <th class="col-sm-hide">Rep. Legal</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -1090,30 +1095,24 @@
             <div class="config-panel-title">👤 <span>Gestión de</span> Usuarios</div>
             <div class="config-panel-subtitle">Crea y administra usuarios del sistema. Cada usuario puede estar asociado a una empresa (PH) específica.</div>
 
-            <div class="panel-tabs">
-                <div class="ptab active" onclick="switchPTab(this,'usuarios-lista')">📋 Usuarios registrados</div>
-                <div class="ptab" onclick="switchPTab(this,'usuarios-form')">➕ Nuevo usuario</div>
-            </div>
-
             <!-- ── LISTADO ─────────────────────────────────────────── -->
-            <div class="ptab-content active" id="usuarios-lista">
+            <div id="usuarios-lista">
                 <div class="config-form-card">
                     <div class="table-toolbar">
                         <div class="table-search">
                             <span>🔍</span>
                             <input type="text" placeholder="Buscar usuario..." oninput="filterTable('tbl-usuarios',this.value)">
                         </div>
-                        <button class="btn-primary" onclick="switchPTabById('usuarios-form');limpiarFormUsuario()">➕ Nuevo usuario</button>
+                        <button class="btn-primary" onclick="limpiarFormUsuario()">➕ Nuevo usuario</button>
                     </div>
                     <div class="data-table-wrap">
                         <table class="data-table" id="tbl-usuarios">
                             <thead>
                                 <tr>
-                                    <th>Documento</th>
+                                    <th class="col-sm-hide">Documento</th>
                                     <th>Nombre Completo</th>
-                                    <th>Email</th>
-                                    <th>Rol</th>
-                                    <th>Estado</th>
+                                    <th>Empresas / Rol</th>
+                                    <th class="col-sm-hide">Estado</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -1125,65 +1124,88 @@
                 </div>
             </div>
 
-            <!-- ── FORMULARIO ──────────────────────────────────────── -->
-            <div class="ptab-content" id="usuarios-form">
-                <form id="form-usuario">
-                    <input type="hidden" id="usuario-id" value="">
+            <!-- ── MODAL USUARIO ──────────────────────────────────── -->
+            <div id="modal-usuario" class="modal-overlay" onclick="if(event.target===this)cerrarModalUsuario()">
+                <div class="modal-box" style="width:clamp(340px,92vw,680px);">
+                    <div class="modal-title" id="modal-usuario-titulo">👤 Nuevo Usuario</div>
+                    <form id="form-usuario">
+                        <input type="hidden" id="usuario-id" value="">
 
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">👤 Datos Personales</div>
-                        <div class="form-grid-2">
-                            <div class="form-group">
-                                <label>Tipo de Documento *</label>
-                                <select class="form-control" name="tipo_documento" id="usuario-tipo-doc" required>
-                                    <option value="">— Cargando —</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Número de Documento *</label>
-                                <input class="form-control" name="numero_documento" type="text" placeholder="1234567890" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Nombre(s) *</label>
-                                <input class="form-control" name="nombres" type="text" placeholder="Juan" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Apellido(s) *</label>
-                                <input class="form-control" name="apellidos" type="text" placeholder="Pérez García" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Email *</label>
-                                <input class="form-control" name="email" type="email" placeholder="usuario@ejemplo.com" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Teléfono</label>
-                                <input class="form-control" name="telefono" type="tel" placeholder="+57 123 456 7890">
+                        <div style="margin-bottom:16px;">
+                            <div style="font-weight:600;font-size:0.85rem;color:#1E2756;margin-bottom:10px;">Datos Personales</div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label>Tipo de Documento *</label>
+                                    <select class="form-control" name="tipo_documento" id="usuario-tipo-doc" required>
+                                        <option value="">— Cargando —</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Número de Documento *</label>
+                                    <input class="form-control" name="numero_documento" type="text" placeholder="1234567890" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nombre(s) *</label>
+                                    <input class="form-control" name="nombres" type="text" placeholder="Juan" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Apellido(s) *</label>
+                                    <input class="form-control" name="apellidos" type="text" placeholder="Pérez García" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input class="form-control" name="email" type="email" placeholder="usuario@ejemplo.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Teléfono</label>
+                                    <input class="form-control" name="telefono" type="tel" placeholder="+57 123 456 7890">
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">🚨 Contacto de Emergencia</div>
-                        <div class="form-grid-2">
-                            <div class="form-group">
-                                <label>Nombre Contacto Emergencia</label>
-                                <input class="form-control" name="nombre_contacto_emergencia" type="text" placeholder="María García">
-                            </div>
-                            <div class="form-group">
-                                <label>Teléfono Contacto Emergencia</label>
-                                <input class="form-control" name="telefono_contacto_emergencia" type="tel" placeholder="+57 300 000 0000">
+                        <div style="margin-bottom:16px;">
+                            <div style="font-weight:600;font-size:0.85rem;color:#1E2756;margin-bottom:10px;">Contacto de Emergencia</div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label>Nombre Contacto Emergencia</label>
+                                    <input class="form-control" name="nombre_contacto_emergencia" type="text" placeholder="María García">
+                                </div>
+                                <div class="form-group">
+                                    <label>Teléfono Contacto Emergencia</label>
+                                    <input class="form-control" name="telefono_contacto_emergencia" type="tel" placeholder="+57 300 000 0000">
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="switchPTabById('usuarios-lista')">← Volver</button>
-                        <button type="button" class="btn-primary" id="btn-guardar-usuario" onclick="guardarUsuario()">
-                            💾 <span id="btn-guardar-usuario-txt">Crear Usuario</span>
-                        </button>
-                    </div>
-                </form>
-            </div><!-- /usuarios-form -->
+                        <div id="card-rol-sistema" style="display:none;margin-bottom:16px;">
+                            <div style="font-weight:600;font-size:0.85rem;color:#1E2756;margin-bottom:10px;">🔐 Acceso al Sistema</div>
+                            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.88rem;font-weight:600;color:#1E2756;">
+                                    <input type="checkbox" id="chk-es-sistema" onchange="toggleRolSistema()"
+                                           style="width:16px;height:16px;accent-color:#042243;cursor:pointer;">
+                                    ¿Es usuario del sistema?
+                                </label>
+                                <span style="font-size:.75rem;color:rgba(4,34,67,0.45);">Acceso global sin empresa asociada.</span>
+                            </div>
+                            <div id="div-rol-sistema" style="display:none;">
+                                <div class="form-group" style="max-width:320px;">
+                                    <label>Rol del sistema *</label>
+                                    <select class="form-control" id="sel-rol-sistema" name="rol_sistema">
+                                        <option value="">— Cargando roles —</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn-secondary" onclick="cerrarModalUsuario()">Cancelar</button>
+                            <button type="button" class="btn-primary" id="btn-guardar-usuario" onclick="guardarUsuario()">
+                                💾 <span id="btn-guardar-usuario-txt">Crear Usuario</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div><!-- /modal-usuario -->
         </div><!-- /cfg-usuarios -->
 
         <!-- ════════════════════════════════════════════════════════════
@@ -1224,7 +1246,7 @@
                     <div class="data-table-wrap">
                         <table class="data-table" id="tbl-todos-usu">
                             <thead><tr>
-                                <th>Nombre</th><th>Documento</th><th>Correo</th><th>Asociaciones</th><th>Acción</th>
+                                <th>Nombre</th><th>Documento</th><th class="col-sm-hide">Correo</th><th>Asociaciones</th><th>Acción</th>
                             </tr></thead>
                             <tbody id="tbody-todos-usu">
                                 <tr><td colspan="5" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
@@ -1302,7 +1324,7 @@
                 <div class="data-table-wrap">
                     <table class="data-table" id="tbl-servicios">
                         <thead><tr>
-                            <th>Icono</th><th>Nombre</th><th>Código</th><th>Orden</th><th>Estado</th><th>Acciones</th>
+                            <th>Icono</th><th>Nombre</th><th class="col-sm-hide">Código</th><th class="col-sm-hide">Orden</th><th>Estado</th><th>Acciones</th>
                         </tr></thead>
                         <tbody id="tbody-servicios">
                             <tr><td colspan="6" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
@@ -1616,7 +1638,6 @@ function showToast(msg, isError = false) {
 }
 
 async function mostrarConfirmacion(titulo, mensaje) {
-    console.log('🎯 mostrarConfirmacion llamada con:', { titulo, mensaje });
     return new Promise((resolve) => {
         const overlay = document.getElementById('modal-overlay');
         const titleEl = document.getElementById('modal-title');
@@ -1624,10 +1645,7 @@ async function mostrarConfirmacion(titulo, mensaje) {
         const confirmBtn = document.getElementById('modal-confirm');
         const cancelBtn = document.getElementById('modal-cancel');
 
-        console.log('🎯 Elementos encontrados:', { overlay, titleEl, msgEl, confirmBtn, cancelBtn });
-
         if (!overlay || !titleEl || !msgEl || !confirmBtn || !cancelBtn) {
-            console.error('❌ FALTA ALGUN ELEMENTO DEL MODAL');
             resolve(false);
             return;
         }
@@ -1635,19 +1653,13 @@ async function mostrarConfirmacion(titulo, mensaje) {
         titleEl.textContent = titulo;
         msgEl.textContent = mensaje;
         overlay.classList.add('active');
-        console.log('🎯 Modal mostrado, clase active agregada');
-        console.log('🎯 overlay display:', window.getComputedStyle(overlay).display);
-        console.log('🎯 overlay z-index:', window.getComputedStyle(overlay).zIndex);
-        console.log('🎯 overlay visibility:', window.getComputedStyle(overlay).visibility);
 
         const handleConfirm = () => {
-            console.log('✅ Botón Confirmar presionado');
             cleanup();
             resolve(true);
         };
 
         const handleCancel = () => {
-            console.log('❌ Botón Cancelar presionado');
             cleanup();
             resolve(false);
         };
@@ -1982,10 +1994,10 @@ function renderTablaEmpresas(lista) {
 
         return `<tr>
             <td id="logo-cell-${e._id}"><div style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:0.75rem;"><span class="spinner"></span></div></td>
-            <td style="font-family:'Space Mono',monospace;font-size:0.76rem;white-space:nowrap;">${nitCompleto}</td>
+            <td class="col-sm-hide" style="font-family:'Space Mono',monospace;font-size:0.76rem;white-space:nowrap;">${nitCompleto}</td>
             <td style="max-width:200px;"><div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.razon_social}</div><span style="font-size:0.68rem;color:rgba(255,255,255,0.38);">${tipoNombre}</span></td>
-            <td style="font-size:0.76rem;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">${ubicacion}</td>
-            <td><span class="badge badge-pending" style="font-size:0.7rem;">${planNombre}</span></td>
+            <td class="col-sm-hide" style="font-size:0.76rem;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">${ubicacion}</td>
+            <td class="col-sm-hide"><span class="badge badge-pending" style="font-size:0.7rem;">${planNombre}</span></td>
             <td class="col-sm-hide" style="font-size:0.7rem;color:rgba(0,212,255,0.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">/${e.slug||'—'}</td>
             <td>${estadoBadge}</td>
             <td>
@@ -2186,7 +2198,7 @@ async function guardarEmpresa() {
 
 async function toggleEstado(id, activo) {
     var accion = activo ? 'activar' : 'desactivar';
-    if (!confirm(`¿Deseas ${accion} esta empresa?\n${!activo ? 'Sus usuarios verán un aviso de servicio no disponible.' : ''}`)) return;
+    if (!await confirmar('Cambiar estado', `¿Deseas ${accion} esta empresa?${!activo ? '\nSus usuarios verán un aviso de servicio no disponible.' : ''}`, accion.charAt(0).toUpperCase() + accion.slice(1))) return;
     const data = await apiFetch('/config/empresas/' + id + '/estado', 'PATCH', { activo });
     if (!data.ok) { showToast('⚠ ' + data.error, true); return; }
     showToast('✅ ' + data.mensaje);
@@ -2260,10 +2272,10 @@ function renderTablaDatosPH(lista) {
         var regimen = cfg.regimen_tributario_enriquecido ? cfg.regimen_tributario_enriquecido.map(r => r.codigo).join(', ') : '—';
         return `<tr>
             <td><strong>${cfg.empresa_nombre || '—'}</strong></td>
-            <td title="${regimen}" style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">${regimen}</td>
-            <td>${cfg.estrato || '—'}</td>
-            <td>${cfg.cant_unidades || '—'}</td>
-            <td>${rep}</td>
+            <td class="col-sm-hide" title="${regimen}" style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">${regimen}</td>
+            <td class="col-sm-hide">${cfg.estrato || '—'}</td>
+            <td class="col-sm-hide">${cfg.cant_unidades || '—'}</td>
+            <td class="col-sm-hide">${rep}</td>
             <td>${estado}</td>
             <td>
                 <div style="display:flex;gap:6px;">
@@ -2593,12 +2605,30 @@ function renderTablaUsuarios(lista) {
         var estadoBadge = usuario.activo
             ? '<span class="badge badge-active">✅ Activo</span>'
             : '<span class="badge badge-inactive">🚫 Inactivo</span>';
+        var asocs = usuario.asociaciones || [];
+        var asocSistema = asocs.find(a => a.empresa_id === null);
+        var asocEmpresa = asocs.filter(a => a.empresa_id !== null);
+        var empresasHtml;
+        if (asocSistema) {
+            var rolSis = asocSistema.rol_nombre || asocSistema.rol_asignado || '—';
+            empresasHtml = `<span class="badge badge-active" style="font-size:0.7rem;">${rolSis}</span>`;
+        } else if (asocEmpresa.length) {
+            empresasHtml = asocEmpresa.map(a => {
+                var emp = a.empresa_nombre || '(sin nombre)';
+                var rol = a.rol_nombre || a.rol_asignado || '—';
+                return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <span style="font-size:0.78rem;font-weight:600;color:#1E2756;">${emp}</span>
+                    <span class="badge badge-pending" style="font-size:0.68rem;">${rol}</span>
+                </div>`;
+            }).join('');
+        } else {
+            empresasHtml = '<span style="color:rgba(30,39,86,0.3);font-size:0.75rem;">Sin asignación</span>';
+        }
         return `<tr>
-            <td style="font-family:'Space Mono',monospace;font-size:0.78rem;">${nombredoc}</td>
+            <td class="col-sm-hide" style="font-family:'Space Mono',monospace;font-size:0.78rem;">${nombredoc}</td>
             <td><strong>${nombreCompleto}</strong></td>
-            <td style="font-size:0.8rem;">${usuario.email}</td>
-            <td><span class="badge badge-pending">${usuario.rol}</span></td>
-            <td>${estadoBadge}</td>
+            <td>${empresasHtml}</td>
+            <td class="col-sm-hide">${estadoBadge}</td>
             <td>
                 <div style="display:flex;gap:6px;">
                     <button class="btn-icon btn-icon-edit" title="Editar" onclick="abrirEdicionUsuario('${usuario._id}')">✏️</button>
@@ -2612,13 +2642,50 @@ function renderTablaUsuarios(lista) {
     }).join('');
 }
 
-function limpiarFormUsuario() {
+function abrirModalUsuario(titulo) {
+    document.getElementById('modal-usuario-titulo').textContent = titulo;
+    document.getElementById('modal-usuario').classList.add('show');
+}
+function cerrarModalUsuario() {
+    document.getElementById('modal-usuario').classList.remove('show');
+}
+
+async function limpiarFormUsuario() {
+    const _frm = document.getElementById('form-usuario');
     document.getElementById('usuario-id').value = '';
-    document.getElementById('form-usuario').reset();
+    _frm.reset();
     document.getElementById('btn-guardar-usuario-txt').textContent = 'Crear Usuario';
-    document.querySelector('[name="tipo_documento"]').disabled = false;
-    document.querySelector('[name="numero_documento"]').disabled = false;
-    cargarTiposDocumento();
+    _frm.querySelector('[name="tipo_documento"]').disabled = false;
+    _frm.querySelector('[name="numero_documento"]').disabled = false;
+    document.getElementById('card-rol-sistema').style.display = '';
+    document.getElementById('card-rol-sistema').dataset.rolOriginal = '';
+    document.getElementById('chk-es-sistema').checked = false;
+    document.getElementById('div-rol-sistema').style.display = 'none';
+    document.getElementById('sel-rol-sistema').value = '';
+    await cargarTiposDocumento();
+    await cargarRolesSistemaDisponibles();
+    abrirModalUsuario('👤 Nuevo Usuario');
+}
+
+async function cargarRolesSistemaDisponibles() {
+    const sel  = document.getElementById('sel-rol-sistema');
+    const card = document.getElementById('card-rol-sistema');
+    if (!sel || !card) return;
+    const data = await apiFetch('/config/usuarios/roles-sistema');
+    if (!data.ok || !data.data.length) {
+        sel.innerHTML = '<option value="">Sin roles disponibles</option>';
+        card.style.display = 'none';
+        return;
+    }
+    sel.innerHTML = '<option value="">— Seleccione un rol —</option>' +
+        data.data.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('');
+    card.style.display = '';
+}
+
+function toggleRolSistema() {
+    const checked = document.getElementById('chk-es-sistema').checked;
+    document.getElementById('div-rol-sistema').style.display = checked ? '' : 'none';
+    if (!checked) document.getElementById('sel-rol-sistema').value = '';
 }
 
 async function cargarEmpresasParaUsuarios() {
@@ -2633,89 +2700,167 @@ async function cargarEmpresasParaUsuarios() {
 async function guardarUsuario() {
     const form = document.getElementById('form-usuario');
     if (!form) { showToast('Formulario no encontrado', true); return; }
-    
+
     const userId = document.getElementById('usuario-id').value;
-    const data = Object.fromEntries(new FormData(form).entries());
-    
+    const data   = Object.fromEntries(new FormData(form).entries());
+
+    const esSistema   = document.getElementById('chk-es-sistema').checked;
+    const rolSel      = document.getElementById('sel-rol-sistema').value;
+    const rolOriginal = document.getElementById('card-rol-sistema').dataset.rolOriginal || '';
+
+    // Validar rol de sistema si el toggle está activo
+    if (esSistema && !rolSel) {
+        showToast('⚠ Selecciona un rol del sistema', true);
+        return;
+    }
+
+    // Incluir rol_sistema en el body solo al CREAR
+    if (!userId) {
+        if (esSistema) data.rol_sistema = rolSel;
+        else delete data.rol_sistema;
+    }
+
+    // ── Confirmaciones antes de guardar (solo edición) ──────────────────────
+    if (userId) {
+        const asignarRol  = esSistema && rolSel !== rolOriginal;
+        const quitarRol   = !esSistema && !!rolOriginal;
+
+        if (asignarRol && !rolOriginal) {
+            // Verificar si tiene empresas activas que serán desactivadas
+            const usuarioLista = _usuariosData.find(u => u._id === userId) || {};
+            const empresasActivas = (usuarioLista.asociaciones || []).filter(a => a.empresa_id !== null);
+            if (empresasActivas.length) {
+                const ok = await confirmar(
+                    '⚠️ Cambio de tipo de acceso',
+                    `Este usuario tiene ${empresasActivas.length} asociación(es) de empresa activa(s). Al asignarle un rol de sistema, esas asociaciones quedarán inactivas. ¿Continuar?`,
+                    'Sí, asignar rol'
+                );
+                if (!ok) return;
+            }
+        }
+
+        if (quitarRol) {
+            const ok = await confirmar(
+                '⚠️ Quitar rol de sistema',
+                `Se eliminará el rol "${rolOriginal}" de este usuario. Sus asociaciones de empresa anteriores serán reactivadas. ¿Continuar?`,
+                'Sí, quitar rol'
+            );
+            if (!ok) return;
+        }
+    }
+
     const btn = document.getElementById('btn-guardar-usuario');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Guardando...';
 
     try {
-        let res, json;
-        
-        if (userId) {
-            // Editar
-            res = await fetch(`/config/usuarios/${userId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-        } else {
-            // Crear
-            res = await fetch('/config/usuarios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
+        const res  = await fetch(userId ? `/config/usuarios/${userId}` : '/config/usuarios', {
+            method:  userId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(data),
+        });
+        const json = await res.json();
+
+        if (!json.ok) {
+            btn.disabled = false;
+            btn.innerHTML = '💾 <span id="btn-guardar-usuario-txt">' + (userId ? 'Actualizar' : 'Crear') + ' Usuario</span>';
+            showToast('❌ ' + (json.error || 'Error al guardar'), true);
+            return;
         }
-        
-        json = await res.json();
+
+        // Al EDITAR: gestionar cambios en rol de sistema por separado
+        if (userId) {
+            if (esSistema && rolSel !== rolOriginal) {
+                const r  = await fetch(`/config/usuarios/${userId}/rol-sistema`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rol_nombre: rolSel }),
+                });
+                const rj = await r.json();
+                if (!rj.ok) {
+                    btn.disabled = false;
+                    btn.innerHTML = '💾 <span id="btn-guardar-usuario-txt">Actualizar Usuario</span>';
+                    showToast('❌ ' + (rj.error || 'Error al asignar rol'), true);
+                    return;
+                }
+            } else if (!esSistema && rolOriginal) {
+                const r  = await fetch(`/config/usuarios/${userId}/rol-sistema`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const rj = await r.json();
+                if (!rj.ok) {
+                    btn.disabled = false;
+                    btn.innerHTML = '💾 <span id="btn-guardar-usuario-txt">Actualizar Usuario</span>';
+                    showToast('❌ ' + (rj.error || 'Error al quitar rol'), true);
+                    return;
+                }
+            }
+        }
+
         btn.disabled = false;
         btn.innerHTML = '💾 <span id="btn-guardar-usuario-txt">' + (userId ? 'Actualizar' : 'Crear') + ' Usuario</span>';
-        
-        if (json.ok) {
-            showToast('✅ Usuario ' + (userId ? 'actualizado' : 'creado') + ' correctamente');
-            cargarUsuarios();
-            switchPTabById('usuarios-lista');
-        } else {
-            showToast('❌ ' + (json.error || 'Error al guardar'), true);
-        }
-    } catch (err) {
+        showToast('✅ Usuario ' + (userId ? 'actualizado' : 'creado') + ' correctamente');
+        cerrarModalUsuario();
+        cargarUsuarios();
+    } catch (e) {
         btn.disabled = false;
         btn.innerHTML = '💾 <span id="btn-guardar-usuario-txt">Guardar Usuario</span>';
-        showToast('❌ Error: ' + err.message, true);
+        showToast('❌ Error: ' + e.message, true);
     }
 }
 
 async function abrirEdicionUsuario(userId) {
-    const usuario = _usuariosData.find(u => u._id === userId);
-    if (!usuario) return;
+    // Obtener datos frescos directamente de la API
+    const resp = await apiFetch(`/config/usuarios/${userId}`);
+    if (!resp.ok) { showToast('❌ No se pudo cargar el usuario', true); return; }
+    const usuario = resp.data;
 
-    switchPTabById('usuarios-form');
-    limpiarFormUsuario();
+    // Reset manual
+    document.getElementById('usuario-id').value = '';
+    document.getElementById('form-usuario').reset();
+    document.getElementById('card-rol-sistema').dataset.rolOriginal = '';
+    document.getElementById('chk-es-sistema').checked = false;
+    document.getElementById('div-rol-sistema').style.display = 'none';
 
-    // Esperar a que los tipos de documento se carguen
+    // Cargar selects en secuencia
     await cargarTiposDocumento();
-    document.getElementById('usuario-id').value = userId;
-    const tipoDocEl = document.querySelector('[name="tipo_documento"]');
-    const numDocEl = document.querySelector('[name="numero_documento"]');
-    tipoDocEl.value = usuario.tipo_documento || '';
-    tipoDocEl.disabled = true;
-    numDocEl.value = usuario.numero_documento || '';
-    numDocEl.disabled = true;
-    document.querySelector('[name="nombres"]').value = usuario.nombres || '';
-    document.querySelector('[name="apellidos"]').value = usuario.apellidos || '';
-    document.querySelector('[name="email"]').value = usuario.email || '';
-    document.querySelector('[name="telefono"]').value = usuario.telefono || '';
-    document.querySelector('[name="torre"]').value = usuario.torre || '';
-    document.querySelector('[name="apartamento"]').value = usuario.apartamento || '';
-    document.querySelector('[name="nombre_contacto_emergencia"]').value = usuario.nombre_contacto_emergencia || '';
-    document.querySelector('[name="telefono_contacto_emergencia"]').value = usuario.telefono_contacto_emergencia || '';
+    await cargarRolesSistemaDisponibles();
 
-    // Esperar a que los roles estén cargados antes de asignar
-    await cargarRolesParaUsuarios();
-    const rolEl     = document.getElementById('usuario-rol');
-    const empresaEl = document.getElementById('usuario-empresa');
-    if (rolEl)     rolEl.value     = usuario.rol         || '';
-    if (empresaEl) empresaEl.value = usuario.conjunto_id || '';
-    
+    // Poblar campos personales (scoped al formulario del modal)
+    const frm = document.getElementById('form-usuario');
+    frm.querySelector('[name="tipo_documento"]').value    = usuario.tipo_documento   || '';
+    frm.querySelector('[name="tipo_documento"]').disabled = true;
+    frm.querySelector('[name="numero_documento"]').value    = usuario.numero_documento || '';
+    frm.querySelector('[name="numero_documento"]').disabled = true;
+    document.getElementById('usuario-id').value = userId;
+    frm.querySelector('[name="nombres"]').value   = usuario.nombres   || '';
+    frm.querySelector('[name="apellidos"]').value = usuario.apellidos || '';
+    frm.querySelector('[name="email"]').value     = usuario.email     || '';
+    frm.querySelector('[name="telefono"]').value  = usuario.telefono  || '';
+    frm.querySelector('[name="nombre_contacto_emergencia"]').value   = usuario.nombre_contacto_emergencia   || '';
+    frm.querySelector('[name="telefono_contacto_emergencia"]').value = usuario.telefono_contacto_emergencia || '';
+
+    // Rol de sistema (desde _usuariosData para tener asociaciones)
+    const usuarioLista = _usuariosData.find(u => u._id === userId) || {};
+    const cardRol      = document.getElementById('card-rol-sistema');
+    const asocSistema  = (usuarioLista.asociaciones || []).find(a => a.empresa_id === null);
+    if (asocSistema) {
+        const rolActual = asocSistema.rol_nombre || asocSistema.rol_asignado || '';
+        cardRol.style.display = '';
+        cardRol.dataset.rolOriginal = rolActual;
+        document.getElementById('chk-es-sistema').checked = true;
+        document.getElementById('div-rol-sistema').style.display = '';
+        document.getElementById('sel-rol-sistema').value = rolActual;
+    }
+
     document.getElementById('btn-guardar-usuario-txt').textContent = 'Actualizar Usuario';
+    abrirModalUsuario('✏️ Editar Usuario');
 }
 
 async function cambiarEstadoUsuario(userId, nuevoEstado) {
-    if (nuevoEstado && confirm('¿Activar este usuario?') === false) return;
-    if (!nuevoEstado && confirm('¿Desactivar este usuario?') === false) return;
+    const accion = nuevoEstado ? 'Activar' : 'Desactivar';
+    if (!await confirmar(accion + ' usuario', `¿${accion} este usuario?`, accion)) return;
 
     const res = await fetch(`/config/usuarios/${userId}/estado`, {
         method: 'PATCH',
@@ -2733,7 +2878,7 @@ async function cambiarEstadoUsuario(userId, nuevoEstado) {
 }
 
 async function eliminarUsuario(userId, nombreUsuario) {
-    if (!confirm(`¿Eliminar a ${nombreUsuario}? Esta acción no se puede deshacer.`)) return;
+    if (!await confirmar('Eliminar usuario', `¿Eliminar a ${nombreUsuario}?\nEsta acción no se puede deshacer.`, 'Eliminar')) return;
 
     const res = await fetch(`/config/usuarios/${userId}`, {
         method: 'DELETE',
@@ -2809,7 +2954,7 @@ async function cargarRoles() {
         return `<tr>
             <td><strong>${r.nombre}</strong></td>
             <td class="col-sm-hide" style="font-size:0.8rem;color:rgba(30,39,86,0.6);">${r.descripcion || '—'}</td>
-            <td style="font-size:0.78rem;">${modHtml}</td>
+            <td class="col-sm-hide" style="font-size:0.78rem;">${modHtml}</td>
             <td class="col-sm-hide">${r.es_sistema ? '<span class="badge badge-active">Sistema</span>' : '<span class="badge badge-pending">Personalizado</span>'}</td>
             <td>${r.activo ? '<span class="badge badge-active">Activo</span>' : '<span class="badge badge-inactive">Inactivo</span>'}</td>
             <td>
@@ -3485,7 +3630,7 @@ const ASOC = {
 
     async cargarTodosUsuarios() {
         const [uRes, asocRes] = await Promise.all([
-            apiFetch('/config/usuarios'),
+            apiFetch('/config/asociaciones/disponibles'),
             apiFetch('/config/asociaciones'),
         ]);
         this._todosUsuarios     = uRes.ok   ? (uRes.data   || []) : [];
@@ -3508,7 +3653,7 @@ const ASOC = {
             return `<tr>
                 <td>${nombre.trim()||'—'}</td>
                 <td>${u.numero_documento||'—'}</td>
-                <td>${u.correo||'—'}</td>
+                <td class="col-sm-hide">${u.correo||'—'}</td>
                 <td>${badge}</td>
                 <td><button class="btn-secondary" style="padding:5px 12px;font-size:.78rem;" onclick="ASOC.seleccionarUsuario('${u._id}','${nombre.trim().replace(/'/g,"\\'")}')">🔗 Asociar</button></td>
             </tr>`;
@@ -3598,7 +3743,7 @@ const ASOC = {
     },
 
     async desvincular(id) {
-        if (!confirm('¿Desvincular este usuario de la empresa?')) return;
+        if (!await confirmar('Desvincular usuario', '¿Desvincular este usuario de la empresa?', 'Desvincular')) return;
         const d = await apiFetch(`/config/asociaciones/${id}`, 'DELETE');
         if (d.ok) {
             showToast('✅ Vínculo eliminado');
@@ -3665,8 +3810,8 @@ const SRV = {
             <tr style="opacity:${s.activo?'1':'.65'};">
                 <td style="font-size:1.3rem;text-align:center;">${s.icono || '📋'}</td>
                 <td><strong>${s.nombre}</strong></td>
-                <td><code style="font-size:.78rem;">${s.codigo}</code></td>
-                <td style="text-align:center;">${s.orden}</td>
+                <td class="col-sm-hide"><code style="font-size:.78rem;">${s.codigo}</code></td>
+                <td class="col-sm-hide" style="text-align:center;">${s.orden}</td>
                 <td>
                     <span style="font-size:.72rem;padding:2px 10px;border-radius:12px;
                         background:${s.activo?'rgba(0,200,100,.1)':'rgba(220,50,50,.1)'};
@@ -3898,7 +4043,7 @@ const RE = {
             return `<tr>
                 <td id="re-logo-${r.empresa_id}"><div style="width:34px;height:34px;border-radius:8px;background:rgba(4,34,67,0.06);display:flex;align-items:center;justify-content:center;"><span class="spinner"></span></div></td>
                 <td>${nombreEmp}</td>
-                <td style="font-size:.78rem;max-width:260px;white-space:normal;line-height:1.6;">${roles}</td>
+                <td class="col-sm-hide" style="font-size:.78rem;max-width:260px;white-space:normal;line-height:1.6;">${roles}</td>
                 <td class="col-sm-hide" style="font-size:.75rem;color:rgba(4,34,67,0.55);">${creadoTxt}</td>
                 <td class="col-sm-hide" style="font-size:.75rem;color:rgba(4,34,67,0.55);">${modificadoTxt}</td>
                 <td>
@@ -4058,7 +4203,7 @@ const RE = {
     },
 
     async eliminar(empresaId, nombre) {
-        if (!confirm(`¿Eliminar la configuración de roles de "${nombre}"?\nEsta acción no se puede deshacer.`)) return;
+        if (!await confirmar('Eliminar configuración', `¿Eliminar la configuración de roles de "${nombre}"?\nEsta acción no se puede deshacer.`, 'Eliminar')) return;
         const data = await apiFetch(`/config/habilitacion/${empresaId}`, 'DELETE');
         if (!data.ok) { showToast('⚠ ' + data.error, true); return; }
         showToast('✅ Configuración eliminada');

@@ -22,7 +22,12 @@ def listar():
 @requiere_superadmin
 def crear():
     datos = request.get_json(silent=True) or request.form.to_dict()
-    exito, resultado = UsuarioController.crear(datos, session["num_doc"])
+    exito, resultado = UsuarioController.crear(
+        datos,
+        creado_por    = session["num_doc"],
+        creado_por_id = session.get("usuario_id", ""),
+        rol_sesion    = session.get("rol", ""),
+    )
     if not exito: return err(resultado)
     return ok(resultado)
 
@@ -45,6 +50,21 @@ def migrar_schema():
         f"{resultado['asoc_normalizadas']} asoc. normalizadas, "
         f"{resultado['users_actualizados']} usuarios actualizados"
     ))
+
+
+@usuarios_bp.route("/usuarios/<user_id>", methods=["GET"])
+@requiere_superadmin
+def obtener(user_id):
+    from app.configuracion.usuarios.model import UsuarioConfigModel
+    usuario = UsuarioConfigModel.buscar_por_id(user_id)
+    if not usuario:
+        return err("Usuario no encontrado")
+    usuario.pop("password", None)
+    usuario.pop("token_recuperacion", None)
+    usuario.pop("bloqueado_hasta", None)
+    usuario.pop("intentos_fallidos", None)
+    usuario.pop("token_expira", None)
+    return ok(serializar(usuario))
 
 
 @usuarios_bp.route("/usuarios/<user_id>", methods=["PUT"])
@@ -85,13 +105,39 @@ def eliminar(user_id):
 @requiere_superadmin
 def roles_sistema():
     from app.configuracion.roles.model import RolModel
-    rol_sesion = session.get("rol", "")
-    roles = list(RolModel.listar(solo_activos=True))
-    roles_sis = [r for r in roles if r.get("es_sistema")]
-    # Solo SuperAdmin puede ver y asignar SuperAdmin
-    if rol_sesion != "SuperAdmin":
-        roles_sis = [r for r in roles_sis if r["nombre"] != "SuperAdmin"]
-    return ok(serializar(roles_sis))
+    roles = RolModel.roles_sistema_asignables(session.get("rol", ""))
+    return ok(serializar(roles))
+
+
+@usuarios_bp.route("/usuarios/diagnostico-sistema", methods=["GET"])
+@requiere_superadmin
+def diagnostico_sistema():
+    from app import db
+    from app.configuracion.roles.model import RolModel
+    roles_sis = RolModel.nombres_sistema()
+    pipeline = [
+        {"$match": {"empresa_id": None, "activo": True}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "_id",
+            "as": "usuario",
+        }},
+        {"$unwind": "$usuario"},
+        {"$project": {
+            "_id": 0,
+            "user_id":        {"$toString": "$user_id"},
+            "num_doc":        "$usuario.numero_documento",
+            "nombres":        "$usuario.nombres",
+            "apellidos":      "$usuario.apellidos",
+            "rol_asignado":   1,
+            "rol_es_sistema": {"$in": ["$rol_asignado", list(roles_sis)]},
+            "creado_en":      1,
+        }},
+        {"$sort": {"rol_asignado": 1}},
+    ]
+    resultado = list(db["asociaciones"].aggregate(pipeline))
+    return ok(serializar(resultado))
 
 
 @usuarios_bp.route("/usuarios/<user_id>/rol-sistema", methods=["POST"])
@@ -101,7 +147,9 @@ def asignar_rol_sistema(user_id):
     rol_nombre = (body.get("rol_nombre") or "").strip()
     if not rol_nombre:
         return err("Se requiere rol_nombre")
-    exito, resultado = UsuarioController.asignar_rol_sistema(user_id, rol_nombre, session["num_doc"])
+    exito, resultado = UsuarioController.asignar_rol_sistema(
+        user_id, rol_nombre, session["num_doc"], session.get("rol", "")
+    )
     if not exito: return err(resultado)
     return ok(mensaje=resultado)
 

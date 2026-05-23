@@ -61,6 +61,7 @@ class UserModel:
     @staticmethod
     def crear_usuario(tipo_doc, num_doc, password, rol=None,
                       nombres="", apellidos="", email="", telefono="",
+                      nombre_contacto_emergencia="", telefono_contacto_emergencia="",
                       conjunto_id=None, creado_por=None):
         """Crea un usuario nuevo en MongoDB con contraseña encriptada."""
 
@@ -88,6 +89,8 @@ class UserModel:
             "apellidos":            apellidos,
             "email":                email,
             "telefono":             telefono,
+            "nombre_contacto_emergencia":   nombre_contacto_emergencia,
+            "telefono_contacto_emergencia": telefono_contacto_emergencia,
 
             # ── AUDITORÍA ───────────────────────────────
             "activo":               True,

@@ -20,6 +20,7 @@ class UsuarioConfigModel:
 
     CAMPOS_EDITABLES = {
         "nombres", "apellidos", "email", "telefono", "activo",
+        "nombre_contacto_emergencia", "telefono_contacto_emergencia",
     }
 
     @staticmethod
@@ -104,7 +105,16 @@ class UsuarioConfigModel:
 
     @staticmethod
     def actualizar(user_id: str, datos: dict):
-        update = {k: v for k, v in datos.items() if k in UsuarioConfigModel.CAMPOS_EDITABLES}
+        update = {}
+        for k, v in datos.items():
+            if k not in UsuarioConfigModel.CAMPOS_EDITABLES:
+                continue
+            # No sobreescribir con cadena vacía campos obligatorios
+            if k in ("nombres", "apellidos", "email") and (v is None or str(v).strip() == ""):
+                continue
+            update[k] = v
+        if not update:
+            return
         update["ultima_actualizacion"] = datetime.utcnow()
         _col().update_one({"_id": ObjectId(user_id)}, {"$set": update})
 
@@ -137,22 +147,24 @@ class UsuarioConfigModel:
     def normalizar_schema() -> int:
         """Agrega campos faltantes al esquema limpio. Idempotente."""
         defaults = {
-            "tipo_documento":       "",
-            "numero_documento":     "",
-            "nombres":              "",
-            "apellidos":            "",
-            "email":                "",
-            "telefono":             "",
-            "intentos_fallidos":    0,
-            "bloqueado_hasta":      None,
-            "token_recuperacion":   None,
-            "token_expira":         None,
-            "activo":               True,
-            "primer_login":         True,
-            "creado_en":            None,
-            "creado_por":           None,
-            "ultimo_login":         None,
-            "ultima_actualizacion": None,
+            "tipo_documento":               "",
+            "numero_documento":             "",
+            "nombres":                      "",
+            "apellidos":                    "",
+            "email":                        "",
+            "telefono":                     "",
+            "nombre_contacto_emergencia":   "",
+            "telefono_contacto_emergencia": "",
+            "intentos_fallidos":            0,
+            "bloqueado_hasta":              None,
+            "token_recuperacion":           None,
+            "token_expira":                 None,
+            "activo":                       True,
+            "primer_login":                 True,
+            "creado_en":                    None,
+            "creado_por":                   None,
+            "ultimo_login":                 None,
+            "ultima_actualizacion":         None,
         }
         modificados = 0
         for doc in _col().find({}):

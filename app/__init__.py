@@ -121,6 +121,7 @@ def create_app():
     # ── Migraciones idempotentes de BD (se ejecutan en cada arranque, son seguras) ──
     try:
         from app.configuracion.roles.model import RolModel
+        RolModel._parchar_puede_crear()
         RolModel._marcar_roles_sistema()
         n = RolModel.migrar_asociaciones_ids_a_nombres()
         if n:

@@ -85,12 +85,20 @@ class RolModel:
     @staticmethod
     def inicializar_roles_base(creado_por="sistema"):
         base = [
-            {"nombre": "SuperAdmin",              "descripcion": "Control total del SaaS",          "modulos": MODULOS_SISTEMA, "es_sistema": True},
-            {"nombre": "AdministradorImplementador", "descripcion": "Tecnico de implementacion",    "modulos": MODULOS_SISTEMA, "es_sistema": True},
-            {"nombre": "AdminCliente",            "descripcion": "Administra un conjunto",           "modulos": ["Pagos","PQRS","Reservas","Asambleas","Cartera","Facturación","Comunicados"]},
-            {"nombre": "AdministradorPH",         "descripcion": "Gestion operativa",               "modulos": ["PQRS","Reservas","Control Acceso","Comunicados"]},
-            {"nombre": "Residente",               "descripcion": "Propietario o arrendatario",      "modulos": ["Pagos","PQRS","Reservas","Comunicados"]},
-            {"nombre": "Visitante",               "descripcion": "Acceso temporal",                 "modulos": ["Comunicados"]},
+            {
+                "nombre": "SuperAdmin", "descripcion": "Control total del SaaS",
+                "modulos": MODULOS_SISTEMA, "es_sistema": True,
+                "puede_crear": ["SuperAdmin", "AdministradorImplementador"],
+            },
+            {
+                "nombre": "AdministradorImplementador", "descripcion": "Tecnico de implementacion",
+                "modulos": MODULOS_SISTEMA, "es_sistema": True,
+                "puede_crear": ["AdministradorImplementador"],
+            },
+            {"nombre": "AdminCliente",    "descripcion": "Administra un conjunto",          "modulos": ["Pagos","PQRS","Reservas","Asambleas","Cartera","Facturación","Comunicados"]},
+            {"nombre": "AdministradorPH", "descripcion": "Gestion operativa",               "modulos": ["PQRS","Reservas","Control Acceso","Comunicados"]},
+            {"nombre": "Residente",       "descripcion": "Propietario o arrendatario",      "modulos": ["Pagos","PQRS","Reservas","Comunicados"]},
+            {"nombre": "Visitante",       "descripcion": "Acceso temporal",                 "modulos": ["Comunicados"]},
         ]
         for r in base:
             existente = _col().find_one({"nombre": r["nombre"]})
@@ -98,9 +106,49 @@ class RolModel:
                 _col().insert_one(
                     {**r, "activo": True, "creado_en": datetime.utcnow(), "creado_por": creado_por}
                 )
-            elif r.get("es_sistema") and not existente.get("es_sistema"):
-                # Migración: añadir es_sistema a roles ya existentes
-                _col().update_one({"_id": existente["_id"]}, {"$set": {"es_sistema": True}})
+            else:
+                patch = {}
+                if r.get("es_sistema") and not existente.get("es_sistema"):
+                    patch["es_sistema"] = True
+                if r.get("puede_crear") and "puede_crear" not in existente:
+                    patch["puede_crear"] = r["puede_crear"]
+                if patch:
+                    _col().update_one({"_id": existente["_id"]}, {"$set": patch})
+
+    @staticmethod
+    def _parchar_puede_crear():
+        """Migración idempotente: añade puede_crear a roles de sistema existentes sin crearnada nuevo."""
+        parches = {
+            "SuperAdmin":                ["SuperAdmin", "AdministradorImplementador"],
+            "AdministradorImplementador": ["AdministradorImplementador"],
+        }
+        for nombre, puede_crear in parches.items():
+            _col().update_one(
+                {"nombre": nombre, "puede_crear": {"$exists": False}},
+                {"$set": {"puede_crear": puede_crear}},
+            )
+
+    @staticmethod
+    def roles_sistema_asignables(rol_nombre: str) -> list:
+        """Roles de sistema que el rol `rol_nombre` puede asignar.
+        Lee el campo puede_crear del propio rol para determinar qué puede otorgar."""
+        if not rol_nombre:
+            return []
+        if rol_nombre == "SuperAdmin":
+            return list(_col().find(
+                {"es_sistema": True, "activo": True},
+                {"_id": 1, "nombre": 1, "descripcion": 1}
+            ).sort("nombre", 1))
+        rol_doc = _col().find_one({"nombre": rol_nombre}, {"puede_crear": 1})
+        if not rol_doc:
+            return []
+        puede_crear = rol_doc.get("puede_crear", [])
+        if not puede_crear:
+            return []
+        return list(_col().find(
+            {"nombre": {"$in": puede_crear}, "es_sistema": True, "activo": True},
+            {"_id": 1, "nombre": 1, "descripcion": 1}
+        ).sort("nombre", 1))
 
     @staticmethod
     def migrar_modulos_a_ids():
