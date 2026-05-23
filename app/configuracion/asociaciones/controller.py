@@ -24,6 +24,36 @@ class AsociacionController:
         return True, AsociacionModel.usuarios_sin_empresa()
 
     @staticmethod
+    def listar_por_usuario(user_id: str):
+        return True, AsociacionModel.listar_por_usuario(user_id)
+
+    @staticmethod
+    def editar(asoc_id: str, datos: dict):
+        from app.configuracion.roles.model import RolModel
+        from app import db
+        from bson import ObjectId
+
+        rol_asig = datos.get("rol_asignado", "").strip()
+        if not rol_asig:
+            return False, "Seleccione un rol"
+
+        rol_existe = RolModel.buscar_por_nombre(rol_asig)
+        if not rol_existe:
+            return False, "El rol seleccionado no existe"
+        if rol_existe.get("es_sistema"):
+            return False, f"El rol '{rol_existe['nombre']}' es de sistema y no puede asignarse a una empresa"
+
+        try:
+            asoc = db["asociaciones"].find_one({"_id": ObjectId(asoc_id), "activo": True})
+        except Exception:
+            asoc = None
+        if not asoc:
+            return False, "Asociación no encontrada"
+
+        AsociacionModel.editar_rol(asoc_id, rol_existe["nombre"])
+        return True, "Rol actualizado correctamente"
+
+    @staticmethod
     def vincular(datos: dict, creado_por: str):
         user_id    = datos.get("user_id", "").strip()
         empresa_id = datos.get("empresa_id", "").strip()
@@ -38,9 +68,22 @@ class AsociacionController:
         if not empresa_id: return False, "Seleccione una empresa"
         if not rol_asig:   return False, "Seleccione un rol"
 
+        # Verificar que no existe ya asociación activa para este usuario+empresa
+        from app import db
+        from bson import ObjectId
+        try:
+            existente = db["asociaciones"].find_one({
+                "user_id": ObjectId(user_id),
+                "empresa_id": ObjectId(empresa_id),
+                "activo": True,
+            })
+            if existente:
+                return False, f"Este usuario ya tiene el rol '{existente.get('rol_asignado', '')}' en esa empresa. Use editar para cambiarlo."
+        except Exception:
+            pass
+
         # rol_asig puede venir como ID (24 hex) o como nombre — normalizar a ID
         from app.configuracion.roles.model import RolModel
-        from bson import ObjectId
         import re
         if re.match(r'^[0-9a-f]{24}$', rol_asig):
             rol_existe = RolModel.buscar_por_id(rol_asig)

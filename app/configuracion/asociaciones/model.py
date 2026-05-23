@@ -111,5 +111,34 @@ class AsociacionModel:
         ))
 
     @staticmethod
+    def listar_por_usuario(user_id) -> list:
+        pipeline = [
+            {"$match": {"user_id": ObjectId(user_id), "activo": True, "empresa_id": {"$ne": None}}},
+            {"$lookup": {
+                "from": "empresas",
+                "localField": "empresa_id",
+                "foreignField": "_id",
+                "as": "empresa",
+            }},
+            {"$unwind": {"path": "$empresa", "preserveNullAndEmptyArrays": True}},
+            {"$project": {
+                "_id": 1,
+                "empresa_id": 1,
+                "empresa_nombre": "$empresa.razon_social",
+                "rol_asignado": 1,
+            }},
+            {"$sort": {"empresa_nombre": 1}},
+        ]
+        return list(_col().aggregate(pipeline))
+
+    @staticmethod
+    def editar_rol(asoc_id: str, rol_nombre: str):
+        from datetime import datetime
+        _col().update_one(
+            {"_id": ObjectId(asoc_id)},
+            {"$set": {"rol_asignado": rol_nombre, "actualizado_en": datetime.utcnow()}}
+        )
+
+    @staticmethod
     def desactivar(asoc_id):
         _col().delete_one({"_id": ObjectId(asoc_id)})

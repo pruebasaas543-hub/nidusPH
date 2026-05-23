@@ -36,6 +36,22 @@ def vincular():
     if not exito: return err(resultado)
     return ok(resultado)
 
+@asociaciones_bp.route("/asociaciones/usuario/<user_id>", methods=["GET"])
+@requiere_superadmin
+def por_usuario(user_id):
+    _, data = AsociacionController.listar_por_usuario(user_id)
+    return ok(serializar(data))
+
+
+@asociaciones_bp.route("/asociaciones/<asoc_id>", methods=["PUT"])
+@requiere_superadmin
+def editar(asoc_id):
+    datos = request.get_json(silent=True) or request.form.to_dict()
+    exito, resultado = AsociacionController.editar(asoc_id, datos)
+    if not exito: return err(resultado)
+    return ok(mensaje=resultado)
+
+
 @asociaciones_bp.route("/asociaciones/<asoc_id>", methods=["DELETE"])
 @requiere_superadmin
 def desvincular(asoc_id):
