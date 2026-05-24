@@ -5,7 +5,6 @@ app/configuracion/datos_ph/model.py
 from app import db
 from datetime import datetime
 from bson import ObjectId
-import bcrypt
 
 
 def _col(): return db["datos_generales_ph"]
@@ -15,18 +14,22 @@ class DatosGeneralesPHModel:
 
     @staticmethod
     def _build_parqueaderos(datos: dict) -> dict:
-        def cant(tipo, cat):
-            return {"cantidad": int(datos.get(f"cant_parq_{tipo}_{cat}", 0) or 0)}
+        def slot(tipo, cat):
+            return {
+                "cantidad": int(datos.get(f"cant_parq_{tipo}_{cat}", 0) or 0),
+                "desde":    str(datos.get(f"parq_{tipo}_{cat}_desde", "") or "").strip(),
+                "hasta":    str(datos.get(f"parq_{tipo}_{cat}_hasta", "") or "").strip(),
+            }
         return {
             "Carros": {
-                "Comunales":  cant("com",  "carros"),
-                "Propios":    cant("prop", "carros"),
-                "Visitantes": cant("vis",  "carros"),
+                "Comunales":  slot("com",  "carros"),
+                "Propios":    slot("prop", "carros"),
+                "Visitantes": slot("vis",  "carros"),
             },
             "Motos": {
-                "Comunales":  cant("com",  "motos"),
-                "Propios":    cant("prop", "motos"),
-                "Visitantes": cant("vis",  "motos"),
+                "Comunales":  slot("com",  "motos"),
+                "Propios":    slot("prop", "motos"),
+                "Visitantes": slot("vis",  "motos"),
             },
         }
 
@@ -64,7 +67,6 @@ class DatosGeneralesPHModel:
         def _f(k): return str(datos.get(k, "") or "").strip()
         def _n(k):
             raw = str(datos.get(k, 0) or 0)
-            # Handle Colombian locale format: "1.000.000,50" → 1000000.50
             if "," in raw and "." in raw:
                 raw = raw.replace(".", "").replace(",", ".")
             elif "," in raw:
@@ -94,11 +96,11 @@ class DatosGeneralesPHModel:
             "regimen_tributario": datos.get("regimen_tributario", []) if isinstance(datos.get("regimen_tributario"), list) else [],
             "obligaciones_rut":   datos.get("obligaciones_rut", []) if isinstance(datos.get("obligaciones_rut"), list) else [],
             "ciiu":               datos.get("ciiu", []) if isinstance(datos.get("ciiu"), list) else [],
-            "estrato":            datos.get("estrato", "").strip(),
+            "estrato":            str(datos.get("estrato", "") or "").strip(),
             "parqueaderos":       DatosGeneralesPHModel._build_parqueaderos(datos),
-            "correo_admin":           datos.get("correo_admin", "").strip(),
-            "tel_admin":              datos.get("tel_admin", "").strip(),
-            "cel_admin":              datos.get("cel_admin", "").strip(),
+            "correo_admin":           str(datos.get("correo_admin", "") or "").strip(),
+            "tel_admin":              str(datos.get("tel_admin", "") or "").strip(),
+            "cel_admin":              str(datos.get("cel_admin", "") or "").strip(),
             "dias_horarios":          datos.get("dias_horarios", {}),
             "representante_legal":    datos.get("representante_legal", {}),
             "representante_suplente": datos.get("representante_suplente", {}),
@@ -116,11 +118,11 @@ class DatosGeneralesPHModel:
             "regimen_tributario": datos.get("regimen_tributario", []) if isinstance(datos.get("regimen_tributario"), list) else [],
             "obligaciones_rut":   datos.get("obligaciones_rut", []) if isinstance(datos.get("obligaciones_rut"), list) else [],
             "ciiu":               datos.get("ciiu", []) if isinstance(datos.get("ciiu"), list) else [],
-            "estrato":            datos.get("estrato", "").strip(),
+            "estrato":            str(datos.get("estrato", "") or "").strip(),
             "parqueaderos":       DatosGeneralesPHModel._build_parqueaderos(datos),
-            "correo_admin":           datos.get("correo_admin", "").strip(),
-            "tel_admin":              datos.get("tel_admin", "").strip(),
-            "cel_admin":              datos.get("cel_admin", "").strip(),
+            "correo_admin":           str(datos.get("correo_admin", "") or "").strip(),
+            "tel_admin":              str(datos.get("tel_admin", "") or "").strip(),
+            "cel_admin":              str(datos.get("cel_admin", "") or "").strip(),
             "dias_horarios":          datos.get("dias_horarios", {}),
             "representante_legal":    datos.get("representante_legal", {}),
             "representante_suplente": datos.get("representante_suplente", {}),

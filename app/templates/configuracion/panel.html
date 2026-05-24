@@ -762,6 +762,7 @@
                 <form id="form-datos-ph">
                     <input type="hidden" id="dph-empresa-id" value="">
 
+                    <!-- ── SELECCIONAR EMPRESA ──────────────────────── -->
                     <div class="config-form-card">
                         <div class="config-form-card-title">🏢 Seleccionar Empresa</div>
                         <div class="form-grid-2">
@@ -783,30 +784,40 @@
                                 <input class="form-control" name="num_contrato" type="text" placeholder="CON-2024-001">
                             </div>
                             <div class="form-group">
+                                <label>Plan contratado <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto de Empresa)</span></label>
+                                <input class="form-control" name="plan_contratado" id="dph-plan-contratado" type="text" readonly style="opacity:.7;cursor:not-allowed;" placeholder="Se completa al seleccionar empresa">
+                            </div>
+                            <div class="form-group">
                                 <label>Fecha de Inicio</label>
                                 <input class="form-control date-picker-modern" name="contrato_fecha_inicio" type="date" style="color-scheme:dark;" oninput="calcularFechaFin()">
                             </div>
                             <div class="form-group">
                                 <label>Meses contratados</label>
-                                <input class="form-control num-only" name="meses_contratados" type="number" min="1" max="120" placeholder="12" oninput="calcularFechaFin()">
+                                <input class="form-control" name="meses_contratados" type="number" min="1" max="120" placeholder="12" oninput="calcularFechaFin()">
                             </div>
                             <div class="form-group">
                                 <label>Fecha de Finalización <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto)</span></label>
                                 <input class="form-control date-picker-modern" name="contrato_fecha_fin" id="contrato-fecha-fin" type="date" style="color-scheme:dark;opacity:.7;cursor:not-allowed;" readonly>
                             </div>
                             <div class="form-group">
-                                <label>Estado del Contrato</label>
-                                <select class="form-control" name="estado_contrato" id="dph-estado-contrato">
-                                    <option value="">— Cargando —</option>
-                                </select>
+                                <label>Cant. Unidades Totales</label>
+                                <input class="form-control" name="cant_unidades" type="number" min="0" placeholder="100" step="1">
                             </div>
                             <div class="form-group">
-                                <label>Plan contratado <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto de Empresa)</span></label>
-                                <input class="form-control" name="plan_contratado" id="dph-plan-contratado" type="text" readonly style="opacity:.7;cursor:not-allowed;" placeholder="Se completa al seleccionar empresa">
+                                <label>Valor Copropiedad (m²)</label>
+                                <input class="form-control" name="valor_copropiedad" type="number" min="0" step="any" placeholder="2000">
                             </div>
                             <div class="form-group">
-                                <label>Día de Pago</label>
-                                <input class="form-control date-picker-modern" name="dia_pago" type="date" style="color-scheme:dark;">
+                                <label>Valor Facturación Mensual</label>
+                                <input class="form-control" name="valor_facturacion_mensual" type="number" min="0" step="any" placeholder="1700000">
+                            </div>
+                            <div class="form-group">
+                                <label>Día Generación Facturación <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(1-31)</span></label>
+                                <input class="form-control" name="dia_generacion_facturacion" type="number" min="1" max="31" placeholder="5">
+                            </div>
+                            <div class="form-group">
+                                <label>Hora Generación Facturación</label>
+                                <input class="form-control" name="hora_generacion_facturacion" type="time">
                             </div>
                             <div class="form-group">
                                 <label>Correo Facturación</label>
@@ -820,7 +831,69 @@
                         <div class="config-form-card-title">🏛️ Información Tributaria</div>
                         <div class="form-grid-2">
                             <div class="form-group">
-                                <label>Responsabilidades Fiscales</label>
+                                <label>Tipo de Identificación Fiscal</label>
+                                <select class="form-control" id="dph-it-tipo-doc" name="it_tipo_doc">
+                                    <option value="">— Cargando —</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Número de Identificación</label>
+                                <input class="form-control" name="it_numero_identificacion" type="text" placeholder="900000000">
+                            </div>
+                            <div class="form-group">
+                                <label>Dígito de Verificación</label>
+                                <input class="form-control" name="it_digito_verificacion" type="text" maxlength="1" placeholder="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Organización</label>
+                                <select class="form-control" id="dph-it-tipo-org" name="it_tipo_organizacion">
+                                    <option value="">— Seleccione —</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Razón Social</label>
+                                <input class="form-control" name="it_razon_social" type="text" placeholder="Nombre legal del PH">
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre Comercial</label>
+                                <input class="form-control" name="it_nombre_comercial" type="text" placeholder="Nombre comercial">
+                            </div>
+                            <div class="form-group form-full">
+                                <label>Dirección</label>
+                                <input class="form-control" name="it_direccion" type="text" placeholder="Cra. 72 #57R 16 Sur">
+                            </div>
+                            <div class="form-group">
+                                <label>Código Postal</label>
+                                <input class="form-control" name="it_codigo_postal" type="text" placeholder="110111">
+                            </div>
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input class="form-control" name="it_telefono" type="text" placeholder="3134137184">
+                            </div>
+                            <div class="form-group">
+                                <label>País</label>
+                                <input class="form-control" name="it_pais" type="text" value="Colombia" placeholder="Colombia">
+                            </div>
+                            <div class="form-group">
+                                <label>Departamento</label>
+                                <input class="form-control" name="it_departamento" type="text" placeholder="Bogotá D.C.">
+                            </div>
+                            <div class="form-group">
+                                <label>Ciudad</label>
+                                <input class="form-control" name="it_ciudad" type="text" placeholder="Bogotá D.C.">
+                            </div>
+                            <div class="form-group">
+                                <label>Correo Facturación Electrónica</label>
+                                <input class="form-control" name="it_correo_facturacion_electronica" type="email" placeholder="facturacion@ph.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Sitio Web</label>
+                                <input class="form-control" name="it_sitio_web" type="url" placeholder="https://www.ejemplo.com">
+                            </div>
+
+                            <!-- Régimen Tributario -->
+                            <div class="form-group">
+                                <label>Régimen Tributario</label>
                                 <div class="custom-multiselect" id="cd-responsabilidades">
                                     <button type="button" class="custom-dropdown-btn" onclick="toggleCustomDropdown('cd-responsabilidades')">
                                         <span class="cd-label" id="cd-responsabilidades-label">Selecciona...</span>
@@ -831,6 +904,22 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Obligaciones RUT -->
+                            <div class="form-group">
+                                <label>Obligaciones RUT</label>
+                                <div class="custom-multiselect" id="cd-obligaciones">
+                                    <button type="button" class="custom-dropdown-btn" onclick="toggleCustomDropdown('cd-obligaciones')">
+                                        <span class="cd-label" id="cd-obligaciones-label">Selecciona...</span>
+                                        <span class="cd-arrow">▼</span>
+                                    </button>
+                                    <div class="custom-dropdown-menu" id="cd-obligaciones-menu">
+                                        <div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem;text-align:center;"><span class="spinner"></span> Cargando...</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CIIU -->
                             <div class="form-group">
                                 <label>Códigos CIIU</label>
                                 <div class="custom-multiselect" id="cd-ciiu">
@@ -843,27 +932,20 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Estrato -->
                             <div class="form-group">
                                 <label>Estrato</label>
                                 <select class="form-control" id="dph-estrato" name="estrato">
                                     <option value="">— Selecciona estrato —</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Cant. Unidades Totales</label>
-                                <input class="form-control" name="cant_unidades" type="number" min="0" placeholder="100" step="1" pattern="[0-9]*">
-                            </div>
+
+                            <!-- Tributos aplicables -->
                             <div class="form-group form-full">
-                                <label>Obligaciones RUT</label>
-                                <div class="custom-multiselect" id="cd-obligaciones">
-                                    <button type="button" class="custom-dropdown-btn" onclick="toggleCustomDropdown('cd-obligaciones')">
-                                        <span class="cd-label" id="cd-obligaciones-label">Selecciona...</span>
-                                        <span class="cd-arrow">▼</span>
-                                    </button>
-                                    <div class="custom-dropdown-menu" id="cd-obligaciones-menu">
-                                        <div style="padding:12px;color:rgba(255,255,255,.4);font-size:.8rem;text-align:center;"><span class="spinner"></span> Cargando...</div>
-                                    </div>
-                                </div>
+                                <label>Tributos Aplicables</label>
+                                <div id="dph-tributos-lista" style="display:grid;gap:10px;margin-bottom:10px;"></div>
+                                <button type="button" class="btn-secondary" style="font-size:.8rem;padding:6px 14px;" onclick="dphAgregarTributo()">➕ Agregar tributo</button>
                             </div>
                         </div>
                     </div>
@@ -872,29 +954,26 @@
                     <div class="config-form-card">
                         <div class="config-form-card-title">🚗 Parqueaderos - Carros</div>
                         <div style="display:grid;gap:14px;">
-                            <!-- Comunales -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
                                 <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Comunales</div>
                                 <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control num-only" name="cant_parq_com_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_com_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
                                     <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_com_carros_desde" type="text" placeholder="001"></div>
                                     <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_com_carros_hasta" type="text" placeholder="050"></div>
                                 </div>
                             </div>
-                            <!-- Propios -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
                                 <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Propios</div>
                                 <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control num-only" name="cant_parq_prop_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_prop_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
                                     <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_prop_carros_desde" type="text" placeholder="051"></div>
                                     <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_prop_carros_hasta" type="text" placeholder="120"></div>
                                 </div>
                             </div>
-                            <!-- Visitantes -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
                                 <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Visitantes</div>
                                 <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control num-only" name="cant_parq_vis_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_vis_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
                                     <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_vis_carros_desde" type="text" placeholder="V01"></div>
                                     <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_vis_carros_hasta" type="text" placeholder="V20"></div>
                                 </div>
@@ -909,29 +988,26 @@
                     <div class="config-form-card">
                         <div class="config-form-card-title">🏍️ Parqueaderos - Motos</div>
                         <div style="display:grid;gap:14px;">
-                            <!-- Comunales -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
                                 <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Comunales</div>
                                 <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control num-only" name="cant_parq_com_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_com_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
                                     <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_com_motos_desde" type="text" placeholder="M001"></div>
                                     <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_com_motos_hasta" type="text" placeholder="M020"></div>
                                 </div>
                             </div>
-                            <!-- Propios -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
                                 <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Propios</div>
                                 <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control num-only" name="cant_parq_prop_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_prop_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
                                     <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_prop_motos_desde" type="text" placeholder="M021"></div>
                                     <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_prop_motos_hasta" type="text" placeholder="M060"></div>
                                 </div>
                             </div>
-                            <!-- Visitantes -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
                                 <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Visitantes</div>
                                 <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control num-only" name="cant_parq_vis_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_vis_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
                                     <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_vis_motos_desde" type="text" placeholder="MV01"></div>
                                     <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_vis_motos_hasta" type="text" placeholder="MV10"></div>
                                 </div>
@@ -954,8 +1030,8 @@
                                 </select>
                             </div>
                             <div class="form-group"><label>Número de Documento *</label><input class="form-control" name="rep_legal_num_doc" type="text" required></div>
-                            <div class="form-group"><label>Correo Rep. Legal</label><input class="form-control" name="rep_legal_correo" type="email"></div>
-                            <div class="form-group"><label>Teléfono Rep. Legal</label><input class="form-control" name="rep_legal_telefono" type="text"></div>
+                            <div class="form-group"><label>Correo</label><input class="form-control" name="rep_legal_correo" type="email"></div>
+                            <div class="form-group"><label>Teléfono</label><input class="form-control" name="rep_legal_telefono" type="text"></div>
                             <div class="form-group">
                                 <label>Inicio Contrato Administración</label>
                                 <input class="form-control date-picker-modern" name="rep_legal_inicio_contrato" type="date" style="color-scheme:dark;">
@@ -979,8 +1055,8 @@
                                 </select>
                             </div>
                             <div class="form-group"><label>Número de Documento *</label><input class="form-control" name="rep_supl_num_doc" type="text" required></div>
-                            <div class="form-group"><label>Correo Rep. Suplente</label><input class="form-control" name="rep_supl_correo" type="email"></div>
-                            <div class="form-group"><label>Teléfono Rep. Suplente</label><input class="form-control" name="rep_supl_telefono" type="text"></div>
+                            <div class="form-group"><label>Correo</label><input class="form-control" name="rep_supl_correo" type="email"></div>
+                            <div class="form-group"><label>Teléfono</label><input class="form-control" name="rep_supl_telefono" type="text"></div>
                             <div class="form-group">
                                 <label>Inicio Contrato Administración</label>
                                 <input class="form-control date-picker-modern" name="rep_supl_inicio_contrato" type="date" style="color-scheme:dark;">
@@ -992,6 +1068,7 @@
                         </div>
                     </div>
 
+                    <!-- ── CONTACTO ADMINISTRACIÓN ──────────────────── -->
                     <div class="config-form-card">
                         <div class="config-form-card-title">📞 Contacto Administración</div>
                         <div class="form-grid-2">
@@ -1001,6 +1078,7 @@
                         </div>
                     </div>
 
+                    <!-- ── DÍAS Y HORARIOS ──────────────────────────── -->
                     <div class="config-form-card">
                         <div class="config-form-card-title">⏰ Días y Horarios de Atención</div>
                         <div id="horarios-container" style="display:grid; gap:14px;">
@@ -1815,18 +1893,21 @@ document.addEventListener('click', function(e) {
     }
 });
 
+var _dphTributosCache = [];
+
 async function cargarCatalogosCompletoDatosPH() {
     try {
-        const [respDian, ciiu, estratos, estadosCto, obligRut, tipoDoc] = await Promise.all([
+        const [respDian, ciiu, estratos, obligRut, tipoDoc, tiposOrg, tributos] = await Promise.all([
             apiFetch('/config/datos_ph/responsabilidades_dian'),
             apiFetch('/config/datos_ph/actividades_ciiu'),
             apiFetch('/config/datos_ph/estratos'),
-            apiFetch('/config/datos_ph/estados_contrato'),
             apiFetch('/config/datos_ph/obligaciones_rut'),
             apiFetch('/config/datos_ph/tipo_identificador_fiscal'),
+            apiFetch('/config/datos_ph/tipos_organizacion'),
+            apiFetch('/config/datos_ph/tributos'),
         ]);
 
-        // Responsabilidades fiscales → custom dropdown
+        // Régimen tributario → custom dropdown
         if (respDian.ok) {
             populateCustomDropdown('cd-responsabilidades',
                 (respDian.data || []).map(r => ({ value: r.id, label: r.codigo + ' - ' + r.nombre })));
@@ -1841,29 +1922,35 @@ async function cargarCatalogosCompletoDatosPH() {
         // Obligaciones RUT → custom dropdown
         if (obligRut.ok) {
             populateCustomDropdown('cd-obligaciones',
-                (obligRut.data || []).map(o => ({ value: o.codigo, label: o.nombre })));
+                (obligRut.data || []).map(o => ({ value: o.id || o.codigo, label: o.nombre })));
         }
 
-        // Estratos → native select (solo número)
+        // Estratos → native select
         if (estratos.ok) {
             const sel = document.getElementById('dph-estrato');
             sel.innerHTML = '<option value="">— Selecciona estrato —</option>' +
                 (estratos.data || []).map(e => `<option value="${e.numero}">${e.numero}</option>`).join('');
         }
 
-        // Estados del contrato
-        if (estadosCto.ok) {
-            const sel = document.getElementById('dph-estado-contrato');
-            sel.innerHTML = '<option value="">— Selecciona estado —</option>' +
-                (estadosCto.data || []).map(e => `<option value="${e.codigo}">${e.nombre}</option>`).join('');
-        }
-
-        // Tipo identificador fiscal → ambos selects de representantes
+        // Tipo identificador fiscal → representantes y tributaria
         if (tipoDoc.ok) {
             const opts = '<option value="">— Seleccione —</option>' +
                 (tipoDoc.data || []).map(t => `<option value="${t.codigo}">${t.codigo} - ${t.nombre}</option>`).join('');
             document.getElementById('dph-rep-legal-tipo').innerHTML = opts;
             document.getElementById('dph-rep-supl-tipo').innerHTML  = opts;
+            document.getElementById('dph-it-tipo-doc').innerHTML    = opts;
+        }
+
+        // Tipos de organización
+        if (tiposOrg.ok) {
+            document.getElementById('dph-it-tipo-org').innerHTML =
+                '<option value="">— Seleccione —</option>' +
+                (tiposOrg.data || []).map(t => `<option value="${t.id || t._id}">${t.nombre}</option>`).join('');
+        }
+
+        // Cache tributos para selector dinámico
+        if (tributos.ok) {
+            _dphTributosCache = tributos.data || [];
         }
 
         // Generar selectors de horarios por día
@@ -1872,6 +1959,50 @@ async function cargarCatalogosCompletoDatosPH() {
     } catch (err) {
         console.error('Error cargando catálogos para Datos PH:', err);
     }
+}
+
+function dphAgregarTributo(tributo_id='', base_imponible='') {
+    const lista = document.getElementById('dph-tributos-lista');
+    const idx = lista.children.length;
+    const opts = _dphTributosCache.map(t =>
+        `<option value="${t.id || t._id}" ${(t.id||t._id)===tributo_id?'selected':''}>${t.nombre} (${t.codigo||''})</option>`
+    ).join('');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;';
+    row.innerHTML = `
+        <select class="form-control dph-tributo-sel" data-idx="${idx}">
+            <option value="">— Seleccione tributo —</option>${opts}
+        </select>
+        <input class="form-control dph-tributo-base" type="number" min="0" max="100" step="0.01"
+               placeholder="Base %" value="${base_imponible}"
+               style="width:100px;" data-idx="${idx}">
+        <button type="button" onclick="this.closest('div').remove()"
+                style="background:#c0392b;border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.85rem;">🗑️</button>
+    `;
+    lista.appendChild(row);
+}
+
+function dphGetTributos() {
+    const resultado = [];
+    document.querySelectorAll('#dph-tributos-lista > div').forEach(row => {
+        const sel  = row.querySelector('.dph-tributo-sel');
+        const base = row.querySelector('.dph-tributo-base');
+        if (sel && sel.value) {
+            const found = _dphTributosCache.find(t => (t.id||t._id) === sel.value);
+            resultado.push({
+                tributo_id:     sel.value,
+                nombre:         found?.nombre || '',
+                codigo:         found?.codigo || '',
+                base_imponible: parseFloat(base?.value || 0),
+            });
+        }
+    });
+    return resultado;
+}
+
+function dphSetTributos(lista) {
+    document.getElementById('dph-tributos-lista').innerHTML = '';
+    (lista || []).forEach(t => dphAgregarTributo(t.tributo_id || '', t.base_imponible ?? ''));
 }
 
 function generarSeleccionHorarios() {
@@ -2266,11 +2397,12 @@ function renderTablaDatosPH(lista) {
         var rep = cfg.representante_legal?.nombre_completo || '—';
         var estado = cfg.creado_en ? '<span class="badge badge-active">✅ Configurado</span>' : '<span class="badge badge-pending">⏳ Pendiente</span>';
         var regimen = cfg.regimen_tributario_enriquecido ? cfg.regimen_tributario_enriquecido.map(r => r.codigo).join(', ') : '—';
+        var unidades = cfg.info_contractual?.cant_unidades ?? cfg.cant_unidades ?? '—';
         return `<tr>
             <td><strong>${cfg.empresa_nombre || '—'}</strong></td>
             <td class="col-sm-hide" title="${regimen}" style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">${regimen}</td>
             <td class="col-sm-hide">${cfg.estrato || '—'}</td>
-            <td class="col-sm-hide">${cfg.cant_unidades || '—'}</td>
+            <td class="col-sm-hide">${unidades}</td>
             <td class="col-sm-hide">${rep}</td>
             <td>${estado}</td>
             <td>
@@ -2284,12 +2416,11 @@ function renderTablaDatosPH(lista) {
 }
 
 function limpiarFormDatosPH() {
-    document.getElementById('dph-empresa-id').value = '';
-    document.getElementById('dph-empresa-sel').value = '';
-    document.getElementById('dph-estrato').value = '';
-    document.getElementById('dph-estado-contrato').value = '';
+    document.getElementById('dph-empresa-id').value    = '';
+    document.getElementById('dph-empresa-sel').value   = '';
+    document.getElementById('dph-estrato').value       = '';
     document.getElementById('dph-plan-contratado').value = '';
-    document.getElementById('contrato-fecha-fin').value = '';
+    document.getElementById('contrato-fecha-fin').value  = '';
 
     // Custom dropdowns
     ['cd-responsabilidades', 'cd-ciiu', 'cd-obligaciones'].forEach(id => {
@@ -2298,31 +2429,45 @@ function limpiarFormDatosPH() {
     });
 
     [
-        'num_contrato', 'contrato_fecha_inicio', 'meses_contratados', 'correo_facturacion', 'dia_pago',
-        'cant_unidades',
+        // contractual
+        'num_contrato', 'contrato_fecha_inicio', 'meses_contratados', 'correo_facturacion',
+        'cant_unidades', 'valor_copropiedad', 'valor_facturacion_mensual',
+        'dia_generacion_facturacion', 'hora_generacion_facturacion',
+        // tributaria flat fields
+        'it_numero_identificacion', 'it_digito_verificacion',
+        'it_razon_social', 'it_nombre_comercial',
+        'it_direccion', 'it_codigo_postal', 'it_telefono',
+        'it_pais', 'it_departamento', 'it_ciudad',
+        'it_correo_facturacion_electronica', 'it_sitio_web',
+        // parqueaderos
         'cant_parq_com_carros', 'parq_com_carros_desde', 'parq_com_carros_hasta',
         'cant_parq_prop_carros', 'parq_prop_carros_desde', 'parq_prop_carros_hasta',
         'cant_parq_vis_carros', 'parq_vis_carros_desde', 'parq_vis_carros_hasta',
         'cant_parq_com_motos',  'parq_com_motos_desde',  'parq_com_motos_hasta',
         'cant_parq_prop_motos', 'parq_prop_motos_desde', 'parq_prop_motos_hasta',
         'cant_parq_vis_motos',  'parq_vis_motos_desde',  'parq_vis_motos_hasta',
+        // representantes
         'rep_legal_nombre', 'rep_legal_num_doc', 'rep_legal_inicio_contrato',
         'rep_legal_vencimiento_contrato', 'rep_legal_correo', 'rep_legal_telefono',
         'rep_supl_nombre', 'rep_supl_num_doc', 'rep_supl_inicio_contrato',
         'rep_supl_vencimiento_contrato', 'rep_supl_correo', 'rep_supl_telefono',
-        'correo_admin', 'tel_admin', 'cel_admin'
+        // contacto
+        'correo_admin', 'tel_admin', 'cel_admin',
     ].forEach(name => {
         const el = document.querySelector(`#form-datos-ph [name="${name}"]`);
+        if (el) el.value = name === 'it_pais' ? 'Colombia' : '';
+    });
+
+    // Selects
+    ['dph-rep-legal-tipo','dph-rep-supl-tipo','dph-it-tipo-doc','dph-it-tipo-org'].forEach(id => {
+        const el = document.getElementById(id);
         if (el) el.value = '';
     });
 
-    // Reset tipo doc selects
-    const legal = document.getElementById('dph-rep-legal-tipo');
-    const supl  = document.getElementById('dph-rep-supl-tipo');
-    if (legal) legal.value = '';
-    if (supl)  supl.value  = '';
+    // Tributos
+    document.getElementById('dph-tributos-lista').innerHTML = '';
 
-    // Limpiar horarios
+    // Horarios
     document.querySelectorAll('[name^="horario_"], [name^="cerrado_"]').forEach(el => {
         if (el.type === 'checkbox') el.checked = false;
         else el.value = '';
@@ -2369,19 +2514,41 @@ async function cargarConfiguracionPH(empresaId) {
     const ic = cfg.info_contractual || {};
     const set = (name, val) => {
         const el = document.querySelector(`#form-datos-ph [name="${name}"]`);
-        if (el) el.value = val || '';
+        if (el) el.value = (val !== undefined && val !== null) ? val : '';
     };
-    set('num_contrato',          ic.numero_contrato);
-    set('contrato_fecha_inicio', ic.fecha_inicio);
-    set('meses_contratados',     ic.meses_contratados || '');
-    set('correo_facturacion',    ic.correo_facturacion);
-    set('dia_pago',              ic.dia_pago);
+    set('num_contrato',                ic.numero_contrato);
+    set('contrato_fecha_inicio',       ic.fecha_inicio);
+    set('meses_contratados',           ic.meses_contratados || '');
+    set('correo_facturacion',          ic.correo_facturacion);
+    set('cant_unidades',               ic.cant_unidades ?? cfg.cant_unidades ?? '');
+    set('valor_copropiedad',           ic.valor_copropiedad || '');
+    set('valor_facturacion_mensual',   ic.valor_facturacion_mensual || '');
+    set('dia_generacion_facturacion',  ic.dia_generacion_facturacion || '');
+    set('hora_generacion_facturacion', ic.hora_generacion_facturacion || '');
     if (ic.fecha_finalizacion) document.getElementById('contrato-fecha-fin').value = ic.fecha_finalizacion;
-    if (ic.estado_contrato) document.getElementById('dph-estado-contrato').value = ic.estado_contrato;
-    if (ic.plan_contratado) document.getElementById('dph-plan-contratado').value = ic.plan_contratado;
+    if (ic.plan_contratado)    document.getElementById('dph-plan-contratado').value = ic.plan_contratado;
+
+    // Info tributaria
+    const it = cfg.info_tributaria || {};
+    set('it_numero_identificacion',          it.numero_identificacion);
+    set('it_digito_verificacion',            it.digito_verificacion);
+    set('it_razon_social',                   it.razon_social);
+    set('it_nombre_comercial',               it.nombre_comercial);
+    set('it_direccion',                      it.direccion);
+    set('it_codigo_postal',                  it.codigo_postal);
+    set('it_telefono',                       it.telefono);
+    set('it_pais',                           it.pais || 'Colombia');
+    set('it_departamento',                   it.departamento);
+    set('it_ciudad',                         it.ciudad);
+    set('it_correo_facturacion_electronica', it.correo_facturacion_electronica);
+    set('it_sitio_web',                      it.sitio_web);
+    const tipoDocEl = document.getElementById('dph-it-tipo-doc');
+    if (tipoDocEl && it.tipo_doc) tipoDocEl.value = it.tipo_doc;
+    const tipoOrgEl = document.getElementById('dph-it-tipo-org');
+    if (tipoOrgEl && it.tipo_organizacion) tipoOrgEl.value = it.tipo_organizacion;
+    dphSetTributos(it.tributos_aplicables || []);
 
     // Campos simples
-    set('cant_unidades', cfg.cant_unidades || 0);
     set('correo_admin', cfg.correo_admin);
     set('tel_admin',    cfg.tel_admin);
     set('cel_admin',    cfg.cel_admin);
@@ -2389,7 +2556,7 @@ async function cargarConfiguracionPH(empresaId) {
     // Estrato
     if (cfg.estrato) document.getElementById('dph-estrato').value = cfg.estrato;
 
-    // Custom dropdowns: responsabilidades, ciiu, obligaciones
+    // Custom dropdowns: régimen, ciiu, obligaciones
     if (Array.isArray(cfg.regimen_tributario)) setCustomDropdownValues('cd-responsabilidades', cfg.regimen_tributario);
     if (Array.isArray(cfg.ciiu))               setCustomDropdownValues('cd-ciiu',              cfg.ciiu);
     if (Array.isArray(cfg.obligaciones_rut))   setCustomDropdownValues('cd-obligaciones',      cfg.obligaciones_rut);
@@ -2480,13 +2647,34 @@ async function guardarDatosPH() {
     data.ciiu               = getCustomDropdownValues('cd-ciiu');
     data.obligaciones_rut   = getCustomDropdownValues('cd-obligaciones');
 
-    // Info contractual (explícitos para evitar colisión con name="contrato_fecha_fin" readonly)
+    // Info contractual
     data.contrato_fecha_fin = document.getElementById('contrato-fecha-fin').value;
     data.plan_contratado    = document.getElementById('dph-plan-contratado').value;
 
-    // Tipo doc representantes (select, no llega por FormData si está disabled)
+    // Tipo doc representantes
     data.rep_legal_tipo_doc = document.getElementById('dph-rep-legal-tipo')?.value || '';
     data.rep_supl_tipo_doc  = document.getElementById('dph-rep-supl-tipo')?.value  || '';
+
+    // Info tributaria — armar objeto anidado
+    data.info_tributaria = {
+        tipo_doc:                       document.getElementById('dph-it-tipo-doc')?.value || '',
+        numero_identificacion:          data.it_numero_identificacion || '',
+        digito_verificacion:            data.it_digito_verificacion   || '',
+        razon_social:                   data.it_razon_social          || '',
+        nombre_comercial:               data.it_nombre_comercial      || '',
+        tipo_organizacion:              document.getElementById('dph-it-tipo-org')?.value || '',
+        direccion:                      data.it_direccion             || '',
+        codigo_postal:                  data.it_codigo_postal         || '',
+        telefono:                       data.it_telefono              || '',
+        pais:                           data.it_pais                  || 'Colombia',
+        departamento:                   data.it_departamento          || '',
+        ciudad:                         data.it_ciudad                || '',
+        correo_facturacion_electronica: data.it_correo_facturacion_electronica || '',
+        sitio_web:                      data.it_sitio_web             || '',
+        tributos_aplicables:            dphGetTributos(),
+    };
+    // Limpiar campos planos it_ para no contaminar el payload
+    Object.keys(data).filter(k => k.startsWith('it_')).forEach(k => delete data[k]);
 
     // Construir dias_horarios
     data.dias_horarios = {};
