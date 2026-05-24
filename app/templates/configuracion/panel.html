@@ -1780,11 +1780,45 @@ function setActive(el) {
 }
 
 function mostrarPanel(panelId) {
+    // Resetear el panel actual antes de salir
+    var actual = document.querySelector('.config-panel.active');
+    if (actual && actual.id !== panelId) _resetPanel(actual.id);
+
     document.querySelectorAll('.config-panel').forEach(p => p.classList.remove('active'));
     document.getElementById(panelId)?.classList.add('active');
-    localStorage.setItem('activePanelId', panelId);
 
-    if (panelId === 'cfg-planes') PLN.tabById?.('pl-lista');
+    // Refrescar datos del panel al que se entra
+    _refreshPanel(panelId);
+}
+
+function _resetPanel(panelId) {
+    var panel = document.getElementById(panelId);
+    if (!panel) return;
+    // Volver al primer ptab del panel
+    var ptabs    = panel.querySelectorAll('.ptab');
+    var contents = panel.querySelectorAll('.ptab-content');
+    if (ptabs.length) {
+        ptabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        ptabs[0].classList.add('active');
+        if (contents[0]) contents[0].classList.add('active');
+    }
+    // Limpiar formularios internos conocidos
+    if (panelId === 'cfg-datos-ph') limpiarFormDatosPH();
+}
+
+function _refreshPanel(panelId) {
+    switch (panelId) {
+        case 'cfg-empresas':      cargarEmpresas();                                   break;
+        case 'cfg-datos-ph':      cargarListadoDatosPH(); cargarEmpresasParaDatosPH(); break;
+        case 'cfg-usuarios':      cargarUsuarios();                                   break;
+        case 'cfg-roles':         cargarRoles();                                      break;
+        case 'cfg-roles-empresa': RE.init();                                          break;
+        case 'cfg-asociaciones':  ASOC.init();                                        break;
+        case 'cfg-planes':        PLN.init();                                         break;
+        case 'cfg-servicios':     SRV.init();                                         break;
+        case 'cfg-datos-pago':    cargarEmpresasParaDatosPago();                      break;
+    }
 }
 
 // ── Color pickers ──
@@ -4749,16 +4783,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTema = localStorage.getItem('nidus-tema');
     if (savedTema && TEMAS_CSS[savedTema]) aplicarTema(savedTema);
 
-    // Restore last active panel
-    const lastPanelId = localStorage.getItem('activePanelId');
-    if (lastPanelId && document.getElementById(lastPanelId)) {
-        mostrarPanel(lastPanelId);
-        const navItem = document.querySelector(`[onclick*="mostrarPanel('${lastPanelId}')"]`);
-        if (navItem) {
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            navItem.classList.add('active');
-        }
-    }
+    // F5 siempre inicia en cfg-inicio (no se restaura el panel anterior)
 
     // Auto-código al escribir nombre de servicio
     const srvNombreInput = document.getElementById('srv-nombre');
