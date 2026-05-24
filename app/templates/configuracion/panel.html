@@ -3048,7 +3048,7 @@ async function guardarDatosPH() {
 }
 
 async function eliminarDatosPH(configId) {
-    if (!confirm('¿Deseas eliminar esta configuración?')) return;
+    if (!await confirmar('Eliminar configuración', '¿Deseas eliminar esta configuración? Esta acción no se puede deshacer.', 'Eliminar')) return;
     const data = await apiFetch(`/config/datos_generales_ph/${configId}`, 'DELETE');
     if (data.ok) {
         showToast('✅ Eliminado correctamente');
@@ -3900,7 +3900,7 @@ async function cargarConfiguracionesPago(empresaId) {
 }
 
 async function eliminarMedioPago(configId, empresaId) {
-    if (!confirm('¿Eliminar este medio de pago?')) return;
+    if (!await confirmar('Eliminar medio de pago', '¿Deseas eliminar este medio de pago?', 'Eliminar')) return;
     const res = await fetch(`/config/asociacion_pago/${configId}`, { method: 'DELETE' });
     const json = await res.json();
     if (json.ok) { showToast('✅ Eliminado'); cargarConfiguracionesPago(empresaId); }
