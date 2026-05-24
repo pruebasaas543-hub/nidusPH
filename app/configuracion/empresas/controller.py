@@ -16,6 +16,7 @@ class EmpresaController:
             "tipos_ph":         CatalogoModel.tipos_ph(),
             "planes_saas":      CatalogoModel.planes_saas(),
             "mapa_municipios":  CatalogoModel.mapa_municipios(),
+            "estados_contrato": CatalogoModel.estados_contrato(),
         }
 
     @staticmethod
@@ -78,10 +79,10 @@ class EmpresaController:
         return True, "Empresa actualizada correctamente"
 
     @staticmethod
-    def cambiar_estado(empresa_id: str, activo: bool):
+    def cambiar_estado(empresa_id: str, activo: bool, estado_contrato_id: str = None, motivo: str = None):
         if not EmpresaModel.buscar_por_id(empresa_id):
             return False, "Empresa no encontrada"
-        EmpresaModel.cambiar_estado(empresa_id, activo)
+        EmpresaModel.cambiar_estado(empresa_id, activo, estado_contrato_id, motivo)
         return True, f"Empresa {'activada' if activo else 'desactivada'} correctamente"
 
     @staticmethod

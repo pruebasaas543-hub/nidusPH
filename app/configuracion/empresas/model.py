@@ -12,6 +12,7 @@ import base64
 def _col():  return db["empresas"]
 def _col_a(): return db["asociaciones"]
 def _col_u(): return db["users"]
+def _col_ec(): return db["estados_contrato"]
 
 
 def _es_id(s: str) -> bool:
@@ -19,6 +20,11 @@ def _es_id(s: str) -> bool:
 
 
 class EmpresaModel:
+
+    @staticmethod
+    def _id_estado(nombre: str):
+        doc = _col_ec().find_one({"nombre": {"$regex": f"^{nombre}$", "$options": "i"}})
+        return str(doc["_id"]) if doc else None
 
     CAMPOS_EDITABLES = {
         "razon_social", "digito_verificacion", "tipo_entidad",
@@ -73,6 +79,7 @@ class EmpresaModel:
             **imgs,
             "observaciones":       datos.get("observaciones", "").strip(),
             "activo":              True,
+            "estado_contrato_id":  EmpresaModel._id_estado("ACTIVO"),
             "creado_en":           datetime.utcnow(),
             "creado_por":          creado_por,
             "actualizado_en":      None,
@@ -93,8 +100,20 @@ class EmpresaModel:
                     _col().update_one({"_id": emp["_id"]}, {"$set": {"plan": nuevo_id}})
 
     @staticmethod
+    def migrar_estado_contrato():
+        """Asigna estado_contrato_id a empresas activas que lo tienen en None. Idempotente."""
+        activo_id = EmpresaModel._id_estado("ACTIVO")
+        if not activo_id:
+            return
+        _col().update_many(
+            {"activo": True, "estado_contrato_id": None},
+            {"$set": {"estado_contrato_id": activo_id}}
+        )
+
+    @staticmethod
     def listar(solo_activas=False) -> list:
         EmpresaModel.migrar_plan_a_id()
+        EmpresaModel.migrar_estado_contrato()
         filtro = {"activo": True} if solo_activas else {}
         return list(_col().find(filtro, EmpresaModel._sin_imagenes()).sort("razon_social", 1))
 
@@ -130,12 +149,16 @@ class EmpresaModel:
         _col().update_one({"_id": ObjectId(empresa_id)}, {"$set": update})
 
     @staticmethod
-    def cambiar_estado(empresa_id: str, activo: bool):
-        _col().update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$set": {"activo": activo, "actualizado_en": datetime.utcnow()}}
-        )
-        # Activar/desactivar las asociaciones de esta empresa para reflejar su estado
+    def cambiar_estado(empresa_id: str, activo: bool, estado_contrato_id: str = None, motivo: str = None):
+        if activo:
+            ec_id  = EmpresaModel._id_estado("ACTIVO")
+            update = {"activo": True, "estado_contrato_id": ec_id,
+                      "motivo_desactivacion": None, "actualizado_en": datetime.utcnow()}
+        else:
+            ec_id  = estado_contrato_id or EmpresaModel._id_estado("SUSPENDIDO")
+            update = {"activo": False, "estado_contrato_id": ec_id,
+                      "motivo_desactivacion": motivo or None, "actualizado_en": datetime.utcnow()}
+        _col().update_one({"_id": ObjectId(empresa_id)}, {"$set": update})
         _col_a().update_many(
             {"empresa_id": ObjectId(empresa_id)},
             {"$set": {"activo": activo}}

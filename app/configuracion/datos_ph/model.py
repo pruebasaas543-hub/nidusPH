@@ -15,11 +15,7 @@ class DatosGeneralesPHModel:
     @staticmethod
     def _build_parqueaderos(datos: dict) -> dict:
         def slot(tipo, cat):
-            return {
-                "cantidad": int(datos.get(f"cant_parq_{tipo}_{cat}", 0) or 0),
-                "desde":    str(datos.get(f"parq_{tipo}_{cat}_desde", "") or "").strip(),
-                "hasta":    str(datos.get(f"parq_{tipo}_{cat}_hasta", "") or "").strip(),
-            }
+            return {"cantidad": int(datos.get(f"cant_parq_{tipo}_{cat}", 0) or 0)}
         return {
             "Carros": {
                 "Comunales":  slot("com",  "carros"),

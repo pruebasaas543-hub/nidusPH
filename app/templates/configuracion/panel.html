@@ -66,7 +66,7 @@
         .form-grid-4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:14px; }
         .form-full { grid-column:1/-1; }
         .form-group { display:flex; flex-direction:column; gap:6px; }
-        .form-group label { font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#042243; }
+        .form-group label { font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#1260c4; }
         .form-control { width:100%; background:rgba(190,210,245,0.75); border:1.5px solid rgba(4,34,67,0.4); border-radius:10px; padding:10px 14px; color:#1E2756; font-size:0.88rem; outline:none; transition:border-color .2s, background .2s; }
         .form-control:focus { border-color:#1260c4; background:rgba(255,255,255,0.98); box-shadow:0 0 0 3px rgba(4,34,67,0.15); }
         .form-control::placeholder { color:#AAB4D8; }
@@ -302,6 +302,12 @@
         .custom-dropdown-item:hover { background:rgba(4,34,67,0.07); }
         .custom-dropdown-item input[type="checkbox"] { width:16px; height:16px; accent-color:#042243; cursor:pointer; flex-shrink:0; }
         .custom-dropdown-item label { font-size:.82rem; color:#1E2756; cursor:pointer; }
+        .cd-item-row:hover { background:rgba(4,34,67,.07); }
+        .cd-item-row { list-style:none; }
+        .cd-item-text { font-size:.83rem; color:#1E2756; cursor:pointer; }
+        .cd-item-check { accent-color:#1260c4; }
+        .horario-col-header { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#1260c4; }
+        .horario-dia-nombre { font-size:.78rem; font-weight:600; color:#1260c4; }
         .cd-label { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#6B7AAD; }
         .cd-label.has-sel { color:#1E2756; }
 
@@ -603,7 +609,7 @@
                         <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:1px;">Si se desactiva, sus usuarios verán un aviso de servicio no disponible</div>
                     </div>
                     <label style="position:relative;width:50px;height:26px;flex-shrink:0;">
-                        <input type="checkbox" id="chk-activo" style="opacity:0;width:0;height:0;" onchange="actualizarEstadoLabel(this)">
+                        <input type="checkbox" id="chk-activo" style="opacity:0;width:0;height:0;" onchange="interceptarCambioEstado(this)">
                         <span id="toggle-activo-slider" style="position:absolute;cursor:pointer;inset:0;background:rgba(255,80,80,0.4);border-radius:26px;transition:.3s;">
                             <span style="position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;"></span>
                         </span>
@@ -622,6 +628,34 @@
     </div>
 </div>
 
+<!-- Modal Tipo de Desactivación -->
+<div class="modal-overlay" id="modal-desact" style="z-index:9500;">
+    <div class="modal-box" style="width:clamp(320px,90vw,480px);padding:0;overflow:hidden;">
+        <div class="modal-title" style="padding:18px 24px 14px;border-bottom:1px solid rgba(4,34,67,0.1);">
+            🔴 Desactivar empresa
+        </div>
+        <!-- Paso 1: Elegir tipo de estado -->
+        <div id="desact-paso1" style="padding:18px 22px;">
+            <p style="font-size:.85rem;color:#6B7AAD;margin-bottom:18px;">Selecciona el nuevo estado de la empresa:</p>
+            <div style="display:grid;gap:10px;" id="desact-opciones"></div>
+        </div>
+        <!-- Paso 2: Motivo -->
+        <div id="desact-paso2" style="padding:18px 22px;display:none;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                <button type="button" onclick="volverPaso1Desact()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#6B7AAD;line-height:1;" title="Volver">←</button>
+                <span id="desact-estado-badge" style="font-size:.8rem;font-weight:700;padding:4px 14px;border-radius:20px;background:rgba(220,50,50,0.1);color:#d9363e;"></span>
+            </div>
+            <div class="form-group">
+                <label for="desact-motivo">Motivo de la desactivación (opcional)</label>
+                <textarea id="desact-motivo" class="form-control" style="min-height:82px;" placeholder="Describe brevemente la razón..."></textarea>
+            </div>
+        </div>
+        <div style="padding:12px 22px 18px;display:flex;justify-content:space-between;gap:10px;">
+            <button type="button" class="btn-secondary" onclick="cancelarDesactivacion()">Cancelar</button>
+            <button type="button" class="btn-primary" id="btn-desact-confirmar" style="display:none;" onclick="aplicarDesactivacion()">✅ Confirmar</button>
+        </div>
+    </div>
+</div>
 
         <!-- ════════════════════════════════════════════════════════════
              CFG-5: ROLES
@@ -723,7 +757,6 @@
 
             <div class="panel-tabs">
                 <div class="ptab active" onclick="switchPTab(this,'dph-lista')">📋 Configuraciones registradas</div>
-                <div class="ptab" onclick="switchPTab(this,'dph-form')">➕ Nueva configuración</div>
             </div>
 
             <!-- ── LISTADO ─────────────────────────────────────────── -->
@@ -786,6 +819,7 @@
                             <div class="form-group">
                                 <label>Plan Contratado</label>
                                 <input class="form-control" name="plan_contratado" id="dph-plan-contratado" type="text" readonly style="opacity:.7;cursor:not-allowed;" placeholder="Se completa al seleccionar empresa">
+                                <input type="hidden" id="dph-plan-id">
                             </div>
                             <div class="form-group">
                                 <label>Fecha de Inicio</label>
@@ -796,7 +830,7 @@
                                 <input class="form-control" name="meses_contratados" type="number" min="1" max="120" placeholder="12" oninput="calcularFechaFin()">
                             </div>
                             <div class="form-group">
-                                <label>Fecha de Finalización <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto)</span></label>
+                                <label>Fecha de Finalización</label>
                                 <input class="form-control date-picker-modern" name="contrato_fecha_fin" id="contrato-fecha-fin" type="date" style="color-scheme:dark;opacity:.7;cursor:not-allowed;" readonly>
                             </div>
                             <div class="form-group">
@@ -805,10 +839,10 @@
                             </div>
                             <div class="form-group">
                                 <label>Valor Unidad Copropiedad</label>
-                                <input class="form-control" name="valor_copropiedad" id="dph-valor-copropiedad" type="number" min="0" step="any" placeholder="2000" oninput="dphCalcFacturacion()">
+                                <input class="form-control" name="valor_copropiedad" id="dph-valor-copropiedad" type="number" min="0" step="any" placeholder="2000" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
-                                <label>Valor Facturación Mensual <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto)</span></label>
+                                <label>Valor Facturación Mensual</label>
                                 <input class="form-control" name="valor_facturacion_mensual" id="dph-valor-facturacion" type="number" min="0" step="any" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
@@ -838,11 +872,11 @@
                             </div>
                             <div class="form-group">
                                 <label>Número de Identificación</label>
-                                <input class="form-control" name="it_numero_identificacion" type="text" placeholder="900000000">
+                                <input class="form-control" name="it_numero_identificacion" type="text" placeholder="900000000" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
                                 <label>Dígito de Verificación</label>
-                                <input class="form-control" name="it_digito_verificacion" type="text" maxlength="1" placeholder="1">
+                                <input class="form-control" name="it_digito_verificacion" type="text" maxlength="1" placeholder="1" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
                                 <label>Tipo de Organización</label>
@@ -852,7 +886,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Razón Social</label>
-                                <input class="form-control" name="it_razon_social" type="text" placeholder="Nombre legal del PH">
+                                <input class="form-control" name="it_razon_social" type="text" placeholder="Nombre legal del PH" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
                                 <label>Nombre Comercial</label>
@@ -860,19 +894,21 @@
                             </div>
                             <div class="form-group form-full">
                                 <label>Dirección</label>
-                                <input class="form-control" name="it_direccion" type="text" placeholder="Cra. 72 #57R 16 Sur">
+                                <input class="form-control" name="it_direccion" type="text" placeholder="Cra. 72 #57R 16 Sur" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
                                 <label>País</label>
-                                <input class="form-control" name="it_pais" type="text" value="Colombia" placeholder="Colombia">
+                                <input class="form-control" name="it_pais" type="text" value="Colombia" placeholder="Colombia" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
                                 <label>Departamento</label>
-                                <input class="form-control" name="it_departamento" id="dph-it-departamento" type="text" placeholder="Bogotá D.C." oninput="dphCargarCodigosPostales()">
+                                <input class="form-control" name="it_departamento" id="dph-it-departamento" type="text" placeholder="Bogotá D.C." readonly style="opacity:.7;cursor:not-allowed;">
+                                <input type="hidden" id="it-departamento-codigo">
                             </div>
                             <div class="form-group">
                                 <label>Ciudad</label>
-                                <input class="form-control" name="it_ciudad" id="dph-it-ciudad" type="text" placeholder="Bogotá D.C." oninput="dphCargarCodigosPostales()">
+                                <input class="form-control" name="it_ciudad" id="dph-it-ciudad" type="text" placeholder="Bogotá D.C." readonly style="opacity:.7;cursor:not-allowed;">
+                                <input type="hidden" id="it-ciudad-codigo">
                             </div>
                             <div class="form-group">
                                 <label>Código Postal</label>
@@ -882,7 +918,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Teléfono</label>
-                                <input class="form-control" name="it_telefono" type="text" placeholder="3134137184">
+                                <input class="form-control" name="it_telefono" type="text" placeholder="3134137184" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
                                 <label>Correo Facturación Electrónica</label>
@@ -952,71 +988,26 @@
                         </div>
                     </div>
 
-                    <!-- ── PARQUEADEROS CARROS ──────────────────── -->
+                    <!-- ── PARQUEADEROS ──────────────────── -->
                     <div class="config-form-card">
-                        <div class="config-form-card-title">🚗 Parqueaderos - Carros</div>
-                        <div style="display:grid;gap:14px;">
+                        <div class="config-form-card-title">🅿️ Parqueaderos</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                            <!-- Carros -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
-                                <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Comunales</div>
-                                <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_com_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
-                                    <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_com_carros_desde" type="text" placeholder="001"></div>
-                                    <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_com_carros_hasta" type="text" placeholder="050"></div>
-                                </div>
+                                <div style="font-weight:700;font-size:.8rem;color:rgba(0,212,255,.9);margin-bottom:12px;">🚗 Carros</div>
+                                <div class="form-group" style="margin-bottom:10px;"><label>Comunales</label><input class="form-control" name="cant_parq_com_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                <div class="form-group" style="margin-bottom:10px;"><label>Propios</label><input class="form-control" name="cant_parq_prop_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                <div class="form-group"><label>Visitantes</label><input class="form-control" name="cant_parq_vis_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);font-size:.82rem;font-weight:600;color:rgba(0,212,255,.8);">Total: <span id="total-carros">0</span></div>
                             </div>
+                            <!-- Motos -->
                             <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
-                                <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Propios</div>
-                                <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_prop_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
-                                    <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_prop_carros_desde" type="text" placeholder="051"></div>
-                                    <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_prop_carros_hasta" type="text" placeholder="120"></div>
-                                </div>
+                                <div style="font-weight:700;font-size:.8rem;color:rgba(0,212,255,.9);margin-bottom:12px;">🏍️ Motos</div>
+                                <div class="form-group" style="margin-bottom:10px;"><label>Comunales</label><input class="form-control" name="cant_parq_com_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                <div class="form-group" style="margin-bottom:10px;"><label>Propios</label><input class="form-control" name="cant_parq_prop_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                <div class="form-group"><label>Visitantes</label><input class="form-control" name="cant_parq_vis_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
+                                <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);font-size:.82rem;font-weight:600;color:rgba(0,212,255,.8);">Total: <span id="total-motos">0</span></div>
                             </div>
-                            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
-                                <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Visitantes</div>
-                                <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_vis_carros" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
-                                    <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_vis_carros_desde" type="text" placeholder="V01"></div>
-                                    <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_vis_carros_hasta" type="text" placeholder="V20"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="display:flex;justify-content:flex-end;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);">
-                            <span style="font-size:.85rem;color:rgba(0,212,255,.8);font-weight:600;">Total Carros: <span id="total-carros">0</span></span>
-                        </div>
-                    </div>
-
-                    <!-- ── PARQUEADEROS MOTOS ──────────────────── -->
-                    <div class="config-form-card">
-                        <div class="config-form-card-title">🏍️ Parqueaderos - Motos</div>
-                        <div style="display:grid;gap:14px;">
-                            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
-                                <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Comunales</div>
-                                <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_com_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
-                                    <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_com_motos_desde" type="text" placeholder="M001"></div>
-                                    <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_com_motos_hasta" type="text" placeholder="M020"></div>
-                                </div>
-                            </div>
-                            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
-                                <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Propios</div>
-                                <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_prop_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
-                                    <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_prop_motos_desde" type="text" placeholder="M021"></div>
-                                    <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_prop_motos_hasta" type="text" placeholder="M060"></div>
-                                </div>
-                            </div>
-                            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;">
-                                <div style="font-weight:600;font-size:.8rem;color:rgba(0,212,255,.8);margin-bottom:10px;">Visitantes</div>
-                                <div class="form-grid-3">
-                                    <div class="form-group"><label>Cantidad</label><input class="form-control" name="cant_parq_vis_motos" type="number" min="0" placeholder="0" oninput="calcularTotalesParqueaderos()"></div>
-                                    <div class="form-group"><label>Desde N°</label><input class="form-control" name="parq_vis_motos_desde" type="text" placeholder="MV01"></div>
-                                    <div class="form-group"><label>Hasta N°</label><input class="form-control" name="parq_vis_motos_hasta" type="text" placeholder="MV10"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="display:flex;justify-content:flex-end;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);">
-                            <span style="font-size:.85rem;color:rgba(0,212,255,.8);font-weight:600;">Total Motos: <span id="total-motos">0</span></span>
                         </div>
                     </div>
 
@@ -1034,14 +1025,6 @@
                             <div class="form-group"><label>Número de Documento *</label><input class="form-control" name="rep_legal_num_doc" type="text" required></div>
                             <div class="form-group"><label>Correo</label><input class="form-control" name="rep_legal_correo" type="email"></div>
                             <div class="form-group"><label>Teléfono</label><input class="form-control" name="rep_legal_telefono" type="text"></div>
-                            <div class="form-group">
-                                <label>Inicio Contrato Administración</label>
-                                <input class="form-control date-picker-modern" name="rep_legal_inicio_contrato" type="date" style="color-scheme:dark;">
-                            </div>
-                            <div class="form-group">
-                                <label>Vencimiento Contrato Administración</label>
-                                <input class="form-control date-picker-modern" name="rep_legal_vencimiento_contrato" type="date" style="color-scheme:dark;">
-                            </div>
                         </div>
                     </div>
 
@@ -1059,14 +1042,6 @@
                             <div class="form-group"><label>Número de Documento *</label><input class="form-control" name="rep_supl_num_doc" type="text" required></div>
                             <div class="form-group"><label>Correo</label><input class="form-control" name="rep_supl_correo" type="email"></div>
                             <div class="form-group"><label>Teléfono</label><input class="form-control" name="rep_supl_telefono" type="text"></div>
-                            <div class="form-group">
-                                <label>Inicio Contrato Administración</label>
-                                <input class="form-control date-picker-modern" name="rep_supl_inicio_contrato" type="date" style="color-scheme:dark;">
-                            </div>
-                            <div class="form-group">
-                                <label>Vencimiento Contrato Administración</label>
-                                <input class="form-control date-picker-modern" name="rep_supl_vencimiento_contrato" type="date" style="color-scheme:dark;">
-                            </div>
                         </div>
                     </div>
 
@@ -1868,9 +1843,9 @@ function populateCustomDropdown(id, items) {
     const menu = document.getElementById(id + '-menu');
     if (!menu) return;
     menu.innerHTML = items.map(item => `
-        <label style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);" onmouseenter="this.style.background='rgba(0,212,255,.08)'" onmouseleave="this.style.background=''">
-            <input type="checkbox" value="${item.value}" style="width:15px;height:15px;accent-color:#00c8f0;cursor:pointer;" onchange="updateCustomDropdownLabel('${id}')">
-            <span class="cd-item-text" style="font-size:.83rem;color:rgba(255,255,255,.85);">${item.label}</span>
+        <label class="cd-item-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(128,128,128,.1);">
+            <input type="checkbox" value="${item.value}" class="cd-item-check" style="width:15px;height:15px;cursor:pointer;flex-shrink:0;" onchange="updateCustomDropdownLabel('${id}')">
+            <span class="cd-item-text">${item.label}</span>
         </label>`).join('');
 }
 
@@ -1937,7 +1912,7 @@ async function cargarCatalogosCompletoDatosPH() {
         // Tipo identificador fiscal → representantes y tributaria
         if (tipoDoc.ok) {
             const opts = '<option value="">— Seleccione —</option>' +
-                (tipoDoc.data || []).map(t => `<option value="${t.codigo}">${t.codigo} - ${t.nombre}</option>`).join('');
+                (tipoDoc.data || []).map(t => `<option value="${t.id}" data-codigo="${t.codigo}">${t.codigo} - ${t.nombre}</option>`).join('');
             document.getElementById('dph-rep-legal-tipo').innerHTML = opts;
             document.getElementById('dph-rep-supl-tipo').innerHTML  = opts;
             document.getElementById('dph-it-tipo-doc').innerHTML    = opts;
@@ -2010,19 +1985,22 @@ function dphSetTributos(lista) {
 function generarSeleccionHorarios() {
     const container = document.getElementById('horarios-container');
     const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    
-    container.innerHTML = dias.map((dia, idx) => `
-        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px 14px;">
-            <div style="font-weight:600; font-size:0.8rem; color:rgba(0,212,255,0.8); margin-bottom:10px;">${dia}</div>
-            <div style="display:flex; gap:10px;">
-                <input type="time" class="form-control" name="horario_${idx}_inicio" style="flex:1;" placeholder="Abre">
-                <input type="time" class="form-control" name="horario_${idx}_fin" style="flex:1;" placeholder="Cierra">
-                <label style="display:flex; align-items:center; gap:6px; margin-top:2px; cursor:pointer; white-space:nowrap;">
-                    <input type="checkbox" name="cerrado_${idx}" style="width:16px; height:16px; cursor:pointer;"> Cerrado
-                </label>
+    container.innerHTML = `
+        <div style="display:grid;gap:6px;">
+            <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px;gap:8px;padding:4px 8px;">
+                <span class="horario-col-header">Día</span>
+                <span class="horario-col-header">Apertura</span>
+                <span class="horario-col-header">Cierre</span>
+                <span class="horario-col-header" style="text-align:center;">Cerrado</span>
             </div>
-        </div>
-    `).join('');
+            ${dias.map((dia, idx) => `
+            <div style="display:grid;grid-template-columns:90px 1fr 1fr 70px;gap:8px;align-items:center;background:rgba(128,128,128,.06);border:1px solid rgba(128,128,128,.12);border-radius:8px;padding:6px 8px;">
+                <span class="horario-dia-nombre">${dia}</span>
+                <input type="time" class="form-control" name="horario_${idx}_inicio" style="padding:6px 10px;font-size:.82rem;">
+                <input type="time" class="form-control" name="horario_${idx}_fin" style="padding:6px 10px;font-size:.82rem;">
+                <div style="display:flex;justify-content:center;"><input type="checkbox" name="cerrado_${idx}" style="width:16px;height:16px;cursor:pointer;"></div>
+            </div>`).join('')}
+        </div>`;
 }
 
 // ── Validar SOLO NÚMEROS en campos ──
@@ -2235,11 +2213,24 @@ async function abrirEdicion(id) {
     cargarImagenEmpresa(id, 'carousel_3', 'prev-car3', 'zt-car3');
 
     // Estado
+    _empPendingEstadoId = null;
+    _empPendingMotivo   = null;
     document.getElementById('card-estado').style.display = 'block';
     var chk = document.getElementById('chk-activo');
     chk.checked = emp.activo;
-    actualizarEstadoLabel(chk);
-    document.getElementById('banner-inactiva').style.display = emp.activo ? 'none' : 'flex';
+    // Mostrar nombre de estado actual cuando está inactiva
+    if (!emp.activo && emp.estado_contrato_id) {
+        var ecDoc = _estadosContratoData.find(e => e.id === emp.estado_contrato_id);
+        var label = document.getElementById('estado-label');
+        var slider = document.getElementById('toggle-activo-slider');
+        var thumb  = slider.querySelector('span');
+        slider.style.background = 'rgba(255,80,80,0.4)';
+        thumb.style.transform   = 'translateX(0)';
+        label.textContent       = ecDoc ? ecDoc.nombre : 'Empresa inactiva';
+        document.getElementById('banner-inactiva').style.display = 'flex';
+    } else {
+        actualizarEstadoLabel(chk);
+    }
 
     document.getElementById('btn-guardar-txt').textContent = 'Actualizar empresa';
 }
@@ -2270,6 +2261,7 @@ function actualizarEstadoLabel(chk) {
     var label  = document.getElementById('estado-label');
     var thumb  = slider.querySelector('span');
     if (chk.checked) {
+        _empPendingEstadoId     = null;
         slider.style.background = '#00c8f0';
         thumb.style.transform   = 'translateX(24px)';
         label.textContent       = 'Empresa activa';
@@ -2304,7 +2296,12 @@ async function guardarEmpresa() {
         var activo = document.getElementById('chk-activo').checked;
         var empActual = _empresasData.find(e => e._id === empresaId);
         if (empActual && empActual.activo !== activo) {
-            await apiFetch('/config/empresas/' + empresaId + '/estado', 'PATCH', { activo });
+            var patchBody = { activo };
+            if (!activo && _empPendingEstadoId) patchBody.estado_contrato_id = _empPendingEstadoId;
+            if (!activo && _empPendingMotivo)   patchBody.motivo = _empPendingMotivo;
+            await apiFetch('/config/empresas/' + empresaId + '/estado', 'PATCH', patchBody);
+            _empPendingEstadoId = null;
+            _empPendingMotivo   = null;
         }
     } else {
         // ── CREAR (POST multipart) ──────────────────────────────
@@ -2326,31 +2323,42 @@ async function guardarEmpresa() {
 }
 
 async function toggleEstado(id, activo) {
-    var accion = activo ? 'activar' : 'desactivar';
-    if (!await confirmar('Cambiar estado', `¿Deseas ${accion} esta empresa?${!activo ? '\nSus usuarios verán un aviso de servicio no disponible.' : ''}`, accion.charAt(0).toUpperCase() + accion.slice(1))) return;
-    const data = await apiFetch('/config/empresas/' + id + '/estado', 'PATCH', { activo });
-    if (!data.ok) { showToast('⚠ ' + data.error, true); return; }
-    showToast('✅ ' + data.mensaje);
-    cargarEmpresas();
+    if (activo) {
+        if (!await confirmar('Activar empresa', '¿Deseas activar esta empresa?', 'Activar')) return;
+        const data = await apiFetch('/config/empresas/' + id + '/estado', 'PATCH', { activo: true });
+        if (!data.ok) { showToast('⚠ ' + data.error, true); return; }
+        showToast('✅ ' + data.mensaje);
+        cargarEmpresas();
+    } else {
+        abrirModalDesact('rapida', id);
+    }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
 // CATÁLOGOS EMPRESA (tipos_ph, planes_saas, departamentos)
 // ══════════════════════════════════════════════════════════════════════════
 
-var _deptoMap = {};
-var _munMap   = {};
-var _tipoMap  = {};
-var _planMap  = {};
+var _deptoMap            = {};
+var _munMap              = {};
+var _tipoMap             = {};
+var _planMap             = {};
+var _estadosContratoData = [];
+var _empPendingEstadoId  = null;
+var _empPendingMotivo    = null;
+var _desactMode          = null;   // 'modal' | 'rapida'
+var _desactEmpresaId     = null;
+var _desactEstadoId      = null;
+var _desactEstadoNombre  = null;
 
 async function cargarCatalogos() {
     const data = await apiFetch('/config/empresas/catalogos');
     if (!data.ok) return;
-    const { departamentos = [], tipos_ph = [], planes_saas = [], mapa_municipios = {} } = data.data;
-    _deptoMap = Object.fromEntries(departamentos.map(d => [String(d.codigo_dane||''), d.departamento]));
-    _munMap   = mapa_municipios;
-    _tipoMap  = Object.fromEntries(tipos_ph.map(t => [String(t._id||''), t.nombre]));
-    _planMap  = Object.fromEntries(planes_saas.map(p => [String(p._id||''), p.nombre]));
+    const { departamentos = [], tipos_ph = [], planes_saas = [], mapa_municipios = {}, estados_contrato = [] } = data.data;
+    _deptoMap            = Object.fromEntries(departamentos.map(d => [String(d.codigo_dane||''), d.departamento]));
+    _munMap              = mapa_municipios;
+    _tipoMap             = Object.fromEntries(tipos_ph.map(t => [String(t._id||''), t.nombre]));
+    _planMap             = Object.fromEntries(planes_saas.map(p => [String(p._id||''), p.nombre]));
+    _estadosContratoData = estados_contrato;
 
     // Departamentos
     const selDepto = document.getElementById('emp-depto');
@@ -2371,6 +2379,90 @@ async function cargarCatalogos() {
     if (selPlan) {
         selPlan.innerHTML = '<option value="">— Seleccione plan —</option>' +
             planes_saas.map(p => `<option value="${p._id}">${p.nombre}</option>`).join('');
+    }
+}
+
+function interceptarCambioEstado(chk) {
+    if (!chk.checked) {
+        chk.checked = true;  // revertir hasta confirmar
+        abrirModalDesact('modal', null);
+    } else {
+        _empPendingEstadoId = null;
+        _empPendingMotivo   = null;
+        actualizarEstadoLabel(chk);
+    }
+}
+
+function abrirModalDesact(mode, empresaId) {
+    _desactMode      = mode;
+    _desactEmpresaId = empresaId;
+    _desactEstadoId  = null;
+    _desactEstadoNombre = null;
+    const opciones = _estadosContratoData.filter(e => (e.nombre || '').toUpperCase() !== 'ACTIVO');
+    document.getElementById('desact-opciones').innerHTML = opciones.map(e => `
+        <button type="button" onclick="elegirEstadoDesactivacion('${e.id}','${e.nombre.replace(/'/g,"\\'")}')"
+            style="width:100%;padding:12px 16px;border:1.5px solid rgba(4,34,67,0.18);border-radius:10px;background:rgba(4,34,67,0.04);cursor:pointer;text-align:left;font-size:.87rem;font-weight:600;color:#1E2756;transition:background .15s;"
+            onmouseover="this.style.background='rgba(4,34,67,0.1)'"
+            onmouseout="this.style.background='rgba(4,34,67,0.04)'">
+            ${e.nombre}
+        </button>`).join('');
+    document.getElementById('desact-paso1').style.display = 'block';
+    document.getElementById('desact-paso2').style.display = 'none';
+    document.getElementById('btn-desact-confirmar').style.display = 'none';
+    document.getElementById('desact-motivo').value = '';
+    document.getElementById('modal-desact').classList.add('show');
+}
+
+function elegirEstadoDesactivacion(estadoId, estadoNombre) {
+    _desactEstadoId     = estadoId;
+    _desactEstadoNombre = estadoNombre;
+    document.getElementById('desact-estado-badge').textContent = estadoNombre;
+    document.getElementById('desact-paso1').style.display = 'none';
+    document.getElementById('desact-paso2').style.display = 'block';
+    document.getElementById('btn-desact-confirmar').style.display = 'inline-flex';
+}
+
+function volverPaso1Desact() {
+    document.getElementById('desact-paso1').style.display = 'block';
+    document.getElementById('desact-paso2').style.display = 'none';
+    document.getElementById('btn-desact-confirmar').style.display = 'none';
+}
+
+function cancelarDesactivacion() {
+    document.getElementById('modal-desact').classList.remove('show');
+    if (_desactMode === 'modal') {
+        var chk = document.getElementById('chk-activo');
+        chk.checked = true;
+        actualizarEstadoLabel(chk);
+        _empPendingEstadoId = null;
+        _empPendingMotivo   = null;
+    }
+    _desactEstadoId = null;
+    _desactEstadoNombre = null;
+}
+
+async function aplicarDesactivacion() {
+    const motivo = document.getElementById('desact-motivo').value.trim();
+    document.getElementById('modal-desact').classList.remove('show');
+    if (_desactMode === 'modal') {
+        _empPendingEstadoId = _desactEstadoId;
+        _empPendingMotivo   = motivo || null;
+        var chk = document.getElementById('chk-activo');
+        chk.checked = false;
+        var slider = document.getElementById('toggle-activo-slider');
+        var label  = document.getElementById('estado-label');
+        var thumb  = slider.querySelector('span');
+        slider.style.background = 'rgba(255,80,80,0.4)';
+        thumb.style.transform   = 'translateX(0)';
+        label.textContent       = _desactEstadoNombre;
+        document.getElementById('banner-inactiva').style.display = 'flex';
+    } else {
+        const body = { activo: false, estado_contrato_id: _desactEstadoId };
+        if (motivo) body.motivo = motivo;
+        const data = await apiFetch('/config/empresas/' + _desactEmpresaId + '/estado', 'PATCH', body);
+        if (!data.ok) { showToast('⚠ ' + data.error, true); return; }
+        showToast('✅ ' + data.mensaje);
+        cargarEmpresas();
     }
 }
 
@@ -2418,11 +2510,14 @@ function renderTablaDatosPH(lista) {
 }
 
 function limpiarFormDatosPH() {
-    document.getElementById('dph-empresa-id').value    = '';
-    document.getElementById('dph-empresa-sel').value   = '';
-    document.getElementById('dph-estrato').value       = '';
+    document.getElementById('dph-empresa-id').value      = '';
+    document.getElementById('dph-empresa-sel').value     = '';
+    document.getElementById('dph-estrato').value         = '';
     document.getElementById('dph-plan-contratado').value = '';
+    document.getElementById('dph-plan-id').value         = '';
     document.getElementById('contrato-fecha-fin').value  = '';
+    document.getElementById('it-departamento-codigo').value = '';
+    document.getElementById('it-ciudad-codigo').value       = '';
 
     // Custom dropdowns
     ['cd-responsabilidades', 'cd-ciiu', 'cd-obligaciones'].forEach(id => {
@@ -2500,18 +2595,23 @@ function dphCalcFacturacion() {
 async function dphCargarCodigosPostalesDirecto(departamento, ciudad, seleccionar = '') {
     const sel = document.getElementById('dph-it-codigo-postal');
     if (!sel) return;
-    if (!departamento && !ciudad) {
-        sel.innerHTML = '<option value="">— Seleccione departamento y ciudad —</option>';
+    if (!departamento) {
+        sel.innerHTML = '<option value="">— Seleccione departamento primero —</option>';
         return;
     }
-    sel.innerHTML = '<option value="">Cargando...</option>';
-    const res = await apiFetch(`/config/datos_ph/codigos_postales?departamento=${encodeURIComponent(departamento)}&ciudad=${encodeURIComponent(ciudad)}`);
+    sel.innerHTML = '<option value="">Buscando...</option>';
+    const url = `/config/datos_ph/codigos_postales?departamento=${encodeURIComponent(departamento)}&ciudad=${encodeURIComponent(ciudad || '')}`;
+    const res = await apiFetch(url);
     if (!res.ok || !res.data?.length) {
         sel.innerHTML = '<option value="">— Sin resultados —</option>';
         return;
     }
     sel.innerHTML = '<option value="">— Seleccione —</option>' +
-        res.data.map(c => `<option value="${c.codigo}" ${c.codigo === seleccionar ? 'selected' : ''}>${c.codigo}${c.municipio ? ' — ' + c.municipio : ''}</option>`).join('');
+        res.data.map(c => {
+            const sector = c.ciudad?.includes('/') ? c.ciudad.split('/').pop().trim() : c.ciudad;
+            const label  = [c.codigo, sector].filter(Boolean).join(' — ');
+            return `<option value="${c.codigo}" ${c.codigo === seleccionar ? 'selected' : ''}>${label}</option>`;
+        }).join('');
 }
 
 var _dphCodigosTimer = null;
@@ -2521,7 +2621,7 @@ function dphCargarCodigosPostales() {
         const dept   = document.getElementById('dph-it-departamento')?.value || '';
         const ciudad = document.getElementById('dph-it-ciudad')?.value || '';
         dphCargarCodigosPostalesDirecto(dept, ciudad);
-    }, 500);
+    }, 600);
 }
 
 async function cargarConfiguracionPH(empresaId) {
@@ -2553,14 +2653,16 @@ async function cargarConfiguracionPH(empresaId) {
             }
         }
         document.getElementById('dph-plan-contratado').value = planNombre;
+        document.getElementById('dph-plan-id').value = emp.plan || '';
 
         // Solo pre-llenar campos tributarios si NO hay config guardada aún
         if (!data.ok) {
-            // Tipo doc → NIT por defecto
+            // Tipo doc → NIT por defecto (buscar por data-codigo)
             const tipoDocEl = document.getElementById('dph-it-tipo-doc');
             if (tipoDocEl) {
-                tipoDocEl.value = 'NIT';
-                if (!tipoDocEl.value) tipoDocEl.value = tipoDocEl.options[0]?.value || '';
+                const nitOpt = [...tipoDocEl.options].find(o => o.dataset.codigo === 'NIT');
+                if (nitOpt) tipoDocEl.value = nitOpt.value;
+                else tipoDocEl.value = tipoDocEl.options[1]?.value || '';
             }
             const set = (name, val) => {
                 const el = document.querySelector(`#form-datos-ph [name="${name}"]`);
@@ -2573,18 +2675,18 @@ async function cargarConfiguracionPH(empresaId) {
             set('it_direccion',             emp.direccion);
             set('it_telefono',              emp.telefono);
 
-            // Departamento y ciudad (municipio en empresa)
+            // Departamento y ciudad: mostrar nombre, guardar código DANE
             const deptEl   = document.getElementById('dph-it-departamento');
             const ciudadEl = document.getElementById('dph-it-ciudad');
-            if (deptEl && emp.departamento) {
-                deptEl.value = emp.departamento;
-            }
-            if (ciudadEl && emp.municipio) {
-                ciudadEl.value = emp.municipio;
-            }
-            // Cargar códigos postales con los datos de la empresa
-            if (emp.departamento || emp.municipio) {
-                await dphCargarCodigosPostalesDirecto(emp.departamento || '', emp.municipio || '');
+            const deptoNombre = _deptoMap[String(emp.departamento || '')] || emp.departamento || '';
+            const ciudadNombre = _munMap[String(emp.municipio || '')] || emp.municipio || '';
+            if (deptEl) deptEl.value = deptoNombre;
+            if (ciudadEl) ciudadEl.value = ciudadNombre;
+            document.getElementById('it-departamento-codigo').value = String(emp.departamento || '');
+            document.getElementById('it-ciudad-codigo').value       = String(emp.municipio   || '');
+
+            if (deptoNombre) {
+                await dphCargarCodigosPostalesDirecto(deptoNombre, ciudadNombre);
             }
 
             // Valor unidad desde plan
@@ -2626,7 +2728,8 @@ async function cargarConfiguracionPH(empresaId) {
     set('dia_generacion_facturacion',  ic.dia_generacion_facturacion || '');
     set('hora_generacion_facturacion', ic.hora_generacion_facturacion || '');
     if (ic.fecha_finalizacion) document.getElementById('contrato-fecha-fin').value = ic.fecha_finalizacion;
-    if (ic.plan_contratado)    document.getElementById('dph-plan-contratado').value = ic.plan_contratado;
+    // plan_contratado ahora almacena el ID; el nombre ya está puesto desde la carga del empresa
+    document.getElementById('dph-plan-id').value = ic.plan_contratado || '';
 
     // Info tributaria
     const it = cfg.info_tributaria || {};
@@ -2638,22 +2741,32 @@ async function cargarConfiguracionPH(empresaId) {
     set('it_codigo_postal',                  it.codigo_postal);
     set('it_telefono',                       it.telefono);
     set('it_pais',                           it.pais || 'Colombia');
-    set('it_departamento',                   it.departamento);
-    set('it_ciudad',                         it.ciudad);
+    // departamento/ciudad: almacenados como código DANE → mostrar nombre
+    const deptoDisplay = _deptoMap[String(it.departamento || '')] || it.departamento || '';
+    const ciudadDisplay = _munMap[String(it.ciudad || '')] || it.ciudad || '';
+    set('it_departamento', deptoDisplay);
+    set('it_ciudad',       ciudadDisplay);
+    document.getElementById('it-departamento-codigo').value = it.departamento || '';
+    document.getElementById('it-ciudad-codigo').value       = it.ciudad       || '';
     set('it_correo_facturacion_electronica', it.correo_facturacion_electronica);
     set('it_sitio_web',                      it.sitio_web);
     const tipoDocEl = document.getElementById('dph-it-tipo-doc');
-    if (tipoDocEl) tipoDocEl.value = it.tipo_doc || 'NIT';
+    if (tipoDocEl) {
+        tipoDocEl.value = it.tipo_doc || '';
+        // Fallback para datos migrados que aún usen el código/sigla
+        if (!tipoDocEl.value && it.tipo_doc) {
+            const fb = [...tipoDocEl.options].find(o => o.dataset.codigo === it.tipo_doc);
+            if (fb) tipoDocEl.value = fb.value;
+        }
+    }
     const tipoOrgEl = document.getElementById('dph-it-tipo-org');
     if (tipoOrgEl && it.tipo_organizacion) tipoOrgEl.value = it.tipo_organizacion;
     dphSetTributos(it.tributos_aplicables || []);
 
-    // Cargar códigos postales y seleccionar el guardado
-    const deptGuardado   = it.departamento || '';
-    const ciudadGuardada = it.ciudad || '';
-    const cpGuardado     = it.codigo_postal || '';
-    if (deptGuardado || ciudadGuardada) {
-        await dphCargarCodigosPostalesDirecto(deptGuardado, ciudadGuardada, cpGuardado);
+    // Cargar códigos postales y seleccionar el guardado (usar nombre para la búsqueda)
+    const cpGuardado = it.codigo_postal || '';
+    if (deptoDisplay) {
+        await dphCargarCodigosPostalesDirecto(deptoDisplay, ciudadDisplay, cpGuardado);
     }
 
     // Campos simples
@@ -2699,14 +2812,18 @@ async function cargarConfiguracionPH(empresaId) {
     // Representantes
     const loadRep = (prefix, rep) => {
         if (!rep) return;
-        set(prefix + '_nombre',               rep.nombre_completo);
-        set(prefix + '_num_doc',              rep.num_doc);
-        set(prefix + '_inicio_contrato',      rep.inicio_contrato);
-        set(prefix + '_vencimiento_contrato', rep.vencimiento_contrato);
-        set(prefix + '_correo',               rep.correo);
-        set(prefix + '_telefono',             rep.telefono);
+        set(prefix + '_nombre',  rep.nombre_completo);
+        set(prefix + '_num_doc', rep.num_doc);
+        set(prefix + '_correo',  rep.correo);
         const tipoSel = document.getElementById('dph-' + (prefix === 'rep_legal' ? 'rep-legal' : 'rep-supl') + '-tipo');
-        if (tipoSel && rep.tipo_doc) tipoSel.value = rep.tipo_doc;
+        if (tipoSel && rep.tipo_doc) {
+            tipoSel.value = rep.tipo_doc;
+            // Fallback para datos migrados que aún usen sigla (ej. "CC")
+            if (!tipoSel.value) {
+                const fb = [...tipoSel.options].find(o => o.dataset.codigo === rep.tipo_doc);
+                if (fb) tipoSel.value = fb.value;
+            }
+        }
     };
     loadRep('rep_legal', cfg.representante_legal);
     loadRep('rep_supl',  cfg.representante_suplente);
@@ -2757,7 +2874,7 @@ async function guardarDatosPH() {
 
     // Info contractual
     data.contrato_fecha_fin = document.getElementById('contrato-fecha-fin').value;
-    data.plan_contratado    = document.getElementById('dph-plan-contratado').value;
+    data.plan_contratado    = document.getElementById('dph-plan-id').value;
 
     // Tipo doc representantes
     data.rep_legal_tipo_doc = document.getElementById('dph-rep-legal-tipo')?.value || '';
@@ -2773,8 +2890,8 @@ async function guardarDatosPH() {
         tipo_organizacion:              document.getElementById('dph-it-tipo-org')?.value || '',
         direccion:                      data.it_direccion             || '',
         pais:                           data.it_pais                  || 'Colombia',
-        departamento:                   data.it_departamento          || '',
-        ciudad:                         data.it_ciudad                || '',
+        departamento:                   document.getElementById('it-departamento-codigo').value || data.it_departamento || '',
+        ciudad:                         document.getElementById('it-ciudad-codigo').value       || data.it_ciudad       || '',
         codigo_postal:                  document.getElementById('dph-it-codigo-postal')?.value || '',
         telefono:                       data.it_telefono              || '',
         correo_facturacion_electronica: data.it_correo_facturacion_electronica || '',
@@ -4654,6 +4771,13 @@ html[data-tema="oscuro-cyan"] select.form-control option{background:#111827;colo
 html[data-tema="oscuro-cyan"] .custom-dropdown-btn{background:#111827;border-color:#4B5563;color:#fff}
 html[data-tema="oscuro-cyan"] .custom-dropdown-menu{background:#1F2937;border-color:#374151}
 html[data-tema="oscuro-cyan"] .custom-dropdown-item:hover{background:rgba(6,182,212,.08)}
+html[data-tema="oscuro-cyan"] .custom-dropdown-item label{color:#F8FAFC;cursor:pointer}
+html[data-tema="oscuro-cyan"] .custom-dropdown-item input[type="checkbox"]{accent-color:#06B6D4}
+html[data-tema="oscuro-cyan"] .cd-item-text{color:#F8FAFC}
+html[data-tema="oscuro-cyan"] .cd-item-row:hover{background:rgba(6,182,212,.08)}
+html[data-tema="oscuro-cyan"] .cd-item-check{accent-color:#06B6D4}
+html[data-tema="oscuro-cyan"] .horario-col-header{color:#38BDF8}
+html[data-tema="oscuro-cyan"] .horario-dia-nombre{color:#38BDF8}
 html[data-tema="oscuro-cyan"] .cd-label{color:rgba(255,255,255,.4)}
 html[data-tema="oscuro-cyan"] .cd-label.has-sel{color:#fff}
 html[data-tema="oscuro-cyan"] .ptab{background:#111827;border-color:#374151;color:#9CA3AF}
@@ -4716,6 +4840,7 @@ html[data-tema="bosque"] .form-control:focus{border-color:#606C5D;box-shadow:0 0
 html[data-tema="bosque"] select.form-control{background-color:#F9FAFB!important;color-scheme:light}
 html[data-tema="bosque"] .custom-dropdown-btn{background:#F9FAFB;border-color:#D1D5DB;color:#111827}
 html[data-tema="bosque"] .custom-dropdown-menu{background:#fff;border-color:#D1D5DB}
+html[data-tema="bosque"] .cd-item-text{color:#111827}
 html[data-tema="bosque"] .ptab{background:#FFFFFF;border-color:#E5E7EB;color:#6B7280}
 html[data-tema="bosque"] .ptab:hover{color:#111827;background:#F3F4F6}
 html[data-tema="bosque"] .ptab.active{background:#606C5D;border-color:#606C5D;color:white;box-shadow:0 4px 14px rgba(96,108,93,.3)}
@@ -4769,6 +4894,16 @@ html[data-tema="galaxia"] .form-control:focus{border-color:#FB7185;background:#0
 html[data-tema="galaxia"] select.form-control{background-color:#0F1524!important;color-scheme:dark}
 html[data-tema="galaxia"] .custom-dropdown-btn{background:#0F1524;border-color:#24324F;color:#E2E8F0}
 html[data-tema="galaxia"] .custom-dropdown-menu{background:#151D30;border-color:#24324F}
+html[data-tema="galaxia"] .custom-dropdown-item label{color:#E2E8F0;cursor:pointer}
+html[data-tema="galaxia"] .custom-dropdown-item:hover{background:rgba(251,113,133,.08)}
+html[data-tema="galaxia"] .custom-dropdown-item input[type="checkbox"]{accent-color:#FB7185}
+html[data-tema="galaxia"] .cd-item-text{color:#E2E8F0}
+html[data-tema="galaxia"] .cd-item-row:hover{background:rgba(251,113,133,.08)}
+html[data-tema="galaxia"] .cd-item-check{accent-color:#FB7185}
+html[data-tema="galaxia"] .horario-col-header{color:#FB7185}
+html[data-tema="galaxia"] .horario-dia-nombre{color:#FB7185}
+html[data-tema="galaxia"] .cd-label{color:rgba(226,232,240,.45)}
+html[data-tema="galaxia"] .cd-label.has-sel{color:#E2E8F0}
 html[data-tema="galaxia"] .ptab{background:#0F1524;border-color:#24324F;color:#94A3B8}
 html[data-tema="galaxia"] .ptab:hover{color:#E2E8F0;background:#151D30;border-color:#FB7185}
 html[data-tema="galaxia"] .ptab.active{background:linear-gradient(135deg,#FB7185,#F43F5E);border-color:#F43F5E;color:white;box-shadow:0 4px 14px rgba(251,113,133,.35)}
@@ -4826,6 +4961,7 @@ html[data-tema="grafito"] .form-control:focus{border-color:#606C5D;box-shadow:0 
 html[data-tema="grafito"] select.form-control{background-color:#F8F9FA!important;color-scheme:light}
 html[data-tema="grafito"] .custom-dropdown-btn{background:#F8F9FA;border-color:#CED4DA;color:#2B303A}
 html[data-tema="grafito"] .custom-dropdown-menu{background:#fff;border-color:#CED4DA}
+html[data-tema="grafito"] .cd-item-text{color:#2B303A}
 html[data-tema="grafito"] .ptab{background:#fff;border-color:#D8DDE5;color:#6B7280}
 html[data-tema="grafito"] .ptab:hover{color:#212529;background:#F1F3F5}
 html[data-tema="grafito"] .ptab.active{background:#606C5D;border-color:#606C5D;color:white;box-shadow:0 4px 14px rgba(96,108,93,.3)}
@@ -4888,6 +5024,7 @@ html[data-tema="calido"] select.form-control{background-color:#FAF9F6!important;
 html[data-tema="calido"] select.form-control option{background:#FAF9F6;color:#1C1C1E}
 html[data-tema="calido"] .custom-dropdown-btn{background:#FAF9F6;border-color:#D1D1D6;color:#1C1C1E;border-width:1px}
 html[data-tema="calido"] .custom-dropdown-menu{background:#fff;border-color:#D1D1D6}
+html[data-tema="calido"] .cd-item-text{color:#1C1C1E}
 html[data-tema="calido"] .ptab{background:#FFFFFF;border-color:#E5E5E7;color:#7C7C80;border-width:1px;border-radius:8px}
 html[data-tema="calido"] .ptab:hover{color:#1C1C1E;background:#FAF9F6}
 html[data-tema="calido"] .ptab.active{background:#1C1C1E;border-color:#1C1C1E;color:white;box-shadow:none}
@@ -4952,6 +5089,7 @@ html[data-tema="polar"] .form-control::placeholder{color:#A8B3BC}
 html[data-tema="polar"] select.form-control{background-color:#FFFFFF!important;color-scheme:light}
 html[data-tema="polar"] .custom-dropdown-btn{background:#FFFFFF;border-color:#CED4DA;color:#1E252B;border-width:1px}
 html[data-tema="polar"] .custom-dropdown-menu{background:#FFFFFF;border-color:#E4E7EB}
+html[data-tema="polar"] .cd-item-text{color:#1E252B}
 html[data-tema="polar"] .ptab{background:#FFFFFF;border-color:#E4E7EB;color:#637381;border-width:1px}
 html[data-tema="polar"] .ptab:hover{color:#1E252B;background:#F4F6F8;border-color:#CED4DA}
 html[data-tema="polar"] .ptab.active{background:#4A7B9D;border-color:#4A7B9D;color:white;box-shadow:none}

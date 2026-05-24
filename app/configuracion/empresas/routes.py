@@ -65,7 +65,10 @@ def editar(empresa_id):
 @requiere_superadmin
 def estado(empresa_id):
     body = request.get_json(silent=True) or {}
-    exito, resultado = EmpresaController.cambiar_estado(empresa_id, bool(body.get("activo")))
+    activo             = bool(body.get("activo"))
+    estado_contrato_id = body.get("estado_contrato_id") or None
+    motivo             = body.get("motivo") or None
+    exito, resultado   = EmpresaController.cambiar_estado(empresa_id, activo, estado_contrato_id, motivo)
     if not exito: return err(resultado)
     return ok(mensaje=resultado)
 

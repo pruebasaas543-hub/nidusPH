@@ -117,15 +117,15 @@ class CatalogoModel:
 
     @staticmethod
     def estados_contrato() -> list:
-        docs = list(_col("estados_contrato").find({}, {"_id": 0, "codigo": 1, "nombre": 1}).sort("nombre", 1))
+        docs = list(_col("estados_contrato").find({}, {"codigo": 1, "nombre": 1}).sort("nombre", 1))
         if not docs:
             return [
-                {"codigo": "ACTIVO",     "nombre": "Activo"},
-                {"codigo": "VENCIDO",    "nombre": "Vencido"},
-                {"codigo": "SUSPENDIDO", "nombre": "Suspendido"},
-                {"codigo": "CANCELADO",  "nombre": "Cancelado"},
+                {"id": None, "codigo": "ACTIVO",     "nombre": "Activo"},
+                {"id": None, "codigo": "VENCIDO",    "nombre": "Vencido"},
+                {"id": None, "codigo": "SUSPENDIDO", "nombre": "Suspendido"},
+                {"id": None, "codigo": "CANCELADO",  "nombre": "Cancelado"},
             ]
-        return docs
+        return [{"id": str(d["_id"]), "codigo": str(d.get("codigo") or "").upper(), "nombre": d.get("nombre","")} for d in docs]
 
     @staticmethod
     def obligaciones_rut() -> list:
@@ -136,11 +136,11 @@ class CatalogoModel:
     def tipo_identificador_fiscal() -> list:
         docs = list(
             _col("tipo_identificador_fiscal")
-            .find({}, {"_id": 0, "id_sigla": 1, "nombre": 1})
+            .find({}, {"id_sigla": 1, "nombre": 1})
             .sort("nombre", 1)
         )
         if docs:
-            return [{"codigo": d["id_sigla"], "nombre": d["nombre"]}
+            return [{"id": str(d["_id"]), "codigo": d["id_sigla"], "nombre": d["nombre"]}
                     for d in docs if d.get("id_sigla")]
         # Fallback: leer de TIPOS_DOCUMENTO en memoria (ya cargado desde MongoDB al iniciar)
         from app.auth.model import TIPOS_DOCUMENTO
@@ -171,27 +171,68 @@ class CatalogoModel:
         ]
 
     @staticmethod
+    def _like_regex(texto: str) -> str:
+        """
+        Convierte un texto a un patrón regex insensible a tildes y mayúsculas.
+        Cada vocal/ñ se convierte en una clase que acepta ambas versiones.
+        """
+        import re as _re
+        import unicodedata
+
+        # Normalizar: quitar tildes para trabajar sobre base limpia
+        base = unicodedata.normalize("NFD", texto).encode("ascii", "ignore").decode("ascii").strip()
+
+        _map = {
+            "a": "[aáàâä]", "e": "[eéèêë]", "i": "[iíìîï]",
+            "o": "[oóòôö]", "u": "[uúùûü]", "n": "[nñ]",
+        }
+        resultado = ""
+        for c in base:
+            cl = c.lower()
+            if cl in _map:
+                resultado += _map[cl]
+            elif c in r"\.^$*+?{}[]|()" :
+                resultado += _re.escape(c)
+            else:
+                resultado += c
+        return resultado
+
+    @staticmethod
+    def _limpiar_depto(nombre: str) -> str:
+        """Quita sufijos que difieren entre colecciones antes de la búsqueda."""
+        for parte in [
+            "Archipiélago de ", "Archipielago de ",
+            " D.C.", " D.C", " D,C,",
+            ", Providencia y Santa Catalina",
+            " y Providencia y Santa Catalina",
+            " y Santa Catalina",
+            " y Providencia",
+        ]:
+            nombre = nombre.replace(parte, "")
+        return nombre.strip()
+
+    @staticmethod
     def codigos_postales(departamento: str = "", ciudad: str = "") -> list:
         filtro = {}
         if departamento:
-            filtro["departamento"] = {"$regex": departamento.strip(), "$options": "i"}
-        if ciudad:
-            filtro["$or"] = [
-                {"municipio": {"$regex": ciudad.strip(), "$options": "i"}},
-                {"ciudad":    {"$regex": ciudad.strip(), "$options": "i"}},
-            ]
+            kw = CatalogoModel._like_regex(CatalogoModel._limpiar_depto(departamento))
+            filtro["Departamento"] = {"$regex": kw, "$options": "i"}
+        ciudad = CatalogoModel._limpiar_depto(ciudad.strip())
+        if ciudad and not ciudad.isdigit():
+            filtro["Ciudad"] = {"$regex": CatalogoModel._like_regex(ciudad), "$options": "i"}
         docs = list(
             _col("codigospostales")
-            .find(filtro, {"_id": 0, "codigo_postal": 1, "municipio": 1, "ciudad": 1, "departamento": 1})
-            .sort("codigo_postal", 1)
-            .limit(200)
+            .find(filtro)
+            .sort("Código Postal", 1)
+            .limit(100)
         )
         return [
             {
-                "codigo":      d.get("codigo_postal", d.get("codigo", "")),
-                "municipio":   d.get("municipio", d.get("ciudad", "")),
-                "departamento": d.get("departamento", ""),
+                "codigo":       str(d.get("Código Postal", "")),
+                "ciudad":       d.get("Ciudad", ""),
+                "departamento": d.get("Departamento", ""),
             }
             for d in docs
+            if d.get("Código Postal")
         ]
 
