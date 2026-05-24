@@ -103,6 +103,7 @@ class DatosGeneralesPHModel:
             "creado_en":              datetime.utcnow(),
             "creado_por":             creado_por,
             "actualizado_en":         None,
+            "estado_configuracion":   True,
         }
         return str(_col().insert_one(doc).inserted_id)
 
@@ -123,6 +124,7 @@ class DatosGeneralesPHModel:
             "representante_legal":    datos.get("representante_legal", {}),
             "representante_suplente": datos.get("representante_suplente", {}),
             "actualizado_en":         datetime.utcnow(),
+            "estado_configuracion":   True,
         }
 
     @staticmethod

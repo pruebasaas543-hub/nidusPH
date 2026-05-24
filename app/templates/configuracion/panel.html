@@ -773,17 +773,19 @@
                         <table class="data-table" id="tbl-datos-ph">
                             <thead>
                                 <tr>
+                                    <th style="width:44px;"></th>
                                     <th>Empresa</th>
-                                    <th class="col-sm-hide">Régimen Tributario</th>
                                     <th class="col-sm-hide">Estrato</th>
                                     <th class="col-sm-hide">Unidades</th>
                                     <th class="col-sm-hide">Rep. Legal</th>
-                                    <th>Estado</th>
+                                    <th class="col-sm-hide">Estado</th>
+                                    <th class="col-sm-hide">Descripción</th>
+                                    <th>Configuración</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="tbody-datos-ph">
-                                <tr><td colspan="7" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
+                                <tr><td colspan="9" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -856,6 +858,14 @@
                             <div class="form-group">
                                 <label>Correo Facturación</label>
                                 <input class="form-control" name="correo_facturacion" type="email" placeholder="facturacion@empresa.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Estado Contrato</label>
+                                <input class="form-control" id="dph-estado-contrato" type="text" readonly style="opacity:.7;cursor:not-allowed;" placeholder="Se completa al seleccionar empresa">
+                            </div>
+                            <div class="form-group form-full">
+                                <label>Descripción</label>
+                                <textarea class="form-control" id="dph-descripcion" readonly style="opacity:.7;cursor:not-allowed;min-height:60px;" placeholder="Se completa al seleccionar empresa"></textarea>
                             </div>
                         </div>
                     </div>
@@ -2474,7 +2484,7 @@ var _configsPH = [];
 
 async function cargarListadoDatosPH() {
     document.getElementById('tbody-datos-ph').innerHTML =
-        '<tr><td colspan="7" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>';
+        '<tr><td colspan="9" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>';
     const data = await apiFetch('/config/datos_generales_ph');
     if (!data.ok) { showToast('Error: ' + data.error, true); return; }
     _configsPH = data.data || [];
@@ -2484,38 +2494,58 @@ async function cargarListadoDatosPH() {
 function renderTablaDatosPH(lista) {
     var tb = document.getElementById('tbody-datos-ph');
     if (!lista.length) {
-        tb.innerHTML = '<tr><td colspan="7" class="data-table-empty">No hay configuraciones registradas</td></tr>';
+        tb.innerHTML = '<tr><td colspan="9" class="data-table-empty">No hay empresas registradas</td></tr>';
         return;
     }
     tb.innerHTML = lista.map(cfg => {
-        var rep = cfg.representante_legal?.nombre_completo || '—';
-        var estado = cfg.creado_en ? '<span class="badge badge-active">✅ Configurado</span>' : '<span class="badge badge-pending">⏳ Pendiente</span>';
-        var regimen = cfg.regimen_tributario_enriquecido ? cfg.regimen_tributario_enriquecido.map(r => r.codigo).join(', ') : '—';
-        var unidades = cfg.info_contractual?.cant_unidades ?? cfg.cant_unidades ?? '—';
+        var logo     = cfg.empresa_logo
+            ? `<img src="${cfg.empresa_logo}" style="width:32px;height:32px;border-radius:6px;object-fit:contain;background:rgba(4,34,67,0.06);">`
+            : `<div style="width:32px;height:32px;border-radius:6px;background:rgba(4,34,67,0.08);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:rgba(4,34,67,0.3);">—</div>`;
+        var rep      = cfg.representante_legal?.nombre_completo || '—';
+        var unidades = cfg.info_contractual?.cant_unidades ?? '—';
+        var desc     = cfg.empresa_descripcion || '';
+        var descHtml = desc.length > 40
+            ? `<span>${desc.substring(0,40)}</span><a href="#" style="font-size:.75rem;margin-left:4px;" onclick="event.preventDefault();this.previousElementSibling.textContent='${desc.replace(/'/g,"\\'")}';this.remove();">...más</a>`
+            : (desc || '—');
+        var cfgBadge = cfg.estado_configuracion
+            ? '<span class="badge badge-active" style="font-size:.7rem;">✅ Configurado</span>'
+            : '<span class="badge badge-pending" style="font-size:.7rem;">⏳ Pendiente</span>';
+        var editBtn = cfg._id
+            ? `<button class="btn-icon btn-icon-edit" title="Editar" onclick="abrirEdicionDatosPH('${cfg._id}')">✏️</button>`
+            : `<button class="btn-icon btn-icon-edit" title="Configurar" onclick="dphSeleccionarEmpresa('${cfg.empresa_id}')">⚙️</button>`;
+        var delBtn = cfg._id
+            ? `<button class="btn-icon btn-icon-del" title="Eliminar" onclick="eliminarDatosPH('${cfg._id}')">🗑️</button>`
+            : '';
         return `<tr>
+            <td>${logo}</td>
             <td><strong>${cfg.empresa_nombre || '—'}</strong></td>
-            <td class="col-sm-hide" title="${regimen}" style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">${regimen}</td>
             <td class="col-sm-hide">${cfg.estrato || '—'}</td>
             <td class="col-sm-hide">${unidades}</td>
-            <td class="col-sm-hide">${rep}</td>
-            <td>${estado}</td>
-            <td>
-                <div style="display:flex;gap:6px;">
-                    <button class="btn-icon btn-icon-edit" title="Editar" onclick="abrirEdicionDatosPH('${cfg._id}')">✏️</button>
-                    <button class="btn-icon btn-icon-del" title="Eliminar" onclick="eliminarDatosPH('${cfg._id}')">🗑️</button>
-                </div>
-            </td>
+            <td class="col-sm-hide" style="font-size:.82rem;">${rep}</td>
+            <td class="col-sm-hide"><span style="font-size:.8rem;">${cfg.empresa_estado || '—'}</span></td>
+            <td class="col-sm-hide" style="max-width:160px;">${descHtml}</td>
+            <td>${cfgBadge}</td>
+            <td><div style="display:flex;gap:6px;">${editBtn}${delBtn}</div></td>
         </tr>`;
     }).join('');
+}
+
+function dphSeleccionarEmpresa(empresaId) {
+    switchPTabById('dph-form');
+    limpiarFormDatosPH();
+    const sel = document.getElementById('dph-empresa-sel');
+    if (sel) { sel.value = empresaId; cargarConfiguracionPH(empresaId); }
 }
 
 function limpiarFormDatosPH() {
     document.getElementById('dph-empresa-id').value      = '';
     document.getElementById('dph-empresa-sel').value     = '';
     document.getElementById('dph-estrato').value         = '';
-    document.getElementById('dph-plan-contratado').value = '';
-    document.getElementById('dph-plan-id').value         = '';
-    document.getElementById('contrato-fecha-fin').value  = '';
+    document.getElementById('dph-plan-contratado').value  = '';
+    document.getElementById('dph-plan-id').value          = '';
+    document.getElementById('contrato-fecha-fin').value   = '';
+    document.getElementById('dph-estado-contrato').value  = '';
+    document.getElementById('dph-descripcion').value      = '';
     document.getElementById('it-departamento-codigo').value = '';
     document.getElementById('it-ciudad-codigo').value       = '';
 
@@ -2654,6 +2684,12 @@ async function cargarConfiguracionPH(empresaId) {
         }
         document.getElementById('dph-plan-contratado').value = planNombre;
         document.getElementById('dph-plan-id').value = emp.plan || '';
+
+        // Estado contrato y descripción (siempre desde empresa, con o sin config)
+        const ecId = emp.estado_contrato_id || '';
+        const ecDoc = _estadosContratoData.find(e => e.id === ecId);
+        document.getElementById('dph-estado-contrato').value = ecDoc ? ecDoc.nombre : (emp.activo ? 'Activo' : 'Inactivo');
+        document.getElementById('dph-descripcion').value = emp.observaciones || '';
 
         // Solo pre-llenar campos tributarios si NO hay config guardada aún
         if (!data.ok) {

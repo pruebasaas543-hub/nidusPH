@@ -151,13 +151,48 @@ class DatosGeneralesPHController:
 
     @staticmethod
     def listar():
-        lista = DatosGeneralesPHModel.listar()
-        for cfg in lista:
-            if cfg.get("empresa_id"):
-                emp = EmpresaModel.buscar_por_id(str(cfg["empresa_id"]))
-                cfg["empresa_nombre"] = emp.get("razon_social", "—") if emp else "—"
-            DatosGeneralesPHController._enriquecer(cfg)
-        return True, lista
+        from app import db
+        from app.configuracion.catalogos.model import CatalogoModel
+        import base64
+
+        # Mapa estado_contrato_id → nombre
+        estados = {e["id"]: e["nombre"] for e in CatalogoModel.estados_contrato() if e.get("id")}
+
+        # Todas las empresas (sin imágenes pesadas excepto logo)
+        empresas = list(db["empresas"].find(
+            {},
+            {"razon_social": 1, "activo": 1, "estado_contrato_id": 1,
+             "observaciones": 1, "logo_data": 1, "logo_mimetype": 1}
+        ).sort("razon_social", 1))
+
+        # Mapa empresa_id → doc datos_ph
+        configs = {str(c["empresa_id"]): c for c in DatosGeneralesPHModel.listar()}
+
+        resultado = []
+        for emp in empresas:
+            eid  = str(emp["_id"])
+            cfg  = configs.get(eid, {})
+            ec_id = str(emp.get("estado_contrato_id") or "")
+            logo = None
+            if emp.get("logo_data"):
+                logo = f"data:{emp.get('logo_mimetype','image/png')};base64,{emp['logo_data']}"
+
+            row = {
+                "_id":                  cfg.get("_id") or None,
+                "empresa_id":           eid,
+                "empresa_nombre":       emp.get("razon_social", "—"),
+                "empresa_logo":         logo,
+                "empresa_estado":       estados.get(ec_id, "Activo" if emp.get("activo") else "Inactivo"),
+                "empresa_descripcion":  emp.get("observaciones", "") or "",
+                "estrato":              cfg.get("estrato", ""),
+                "representante_legal":  cfg.get("representante_legal", {}),
+                "info_contractual":     cfg.get("info_contractual", {}),
+                "estado_configuracion": cfg.get("estado_configuracion", False),
+                "creado_en":            cfg.get("creado_en"),
+            }
+            resultado.append(row)
+
+        return True, resultado
 
     @staticmethod
     def eliminar(config_id: str):
