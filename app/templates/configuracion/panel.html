@@ -784,7 +784,7 @@
                                 <input class="form-control" name="num_contrato" type="text" placeholder="CON-2024-001">
                             </div>
                             <div class="form-group">
-                                <label>Plan contratado <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto de Empresa)</span></label>
+                                <label>Plan Contratado</label>
                                 <input class="form-control" name="plan_contratado" id="dph-plan-contratado" type="text" readonly style="opacity:.7;cursor:not-allowed;" placeholder="Se completa al seleccionar empresa">
                             </div>
                             <div class="form-group">
@@ -801,15 +801,15 @@
                             </div>
                             <div class="form-group">
                                 <label>Cant. Unidades Totales</label>
-                                <input class="form-control" name="cant_unidades" type="number" min="0" placeholder="100" step="1">
+                                <input class="form-control" name="cant_unidades" id="dph-cant-unidades" type="number" min="0" placeholder="100" step="1" oninput="dphCalcFacturacion()">
                             </div>
                             <div class="form-group">
-                                <label>Valor Copropiedad (m²)</label>
-                                <input class="form-control" name="valor_copropiedad" type="number" min="0" step="any" placeholder="2000">
+                                <label>Valor Unidad Copropiedad</label>
+                                <input class="form-control" name="valor_copropiedad" id="dph-valor-copropiedad" type="number" min="0" step="any" placeholder="2000" oninput="dphCalcFacturacion()">
                             </div>
                             <div class="form-group">
-                                <label>Valor Facturación Mensual</label>
-                                <input class="form-control" name="valor_facturacion_mensual" type="number" min="0" step="any" placeholder="1700000">
+                                <label>Valor Facturación Mensual <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(auto)</span></label>
+                                <input class="form-control" name="valor_facturacion_mensual" id="dph-valor-facturacion" type="number" min="0" step="any" readonly style="opacity:.7;cursor:not-allowed;">
                             </div>
                             <div class="form-group">
                                 <label>Día Generación Facturación <span style="color:rgba(0,212,255,.5);font-size:.65rem;">(1-31)</span></label>
@@ -863,24 +863,26 @@
                                 <input class="form-control" name="it_direccion" type="text" placeholder="Cra. 72 #57R 16 Sur">
                             </div>
                             <div class="form-group">
-                                <label>Código Postal</label>
-                                <input class="form-control" name="it_codigo_postal" type="text" placeholder="110111">
-                            </div>
-                            <div class="form-group">
-                                <label>Teléfono</label>
-                                <input class="form-control" name="it_telefono" type="text" placeholder="3134137184">
-                            </div>
-                            <div class="form-group">
                                 <label>País</label>
                                 <input class="form-control" name="it_pais" type="text" value="Colombia" placeholder="Colombia">
                             </div>
                             <div class="form-group">
                                 <label>Departamento</label>
-                                <input class="form-control" name="it_departamento" type="text" placeholder="Bogotá D.C.">
+                                <input class="form-control" name="it_departamento" id="dph-it-departamento" type="text" placeholder="Bogotá D.C." oninput="dphCargarCodigosPostales()">
                             </div>
                             <div class="form-group">
                                 <label>Ciudad</label>
-                                <input class="form-control" name="it_ciudad" type="text" placeholder="Bogotá D.C.">
+                                <input class="form-control" name="it_ciudad" id="dph-it-ciudad" type="text" placeholder="Bogotá D.C." oninput="dphCargarCodigosPostales()">
+                            </div>
+                            <div class="form-group">
+                                <label>Código Postal</label>
+                                <select class="form-control" name="it_codigo_postal" id="dph-it-codigo-postal">
+                                    <option value="">— Seleccione departamento y ciudad —</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input class="form-control" name="it_telefono" type="text" placeholder="3134137184">
                             </div>
                             <div class="form-group">
                                 <label>Correo Facturación Electrónica</label>
@@ -2459,10 +2461,19 @@ function limpiarFormDatosPH() {
     });
 
     // Selects
-    ['dph-rep-legal-tipo','dph-rep-supl-tipo','dph-it-tipo-doc','dph-it-tipo-org'].forEach(id => {
+    ['dph-rep-legal-tipo','dph-rep-supl-tipo','dph-it-tipo-org'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+    // Tipo doc → NIT por defecto
+    const tipoDocEl = document.getElementById('dph-it-tipo-doc');
+    if (tipoDocEl) tipoDocEl.value = 'NIT';
+    // Código postal
+    const cpSel = document.getElementById('dph-it-codigo-postal');
+    if (cpSel) cpSel.innerHTML = '<option value="">— Seleccione departamento y ciudad —</option>';
+    // Valor facturación
+    const vf = document.getElementById('dph-valor-facturacion');
+    if (vf) vf.value = '';
 
     // Tributos
     document.getElementById('dph-tributos-lista').innerHTML = '';
@@ -2478,6 +2489,41 @@ function limpiarFormDatosPH() {
     calcularTotalesParqueaderos();
 }
 
+function dphCalcFacturacion() {
+    const unidades = parseFloat(document.getElementById('dph-cant-unidades')?.value || 0);
+    const valorUnit = parseFloat(document.getElementById('dph-valor-copropiedad')?.value || 0);
+    const total = unidades * valorUnit;
+    const el = document.getElementById('dph-valor-facturacion');
+    if (el) el.value = total > 0 ? total : '';
+}
+
+async function dphCargarCodigosPostalesDirecto(departamento, ciudad, seleccionar = '') {
+    const sel = document.getElementById('dph-it-codigo-postal');
+    if (!sel) return;
+    if (!departamento && !ciudad) {
+        sel.innerHTML = '<option value="">— Seleccione departamento y ciudad —</option>';
+        return;
+    }
+    sel.innerHTML = '<option value="">Cargando...</option>';
+    const res = await apiFetch(`/config/datos_ph/codigos_postales?departamento=${encodeURIComponent(departamento)}&ciudad=${encodeURIComponent(ciudad)}`);
+    if (!res.ok || !res.data?.length) {
+        sel.innerHTML = '<option value="">— Sin resultados —</option>';
+        return;
+    }
+    sel.innerHTML = '<option value="">— Seleccione —</option>' +
+        res.data.map(c => `<option value="${c.codigo}" ${c.codigo === seleccionar ? 'selected' : ''}>${c.codigo}${c.municipio ? ' — ' + c.municipio : ''}</option>`).join('');
+}
+
+var _dphCodigosTimer = null;
+function dphCargarCodigosPostales() {
+    clearTimeout(_dphCodigosTimer);
+    _dphCodigosTimer = setTimeout(() => {
+        const dept   = document.getElementById('dph-it-departamento')?.value || '';
+        const ciudad = document.getElementById('dph-it-ciudad')?.value || '';
+        dphCargarCodigosPostalesDirecto(dept, ciudad);
+    }, 500);
+}
+
 async function cargarConfiguracionPH(empresaId) {
     if (!empresaId) {
         limpiarFormDatosPH();
@@ -2486,23 +2532,75 @@ async function cargarConfiguracionPH(empresaId) {
 
     document.getElementById('dph-empresa-id').value = empresaId;
 
-    // Auto-populate plan_contratado from empresa data
-    const empData = await apiFetch(`/config/empresas/${empresaId}`);
-    if (empData.ok && empData.data?.plan) {
-        document.getElementById('dph-plan-contratado').value = empData.data.plan;
+    // Cargar empresa y config en paralelo
+    const [empData, data] = await Promise.all([
+        apiFetch(`/config/empresas/${empresaId}`),
+        apiFetch(`/config/datos_generales_ph/${empresaId}`),
+    ]);
+
+    // Auto-poblar desde empresa
+    if (empData.ok && empData.data) {
+        const emp = empData.data;
+
+        // Plan: nombre desde la colección de planes
+        let planNombre = '';
+        let valorUnit  = 0;
+        if (emp.plan) {
+            const planRes = await apiFetch(`/config/planes/${emp.plan}`);
+            if (planRes.ok && planRes.data) {
+                planNombre = planRes.data.nombre || '';
+                valorUnit  = planRes.data.precio?.valor_copropiedad || 0;
+            }
+        }
+        document.getElementById('dph-plan-contratado').value = planNombre;
+
+        // Solo pre-llenar campos tributarios si NO hay config guardada aún
+        if (!data.ok) {
+            // Tipo doc → NIT por defecto
+            const tipoDocEl = document.getElementById('dph-it-tipo-doc');
+            if (tipoDocEl) {
+                tipoDocEl.value = 'NIT';
+                if (!tipoDocEl.value) tipoDocEl.value = tipoDocEl.options[0]?.value || '';
+            }
+            const set = (name, val) => {
+                const el = document.querySelector(`#form-datos-ph [name="${name}"]`);
+                if (el && val) el.value = val;
+            };
+            set('it_numero_identificacion', emp.nit);
+            set('it_digito_verificacion',   emp.digito_verificacion);
+            set('it_razon_social',          emp.razon_social);
+            set('it_nombre_comercial',      emp.razon_social);
+            set('it_direccion',             emp.direccion);
+            set('it_telefono',              emp.telefono);
+
+            // Departamento y ciudad (municipio en empresa)
+            const deptEl   = document.getElementById('dph-it-departamento');
+            const ciudadEl = document.getElementById('dph-it-ciudad');
+            if (deptEl && emp.departamento) {
+                deptEl.value = emp.departamento;
+            }
+            if (ciudadEl && emp.municipio) {
+                ciudadEl.value = emp.municipio;
+            }
+            // Cargar códigos postales con los datos de la empresa
+            if (emp.departamento || emp.municipio) {
+                await dphCargarCodigosPostalesDirecto(emp.departamento || '', emp.municipio || '');
+            }
+
+            // Valor unidad desde plan
+            const valEl = document.getElementById('dph-valor-copropiedad');
+            if (valEl && valorUnit) {
+                valEl.value = valorUnit;
+                dphCalcFacturacion();
+            }
+        }
     }
 
-    const data = await apiFetch(`/config/datos_generales_ph/${empresaId}`);
-
     if (!data.ok) {
-        limpiarFormDatosPH();
-        document.getElementById('dph-empresa-id').value = empresaId;
-        document.getElementById('dph-empresa-sel').value = empresaId;
+        document.getElementById('dph-empresa-id').value   = empresaId;
+        document.getElementById('dph-empresa-sel').value  = empresaId;
         document.getElementById('dph-empresa-sel').disabled = false;
         document.getElementById('btn-guardar-dph-txt').textContent = 'Guardar Configuración';
-        if (empData.ok && empData.data?.plan) {
-            document.getElementById('dph-plan-contratado').value = empData.data.plan;
-        }
         return;
     }
 
@@ -2522,7 +2620,9 @@ async function cargarConfiguracionPH(empresaId) {
     set('correo_facturacion',          ic.correo_facturacion);
     set('cant_unidades',               ic.cant_unidades ?? cfg.cant_unidades ?? '');
     set('valor_copropiedad',           ic.valor_copropiedad || '');
-    set('valor_facturacion_mensual',   ic.valor_facturacion_mensual || '');
+    // valor_facturacion_mensual se recalcula automáticamente
+    const vfEl = document.getElementById('dph-valor-facturacion');
+    if (vfEl) vfEl.value = ic.valor_facturacion_mensual || '';
     set('dia_generacion_facturacion',  ic.dia_generacion_facturacion || '');
     set('hora_generacion_facturacion', ic.hora_generacion_facturacion || '');
     if (ic.fecha_finalizacion) document.getElementById('contrato-fecha-fin').value = ic.fecha_finalizacion;
@@ -2543,10 +2643,18 @@ async function cargarConfiguracionPH(empresaId) {
     set('it_correo_facturacion_electronica', it.correo_facturacion_electronica);
     set('it_sitio_web',                      it.sitio_web);
     const tipoDocEl = document.getElementById('dph-it-tipo-doc');
-    if (tipoDocEl && it.tipo_doc) tipoDocEl.value = it.tipo_doc;
+    if (tipoDocEl) tipoDocEl.value = it.tipo_doc || 'NIT';
     const tipoOrgEl = document.getElementById('dph-it-tipo-org');
     if (tipoOrgEl && it.tipo_organizacion) tipoOrgEl.value = it.tipo_organizacion;
     dphSetTributos(it.tributos_aplicables || []);
+
+    // Cargar códigos postales y seleccionar el guardado
+    const deptGuardado   = it.departamento || '';
+    const ciudadGuardada = it.ciudad || '';
+    const cpGuardado     = it.codigo_postal || '';
+    if (deptGuardado || ciudadGuardada) {
+        await dphCargarCodigosPostalesDirecto(deptGuardado, ciudadGuardada, cpGuardado);
+    }
 
     // Campos simples
     set('correo_admin', cfg.correo_admin);
@@ -2664,17 +2772,19 @@ async function guardarDatosPH() {
         nombre_comercial:               data.it_nombre_comercial      || '',
         tipo_organizacion:              document.getElementById('dph-it-tipo-org')?.value || '',
         direccion:                      data.it_direccion             || '',
-        codigo_postal:                  data.it_codigo_postal         || '',
-        telefono:                       data.it_telefono              || '',
         pais:                           data.it_pais                  || 'Colombia',
         departamento:                   data.it_departamento          || '',
         ciudad:                         data.it_ciudad                || '',
+        codigo_postal:                  document.getElementById('dph-it-codigo-postal')?.value || '',
+        telefono:                       data.it_telefono              || '',
         correo_facturacion_electronica: data.it_correo_facturacion_electronica || '',
         sitio_web:                      data.it_sitio_web             || '',
         tributos_aplicables:            dphGetTributos(),
     };
     // Limpiar campos planos it_ para no contaminar el payload
     Object.keys(data).filter(k => k.startsWith('it_')).forEach(k => delete data[k]);
+    // Valor facturación (campo readonly, no llega por FormData)
+    data.valor_facturacion_mensual = parseFloat(document.getElementById('dph-valor-facturacion')?.value || 0);
 
     // Construir dias_horarios
     data.dias_horarios = {};

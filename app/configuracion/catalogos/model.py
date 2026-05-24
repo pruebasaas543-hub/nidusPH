@@ -170,3 +170,28 @@ class CatalogoModel:
             for d in docs
         ]
 
+    @staticmethod
+    def codigos_postales(departamento: str = "", ciudad: str = "") -> list:
+        filtro = {}
+        if departamento:
+            filtro["departamento"] = {"$regex": departamento.strip(), "$options": "i"}
+        if ciudad:
+            filtro["$or"] = [
+                {"municipio": {"$regex": ciudad.strip(), "$options": "i"}},
+                {"ciudad":    {"$regex": ciudad.strip(), "$options": "i"}},
+            ]
+        docs = list(
+            _col("codigospostales")
+            .find(filtro, {"_id": 0, "codigo_postal": 1, "municipio": 1, "ciudad": 1, "departamento": 1})
+            .sort("codigo_postal", 1)
+            .limit(200)
+        )
+        return [
+            {
+                "codigo":      d.get("codigo_postal", d.get("codigo", "")),
+                "municipio":   d.get("municipio", d.get("ciudad", "")),
+                "departamento": d.get("departamento", ""),
+            }
+            for d in docs
+        ]
+

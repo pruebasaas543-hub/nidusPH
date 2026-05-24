@@ -52,6 +52,13 @@ def tipos_organizacion():
 def tributos():
     return ok(CatalogoModel.tributos())
 
+@datos_ph_bp.route("/datos_ph/codigos_postales", methods=["GET"])
+@requiere_superadmin
+def codigos_postales():
+    departamento = request.args.get("departamento", "")
+    ciudad       = request.args.get("ciudad", "")
+    return ok(CatalogoModel.codigos_postales(departamento, ciudad))
+
 
 # ── CRUD datos generales ──────────────────────────────────────────────────
 
