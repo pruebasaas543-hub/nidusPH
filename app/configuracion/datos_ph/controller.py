@@ -162,7 +162,7 @@ class DatosGeneralesPHController:
         empresas = list(db["empresas"].find(
             {},
             {"razon_social": 1, "activo": 1, "estado_contrato_id": 1,
-             "observaciones": 1, "logo_data": 1, "logo_mimetype": 1}
+             "motivo_desactivacion": 1, "logo_data": 1, "logo_mimetype": 1}
         ).sort("razon_social", 1))
 
         # Mapa empresa_id → doc datos_ph
@@ -183,7 +183,7 @@ class DatosGeneralesPHController:
                 "empresa_nombre":       emp.get("razon_social", "—"),
                 "empresa_logo":         logo,
                 "empresa_estado":       estados.get(ec_id, "Activo" if emp.get("activo") else "Inactivo"),
-                "empresa_descripcion":  emp.get("observaciones", "") or "",
+                "empresa_descripcion":  emp.get("motivo_desactivacion", "") or "",
                 "estrato":              cfg.get("estrato", ""),
                 "representante_legal":  cfg.get("representante_legal", {}),
                 "info_contractual":     cfg.get("info_contractual", {}),

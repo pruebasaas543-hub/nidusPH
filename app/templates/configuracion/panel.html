@@ -2504,8 +2504,10 @@ function renderTablaDatosPH(lista) {
         var rep      = cfg.representante_legal?.nombre_completo || '—';
         var unidades = cfg.info_contractual?.cant_unidades ?? '—';
         var desc     = cfg.empresa_descripcion || '';
+        var descEsc = desc.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        var descShort = desc.substring(0, 40);
         var descHtml = desc.length > 40
-            ? `<span>${desc.substring(0,40)}</span><a href="#" style="font-size:.75rem;margin-left:4px;" onclick="event.preventDefault();this.previousElementSibling.textContent='${desc.replace(/'/g,"\\'")}';this.remove();">...más</a>`
+            ? `<span class="desc-txt">${descShort}</span><a href="#" class="desc-toggle" style="font-size:.75rem;margin-left:4px;" onclick="event.preventDefault();toggleDescTabla(this,'${descEsc}','${descShort.replace(/'/g,"\\'")}')">...más</a>`
             : (desc || '—');
         var cfgBadge = cfg.estado_configuracion
             ? '<span class="badge badge-active" style="font-size:.7rem;">✅ Configurado</span>'
@@ -2528,6 +2530,17 @@ function renderTablaDatosPH(lista) {
             <td><div style="display:flex;gap:6px;">${editBtn}${delBtn}</div></td>
         </tr>`;
     }).join('');
+}
+
+function toggleDescTabla(link, full, short) {
+    var span = link.previousElementSibling;
+    if (link.textContent === '...más') {
+        span.textContent = full;
+        link.textContent = 'menos';
+    } else {
+        span.textContent = short;
+        link.textContent = '...más';
+    }
 }
 
 function dphSeleccionarEmpresa(empresaId) {
@@ -2689,7 +2702,7 @@ async function cargarConfiguracionPH(empresaId) {
         const ecId = emp.estado_contrato_id || '';
         const ecDoc = _estadosContratoData.find(e => e.id === ecId);
         document.getElementById('dph-estado-contrato').value = ecDoc ? ecDoc.nombre : (emp.activo ? 'Activo' : 'Inactivo');
-        document.getElementById('dph-descripcion').value = emp.observaciones || '';
+        document.getElementById('dph-descripcion').value = emp.motivo_desactivacion || '';
 
         // Solo pre-llenar campos tributarios si NO hay config guardada aún
         if (!data.ok) {
