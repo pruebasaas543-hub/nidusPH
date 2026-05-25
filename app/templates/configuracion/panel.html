@@ -3350,12 +3350,11 @@ async function abrirEdicionUsuario(userId) {
     frm.querySelector('[name="nombre_contacto_emergencia"]').value   = usuario.nombre_contacto_emergencia   || '';
     frm.querySelector('[name="telefono_contacto_emergencia"]').value = usuario.telefono_contacto_emergencia || '';
 
-    // Rol de sistema (desde _usuariosData para tener asociaciones)
-    const usuarioLista = _usuariosData.find(u => u._id === userId) || {};
-    const cardRol      = document.getElementById('card-rol-sistema');
-    const asocSistema  = (usuarioLista.asociaciones || []).find(a => a.empresa_id === null);
+    // Rol de sistema (desde datos frescos del API)
+    const cardRol     = document.getElementById('card-rol-sistema');
+    const asocSistema = (usuario.asociaciones || []).find(a => a.empresa_id === null);
     if (asocSistema) {
-        const rolActual = asocSistema.rol_nombre || asocSistema.rol_asignado || '';
+        const rolActual = asocSistema.rol_asignado || '';
         cardRol.style.display = '';
         cardRol.dataset.rolOriginal = rolActual;
         document.getElementById('chk-es-sistema').checked = true;

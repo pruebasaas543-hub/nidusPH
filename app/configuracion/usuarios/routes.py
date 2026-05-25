@@ -12,8 +12,6 @@ usuarios_bp = Blueprint("config_usuarios", __name__, url_prefix="/config")
 @usuarios_bp.route("/usuarios", methods=["GET"])
 @requiere_superadmin
 def listar():
-    from app.configuracion.usuarios.model import UsuarioConfigModel
-    UsuarioConfigModel.normalizar_schema()
     _, data = UsuarioController.listar()
     return ok(serializar(data))
 
@@ -55,15 +53,27 @@ def migrar_schema():
 @usuarios_bp.route("/usuarios/<user_id>", methods=["GET"])
 @requiere_superadmin
 def obtener(user_id):
+    from app import db
+    from bson import ObjectId
     from app.configuracion.usuarios.model import UsuarioConfigModel
     usuario = UsuarioConfigModel.buscar_por_id(user_id)
     if not usuario:
         return err("Usuario no encontrado")
-    usuario.pop("password", None)
-    usuario.pop("token_recuperacion", None)
-    usuario.pop("bloqueado_hasta", None)
-    usuario.pop("intentos_fallidos", None)
-    usuario.pop("token_expira", None)
+    for campo in ("password", "token_recuperacion", "bloqueado_hasta",
+                  "intentos_fallidos", "token_expira"):
+        usuario.pop(campo, None)
+    try:
+        asocs = list(db["asociaciones"].find(
+            {"user_id": ObjectId(user_id), "activo": True},
+            {"_id": 0, "empresa_id": 1, "rol_asignado": 1}
+        ))
+        usuario["asociaciones"] = [
+            {"empresa_id": str(a["empresa_id"]) if a.get("empresa_id") else None,
+             "rol_asignado": a.get("rol_asignado", "")}
+            for a in asocs
+        ]
+    except Exception:
+        usuario["asociaciones"] = []
     return ok(serializar(usuario))
 
 
