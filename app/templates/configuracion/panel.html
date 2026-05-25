@@ -1399,196 +1399,197 @@
         <div id="servicios-paneles-container"></div>
 
         <!-- ════════════════════════════════════════════════════════════
-             CFG-APARIENCIA: SELECTOR DE TEMAS
+             CFG-APARIENCIA: SELECTOR DE TEMAS + APARIENCIA A EMPRESA
         ════════════════════════════════════════════════════════════ -->
         <div id="cfg-apariencia" class="config-panel">
-            <div class="config-panel-title">🎨 <span>Apariencia</span> del Panel</div>
-            <div class="config-panel-subtitle">Personaliza la apariencia visual del panel. El tema elegido se guarda en tu navegador.</div>
+            <div class="config-panel-title">🎨 <span>Apariencia</span> e Identidad Visual</div>
+            <div class="config-panel-subtitle">Personaliza la apariencia del panel y asigna temas visuales a cada empresa.</div>
 
-            <div class="config-form-card">
-                <div class="config-form-card-title">🖌️ Elige tu tema de color</div>
-                <div class="theme-grid" id="theme-grid-container">
+            <!-- Pestañas -->
+            <div class="ptabs" style="margin-bottom:20px;">
+                <button class="ptab active" onclick="cambiarTabApariencia('tab-mis-temas',this)">🖌️ Mis Temas</button>
+                <button class="ptab" onclick="cambiarTabApariencia('tab-empresa-tema',this)">🏢 Apariencia a Empresa</button>
+            </div>
 
-                    <!-- Nidus Azul (default) -->
-                    <div class="theme-card active" data-tema="default" onclick="aplicarTema('default')">
-                        <div class="theme-preview">
-                            <div class="theme-preview-nav" style="background:#042243;"></div>
-                            <div style="flex:1;display:flex;flex-direction:column;">
-                                <div style="height:18px;background:#042243;"></div>
-                                <div style="background:#EEF2FF;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;">
-                                    <div style="height:6px;border-radius:3px;background:rgba(4,34,67,0.3);width:70%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(4,34,67,0.15);width:50%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(4,34,67,0.15);width:85%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="theme-card-info">
-                            <div class="theme-card-name">Nidus Azul</div>
-                            <div class="theme-card-desc">Azul marino · Corporativo</div>
-                            <div class="theme-swatches">
-                                <div class="swatch" style="background:#042243;" title="Nav"></div>
-                                <div class="swatch" style="background:#EEF2FF;" title="Fondo"></div>
-                                <div class="swatch" style="background:#00c8f0;" title="Acento"></div>
-                            </div>
-                            <div class="theme-card-status">Activo</div>
+            <!-- TAB 1: Mis Temas -->
+            <div id="tab-mis-temas" class="ptab-content active">
+                <div class="config-form-card">
+                    <div class="config-form-card-title">🖌️ Elige tu tema de color</div>
+                    <div class="theme-grid" id="theme-grid-container">
+                        <div id="themes-loading" style="grid-column:1/-1;text-align:center;padding:32px;color:#999;">
+                            <div class="spinner" style="margin:0 auto 12px;"></div>
+                            Cargando apariencias…
                         </div>
                     </div>
-
-                    <!-- Bosque -->
-                    <div class="theme-card" data-tema="bosque" onclick="aplicarTema('bosque')">
-                        <div class="theme-preview">
-                            <div class="theme-preview-nav" style="background:#111827;"></div>
-                            <div style="flex:1;display:flex;flex-direction:column;">
-                                <div style="height:18px;background:#111827;"></div>
-                                <div style="background:#F3F4F6;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;">
-                                    <div style="height:6px;border-radius:3px;background:rgba(96,108,93,0.45);width:70%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(96,108,93,0.18);width:50%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(96,108,93,0.18);width:85%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="theme-card-info">
-                            <div class="theme-card-name">Bosque</div>
-                            <div class="theme-card-desc">Nav oscuro · Fondo claro · Oliva</div>
-                            <div class="theme-swatches">
-                                <div class="swatch" style="background:#111827;" title="Nav"></div>
-                                <div class="swatch" style="background:#F3F4F6;" title="Fondo"></div>
-                                <div class="swatch" style="background:#606C5D;" title="Acento"></div>
-                            </div>
-                            <div class="theme-card-status">Aplicar</div>
-                        </div>
+                    <div class="info-box" style="margin-top:20px;">
+                        💡 El tema se guarda en tu navegador y se aplica automáticamente la próxima vez que abras esta página.
                     </div>
-
-                    <!-- Grafito -->
-                    <div class="theme-card" data-tema="grafito" onclick="aplicarTema('grafito')">
-                        <div class="theme-preview">
-                            <div class="theme-preview-nav" style="background:#212529;"></div>
-                            <div style="flex:1;display:flex;flex-direction:column;">
-                                <div style="height:18px;background:#212529;"></div>
-                                <div style="background:#F1F3F5;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;">
-                                    <div style="height:6px;border-radius:3px;background:rgba(96,108,93,0.45);width:70%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(96,108,93,0.18);width:50%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(96,108,93,0.18);width:85%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="theme-card-info">
-                            <div class="theme-card-name">Grafito</div>
-                            <div class="theme-card-desc">Carbón · Claro / Verde musgo</div>
-                            <div class="theme-swatches">
-                                <div class="swatch" style="background:#212529;" title="Nav"></div>
-                                <div class="swatch" style="background:#F1F3F5;" title="Fondo"></div>
-                                <div class="swatch" style="background:#606C5D;" title="Acento"></div>
-                            </div>
-                            <div class="theme-card-status">Aplicar</div>
-                        </div>
-                    </div>
-
-                    <!-- Cálido Claro -->
-                    <div class="theme-card" data-tema="calido" onclick="aplicarTema('calido')">
-                        <div class="theme-preview">
-                            <div class="theme-preview-nav" style="background:#FFFFFF;border-right:1px solid #E5E5E7;"></div>
-                            <div style="flex:1;display:flex;flex-direction:column;">
-                                <div style="height:18px;background:#FFFFFF;border-bottom:1px solid #E5E5E7;"></div>
-                                <div style="background:#FAF9F6;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;">
-                                    <div style="height:6px;border-radius:3px;background:rgba(28,28,30,0.22);width:70%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(28,28,30,0.1);width:50%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(28,28,30,0.1);width:85%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="theme-card-info">
-                            <div class="theme-card-name">Cálido Claro</div>
-                            <div class="theme-card-desc">Blanco puro · Minimalista</div>
-                            <div class="theme-swatches">
-                                <div class="swatch" style="background:#FFFFFF;border:1.5px solid #D1D1D6;" title="Nav"></div>
-                                <div class="swatch" style="background:#FAF9F6;border:1.5px solid #D1D1D6;" title="Fondo"></div>
-                                <div class="swatch" style="background:#1C1C1E;" title="Acento"></div>
-                            </div>
-                            <div class="theme-card-status">Aplicar</div>
-                        </div>
-                    </div>
-
-                    <!-- Polar -->
-                    <div class="theme-card" data-tema="polar" onclick="aplicarTema('polar')">
-                        <div class="theme-preview">
-                            <div class="theme-preview-nav" style="background:#FFFFFF;border-right:1px solid #E4E7EB;"></div>
-                            <div style="flex:1;display:flex;flex-direction:column;">
-                                <div style="height:18px;background:#FFFFFF;border-bottom:1px solid #E4E7EB;"></div>
-                                <div style="background:#F4F6F8;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;">
-                                    <div style="height:6px;border-radius:3px;background:rgba(74,123,157,0.5);width:70%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(74,123,157,0.18);width:50%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(74,123,157,0.18);width:85%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="theme-card-info">
-                            <div class="theme-card-name">Polar</div>
-                            <div class="theme-card-desc">Blanco limpio · Azul acero</div>
-                            <div class="theme-swatches">
-                                <div class="swatch" style="background:#FFFFFF;border:1.5px solid #E4E7EB;" title="Nav"></div>
-                                <div class="swatch" style="background:#F4F6F8;border:1.5px solid #E4E7EB;" title="Fondo"></div>
-                                <div class="swatch" style="background:#4A7B9D;" title="Acento"></div>
-                            </div>
-                            <div class="theme-card-status">Aplicar</div>
-                        </div>
-                    </div>
-
-                    <!-- Noche Cyan -->
-                    <div class="theme-card" data-tema="oscuro-cyan" onclick="aplicarTema('oscuro-cyan')">
-                        <div class="theme-preview">
-                            <div class="theme-preview-nav" style="background:#111827;"></div>
-                            <div style="flex:1;display:flex;flex-direction:column;">
-                                <div style="height:18px;background:#111827;"></div>
-                                <div style="background:#0B0F17;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;">
-                                    <div style="height:6px;border-radius:3px;background:rgba(6,182,212,0.45);width:70%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(6,182,212,0.15);width:50%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(6,182,212,0.15);width:85%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="theme-card-info">
-                            <div class="theme-card-name">Noche Cyan</div>
-                            <div class="theme-card-desc">Oscuro profundo · Acento cyan</div>
-                            <div class="theme-swatches">
-                                <div class="swatch" style="background:#111827;" title="Nav"></div>
-                                <div class="swatch" style="background:#0B0F17;" title="Fondo"></div>
-                                <div class="swatch" style="background:#06B6D4;" title="Acento"></div>
-                            </div>
-                            <div class="theme-card-status">Aplicar</div>
-                        </div>
-                    </div>
-
-                    <!-- Galaxia -->
-                    <div class="theme-card" data-tema="galaxia" onclick="aplicarTema('galaxia')">
-                        <div class="theme-preview">
-                            <div class="theme-preview-nav" style="background:#0F1524;"></div>
-                            <div style="flex:1;display:flex;flex-direction:column;">
-                                <div style="height:18px;background:#0F1524;"></div>
-                                <div style="background:#090D16;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;">
-                                    <div style="height:6px;border-radius:3px;background:rgba(251,113,133,0.6);width:70%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(251,113,133,0.2);width:50%;"></div>
-                                    <div style="height:5px;border-radius:3px;background:rgba(251,113,133,0.2);width:85%;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="theme-card-info">
-                            <div class="theme-card-name">Galaxia</div>
-                            <div class="theme-card-desc">Noche oscura · Rosa</div>
-                            <div class="theme-swatches">
-                                <div class="swatch" style="background:#0F1524;" title="Nav"></div>
-                                <div class="swatch" style="background:#090D16;" title="Fondo"></div>
-                                <div class="swatch" style="background:#FB7185;" title="Acento"></div>
-                            </div>
-                            <div class="theme-card-status">Aplicar</div>
-                        </div>
-                    </div>
-
-                </div>
-                <div class="info-box" style="margin-top:20px;">
-                    💡 El tema se guarda en tu navegador y se aplica automáticamente la próxima vez que abras esta página.
                 </div>
             </div>
+
+            <!-- TAB 2: Apariencia a Empresa -->
+            <div id="tab-empresa-tema" class="ptab-content">
+
+                <!-- PASO 1: Seleccionar empresa -->
+                <div class="config-form-card">
+                    <div class="config-form-card-title">🏢 Selecciona la empresa</div>
+                    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                        <div class="form-group" style="flex:1;min-width:220px;margin:0;">
+                            <label>Empresa</label>
+                            <select class="form-control" id="ae-empresa-sel" onchange="seleccionarEmpresaAE(this.value,this.options[this.selectedIndex].text)">
+                                <option value="">— Elige una empresa —</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PASO 2: Temas disponibles (multiselección) -->
+                <div id="ae-panel-temas" style="display:none;">
+
+                    <!-- Temas ya asociados a esta empresa -->
+                    <div class="config-form-card">
+                        <div class="config-form-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                            <span>✅ Temas asociados a <strong id="ae-empresa-nombre">—</strong></span>
+                        </div>
+                        <div id="ae-temas-asignados" style="display:flex;flex-wrap:wrap;gap:10px;padding:4px 0 8px;">
+                            <span style="color:#999;font-size:.85rem;">Cargando…</span>
+                        </div>
+                    </div>
+
+                    <!-- Temas disponibles para seleccionar -->
+                    <div class="config-form-card">
+                        <div class="config-form-card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                            <span>🎨 Elige los temas a asociar <small id="ae-sel-count" style="font-weight:400;opacity:.65;"></small></span>
+                            <button class="btn-secondary" style="font-size:.8rem;padding:5px 12px;" onclick="toggleCrearTema()">➕ Crear tema personalizado</button>
+                        </div>
+                        <div class="info-box" style="margin-bottom:14px;">
+                            💡 Haz clic en uno o varios temas para seleccionarlos. Luego presiona <strong>Asociar seleccionados</strong>.
+                        </div>
+                        <div class="theme-grid" id="ae-theme-grid"></div>
+                        <div style="margin-top:16px;text-align:right;">
+                            <button class="btn-primary" id="ae-btn-asociar" onclick="confirmarAsociacion()" disabled style="opacity:.5;cursor:not-allowed;">
+                                💾 Asociar seleccionados (0)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Crear tema personalizado -->
+                    <div id="ae-crear-card" class="config-form-card" style="display:none;">
+                        <div class="config-form-card-title">✨ Crear tema personalizado</div>
+                        <div style="display:flex;gap:24px;flex-wrap:wrap;">
+
+                            <!-- Formulario -->
+                            <div style="flex:1;min-width:260px;">
+                                <div class="form-grid-2">
+                                    <div class="form-group">
+                                        <label>Nombre *</label>
+                                        <input class="form-control" id="ct-nombre" type="text" placeholder="Ej: Azul Corporativo" oninput="actualizarSlug()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Clave (slug) *</label>
+                                        <input class="form-control" id="ct-clave" type="text" placeholder="azul-corporativo">
+                                    </div>
+                                    <div class="form-group" style="grid-column:1/-1;">
+                                        <label>Descripción</label>
+                                        <input class="form-control" id="ct-descripcion" type="text" placeholder="Breve descripción del tema">
+                                    </div>
+                                </div>
+                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;">
+                                    <div class="form-group">
+                                        <label>🧭 Navegación</label>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <input type="color" id="ct-color-nav" value="#042243" oninput="actualizarPreview()" style="width:36px;height:36px;border:none;padding:0;cursor:pointer;border-radius:6px;">
+                                            <input class="form-control" id="ct-color-nav-txt" value="#042243" oninput="sincColorPicker('ct-color-nav','ct-color-nav-txt')" style="flex:1;font-size:.8rem;">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>🖼 Fondo</label>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <input type="color" id="ct-color-fondo" value="#EEF2FF" oninput="actualizarPreview()" style="width:36px;height:36px;border:none;padding:0;cursor:pointer;border-radius:6px;">
+                                            <input class="form-control" id="ct-color-fondo-txt" value="#EEF2FF" oninput="sincColorPicker('ct-color-fondo','ct-color-fondo-txt')" style="flex:1;font-size:.8rem;">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>⚡ Acento</label>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <input type="color" id="ct-color-acento" value="#00c8f0" oninput="actualizarPreview()" style="width:36px;height:36px;border:none;padding:0;cursor:pointer;border-radius:6px;">
+                                            <input class="form-control" id="ct-color-acento-txt" value="#00c8f0" oninput="sincColorPicker('ct-color-acento','ct-color-acento-txt')" style="flex:1;font-size:.8rem;">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>📝 Texto</label>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <input type="color" id="ct-color-txt" value="#1C1C2E" oninput="actualizarPreview()" style="width:36px;height:36px;border:none;padding:0;cursor:pointer;border-radius:6px;">
+                                            <input class="form-control" id="ct-color-txt-txt" value="#1C1C2E" oninput="sincColorPicker('ct-color-txt','ct-color-txt-txt')" style="flex:1;font-size:.8rem;">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>🔲 Topbar</label>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <input type="color" id="ct-color-topbar" value="#042243" oninput="actualizarPreview()" style="width:36px;height:36px;border:none;padding:0;cursor:pointer;border-radius:6px;">
+                                            <input class="form-control" id="ct-color-topbar-txt" value="#042243" oninput="sincColorPicker('ct-color-topbar','ct-color-topbar-txt')" style="flex:1;font-size:.8rem;">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>🃏 Tarjetas</label>
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <input type="color" id="ct-color-card" value="#FFFFFF" oninput="actualizarPreview()" style="width:36px;height:36px;border:none;padding:0;cursor:pointer;border-radius:6px;">
+                                            <input class="form-control" id="ct-color-card-txt" value="#FFFFFF" oninput="sincColorPicker('ct-color-card','ct-color-card-txt')" style="flex:1;font-size:.8rem;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:10px;margin-top:16px;">
+                                    <button class="btn-secondary" onclick="toggleCrearTema()">Cancelar</button>
+                                    <button class="btn-primary" onclick="guardarTemaPersonalizado()">💾 Crear y asociar</button>
+                                </div>
+                            </div>
+
+                            <!-- Preview en vivo -->
+                            <div style="flex:0 0 300px;">
+                                <div style="font-size:.8rem;font-weight:600;margin-bottom:8px;opacity:.7;">Vista previa en vivo</div>
+                                <div style="border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15);height:240px;display:flex;">
+                                    <div id="prev-nav" style="width:72px;display:flex;flex-direction:column;gap:6px;padding:10px 6px;">
+                                        <div style="height:12px;border-radius:4px;background:rgba(255,255,255,.3);margin-bottom:6px;"></div>
+                                        <div style="height:8px;border-radius:4px;background:rgba(255,255,255,.5);"></div>
+                                        <div id="prev-nav-item2" style="height:8px;border-radius:4px;border-left:3px solid #fff;padding-left:4px;background:rgba(255,255,255,.25);"></div>
+                                        <div style="height:8px;border-radius:4px;background:rgba(255,255,255,.15);"></div>
+                                        <div style="height:8px;border-radius:4px;background:rgba(255,255,255,.15);"></div>
+                                    </div>
+                                    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                                        <div id="prev-topbar" style="height:28px;display:flex;align-items:center;padding:0 10px;gap:6px;">
+                                            <div id="prev-topbar-title" style="height:7px;border-radius:3px;width:60px;background:rgba(255,255,255,.4);"></div>
+                                            <div style="flex:1;"></div>
+                                            <div style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.3);"></div>
+                                        </div>
+                                        <div id="prev-content" style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px;">
+                                            <div id="prev-page-title" style="height:8px;border-radius:3px;width:80px;"></div>
+                                            <div id="prev-card" style="border-radius:6px;padding:8px 10px;flex:1;display:flex;flex-direction:column;gap:5px;border:1px solid rgba(0,0,0,.08);">
+                                                <div id="prev-card-title" style="height:6px;border-radius:3px;width:55%;"></div>
+                                                <div id="prev-row1" style="height:5px;border-radius:3px;width:90%;opacity:.5;"></div>
+                                                <div id="prev-row2" style="height:5px;border-radius:3px;width:75%;opacity:.5;"></div>
+                                                <div id="prev-row3" style="height:5px;border-radius:3px;width:85%;opacity:.5;"></div>
+                                                <div style="flex:1;"></div>
+                                                <div id="prev-btn" style="height:18px;border-radius:5px;width:70px;align-self:flex-end;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:6px;margin-top:10px;">
+                                    <div id="sw-nav"    class="swatch" title="Nav"></div>
+                                    <div id="sw-topbar" class="swatch" title="Topbar"></div>
+                                    <div id="sw-fondo"  class="swatch" title="Fondo"></div>
+                                    <div id="sw-acento" class="swatch" title="Acento"></div>
+                                    <div id="sw-card"   class="swatch" title="Tarjetas"></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div><!-- /ae-crear-card -->
+
+                </div><!-- /ae-panel-temas -->
+
+            </div><!-- /tab-empresa-tema -->
+
         </div><!-- /cfg-apariencia -->
 
     </div><!-- /main-content -->
@@ -4802,7 +4803,7 @@ const RE = {
     },
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     cargarCatalogos();
     cargarEmpresas();
     cargarListadoDatosPH();
@@ -4820,7 +4821,8 @@ document.addEventListener('DOMContentLoaded', () => {
     SRV.init();
     RE.init();
 
-    // Restore saved theme (must run before panel restore)
+    // Cargar apariencias desde la BD y restaurar tema guardado
+    await cargarApariencias();
     const savedTema = localStorage.getItem('nidus-tema');
     aplicarTema((savedTema && savedTema in TEMAS_CSS) ? savedTema : 'default');
 
@@ -4857,7 +4859,7 @@ function closeSidebar() {
 // ═══════════════════════════════════════════════════════════════
 //  SISTEMA DE TEMAS DE APARIENCIA
 // ═══════════════════════════════════════════════════════════════
-const TEMAS_CSS = {
+let TEMAS_CSS = {
 'default': `
 html[data-tema="default"] *[style*="color:rgba(0,212,255"]{color:rgba(18,96,196,.65)!important}
 html[data-tema="default"] *[style*="color:#00c8f0"]{color:rgba(18,96,196,.65)!important}
@@ -5298,7 +5300,7 @@ html[data-tema="polar"] *[style*="color:#999"]{color:rgba(74,123,157,.45)!import
 `
 };
 
-const TEMAS_NOMBRES = {
+let TEMAS_NOMBRES = {
     'default': 'Nidus Azul', 'oscuro-cyan': 'Noche Cyan', 'bosque': 'Bosque',
     'galaxia': 'Galaxia', 'grafito': 'Grafito', 'calido': 'Cálido Claro', 'polar': 'Polar'
 };
@@ -5313,6 +5315,111 @@ window._TEMAS_BTN = {
     'polar':       { bg:'#4A7B9D',                                 txt:'#fff',     borde:'rgba(255,255,255,.3)',  hsh:'rgba(74,123,157,.3)',   desc:'rgba(255,255,255,.75)' },
 };
 
+function _buildThemeCardHTML(t, temaActivo) {
+    const vp = t.vista_previa || {};
+    const esActivo = t.clave === temaActivo;
+    const navStyle   = `background:${vp.color_navegacion||'#042243'};${vp.borde_nav||''}`;
+    const topStyle   = `height:18px;background:${vp.color_navegacion||'#042243'};${vp.borde_topbar||''}`;
+    const fondoStyle = `background:${vp.color_fondo||'#EEF2FF'};flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;`;
+    const b1Style    = `height:6px;border-radius:3px;background:${vp.color_barra_fuerte||'rgba(4,34,67,0.3)'};width:70%;`;
+    const b2Style    = `height:5px;border-radius:3px;background:${vp.color_barra_suave||'rgba(4,34,67,0.15)'};width:50%;`;
+    const b3Style    = `height:5px;border-radius:3px;background:${vp.color_barra_suave||'rgba(4,34,67,0.15)'};width:85%;`;
+    const sw1Style   = `background:${vp.color_navegacion||'#042243'};${vp.borde_swatch_nav||''}`;
+    const sw2Style   = `background:${vp.color_fondo||'#EEF2FF'};${vp.borde_swatch_fondo||''}`;
+    const sw3Style   = `background:${vp.color_acento||'#00c8f0'};`;
+    const btnEliminar = t.es_predeterminado ? '' :
+        `<button onclick="event.stopPropagation();eliminarTema('${t._id}','${(t.nombre||'').replace(/'/g,"\\'")}')"
+            title="Eliminar tema" style="position:absolute;top:6px;right:6px;background:rgba(192,48,74,0.85);border:none;border-radius:50%;width:22px;height:22px;color:#fff;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1;">✕</button>`;
+    return `<div class="theme-card${esActivo?' active':''}" data-tema="${t.clave}" onclick="aplicarTema('${t.clave}')" style="position:relative;">
+        ${btnEliminar}
+        <div class="theme-preview">
+            <div class="theme-preview-nav" style="${navStyle}"></div>
+            <div style="flex:1;display:flex;flex-direction:column;">
+                <div style="${topStyle}"></div>
+                <div style="${fondoStyle}">
+                    <div style="${b1Style}"></div>
+                    <div style="${b2Style}"></div>
+                    <div style="${b3Style}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="theme-card-info">
+            <div class="theme-card-name">${t.nombre}</div>
+            <div class="theme-card-desc">${t.descripcion||''}</div>
+            <div class="theme-swatches">
+                <div class="swatch" style="${sw1Style}" title="Nav"></div>
+                <div class="swatch" style="${sw2Style}" title="Fondo"></div>
+                <div class="swatch" style="${sw3Style}" title="Acento"></div>
+            </div>
+            <div class="theme-card-status">${esActivo?'Activo':'Aplicar'}</div>
+        </div>
+    </div>`;
+}
+
+async function cargarApariencias() {
+    try {
+        const res  = await fetch('/config/apariencias');
+        const json = await res.json();
+        if (!json.ok || !Array.isArray(json.data)) return;
+        const temas = json.data;
+
+        // Guardar cache para el módulo Apariencia a Empresa
+        _aeTemasCache = temas;
+
+        // Poblar TEMAS_CSS, TEMAS_NOMBRES y _TEMAS_BTN desde la BD
+        temas.forEach(t => {
+            if (t.css)  TEMAS_CSS[t.clave]    = t.css;
+            if (t.nombre) TEMAS_NOMBRES[t.clave] = t.nombre;
+            const ct = t.colores_tarjeta || {};
+            if (ct.fondo) {
+                window._TEMAS_BTN[t.clave] = {
+                    bg:   ct.fondo,
+                    txt:  ct.texto  || '#fff',
+                    borde: ct.borde || 'rgba(255,255,255,.3)',
+                    hsh:  ct.sombra || 'rgba(0,0,0,.2)',
+                    desc: ct.texto_descripcion || 'rgba(255,255,255,.75)',
+                };
+            }
+        });
+
+        // Renderizar tarjetas de temas
+        const temaActivo = localStorage.getItem('nidus-tema') || 'default';
+        const container  = document.getElementById('theme-grid-container');
+        if (container) {
+            container.innerHTML = temas
+                .filter(t => t.activo !== false)
+                .map(t => _buildThemeCardHTML(t, temaActivo))
+                .join('');
+        }
+    } catch(e) {
+        // Si falla, las tarjetas quedan vacías pero los valores hardcoded siguen activos
+        const container = document.getElementById('theme-grid-container');
+        if (container) container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#999;padding:24px;">No se pudieron cargar los temas.</p>';
+    }
+}
+
+async function eliminarTema(aparienciaId, nombre) {
+    const confirmado = await confirmar(
+        'Eliminar tema',
+        `¿Eliminar el tema "${nombre}"? Esta acción no se puede deshacer.`,
+        'Eliminar'
+    );
+    if (!confirmado) return;
+    try {
+        const res  = await fetch(`/config/apariencias/${aparienciaId}`, { method: 'DELETE' });
+        let json;
+        try { json = await res.json(); } catch(e) { throw new Error(`HTTP ${res.status}`); }
+        if (json.ok) {
+            showToast('✅ Tema eliminado');
+            await cargarApariencias();
+        } else {
+            showToast('❌ ' + (json.error || 'Error al eliminar'), true);
+        }
+    } catch(e) {
+        showToast('❌ Error: ' + e.message, true);
+    }
+}
+
 function aplicarTema(id) {
     const styleEl = document.getElementById('nidus-tema');
     styleEl.textContent = TEMAS_CSS[id] || '';
@@ -5324,8 +5431,377 @@ function aplicarTema(id) {
         const st = c.querySelector('.theme-card-status');
         if (st) st.textContent = activo ? 'Activo' : 'Aplicar';
     });
-    mostrarToast('Tema "' + (TEMAS_NOMBRES[id] || id) + '" aplicado');
+    showToast('Tema "' + (TEMAS_NOMBRES[id] || id) + '" aplicado');
     if (typeof SRV !== 'undefined') SRV.renderInicio(id);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  APARIENCIA A EMPRESA
+// ═══════════════════════════════════════════════════════════════
+
+let _aeEmpresaId      = null;
+let _aeEmpresaNombre  = '';
+let _aeTemasCache     = [];
+let _aeSeleccionados  = new Set();  // IDs de temas marcados para asociar
+let _aeYaAsociados    = new Set();  // IDs ya asociados a la empresa actual
+
+async function cambiarTabApariencia(tabId, btn) {
+    document.querySelectorAll('#cfg-apariencia .ptab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#cfg-apariencia .ptab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+    if (tabId === 'tab-empresa-tema') await _poblarSelectEmpresasAE();
+}
+
+async function _poblarSelectEmpresasAE() {
+    const sel = document.getElementById('ae-empresa-sel');
+    if (sel.options.length > 1) return;
+    try {
+        const json = await apiFetch('/config/empresas');
+        if (!json.ok || !Array.isArray(json.data)) return;
+        [...json.data]
+            .sort((a,b) => (a.razon_social||'').localeCompare(b.razon_social||''))
+            .forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e._id;
+                opt.textContent = e.razon_social;
+                sel.appendChild(opt);
+            });
+    } catch(e) {}
+}
+
+async function seleccionarEmpresaAE(empresaId, empresaNombre) {
+    _aeEmpresaId     = empresaId || null;
+    _aeEmpresaNombre = empresaNombre || '';
+    _aeSeleccionados.clear();
+
+    const panel = document.getElementById('ae-panel-temas');
+    if (!empresaId) { panel.style.display = 'none'; return; }
+
+    panel.style.display = '';
+    document.getElementById('ae-empresa-nombre').textContent = empresaNombre;
+    document.getElementById('ae-temas-asignados').innerHTML =
+        '<span class="spinner" style="width:14px;height:14px;display:inline-block;"></span>';
+    document.getElementById('ae-crear-card').style.display = 'none';
+
+    await _cargarTemasAsignados();
+    _renderAeGrid();
+}
+
+async function _refrescarEmpresaActual() {
+    if (!_aeEmpresaId) return;
+    _aeSeleccionados.clear();
+    await _cargarTemasAsignados();
+    _renderAeGrid();
+    _actualizarBtnAsociar();
+}
+
+async function _cargarTemasAsignados() {
+    const contenedor = document.getElementById('ae-temas-asignados');
+    try {
+        const json = await apiFetch(`/config/apariencia-empresa/${_aeEmpresaId}`);
+        const lista = (json.ok && Array.isArray(json.data)) ? json.data : [];
+        _aeYaAsociados = new Set(lista.map(t => t.apariencia_id));
+
+        if (!lista.length) {
+            contenedor.innerHTML = '<span style="color:#999;font-size:.85rem;">Sin temas asignados aún.</span>';
+            return;
+        }
+        contenedor.innerHTML = lista.map(t => {
+            const vp = t.vista_previa || {};
+            return `<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,180,90,.08);border:1px solid rgba(0,180,90,.25);border-radius:20px;padding:5px 12px 5px 8px;">
+                <div style="width:12px;height:12px;border-radius:50%;background:${vp.color_acento||'#00c8f0'};flex-shrink:0;"></div>
+                <span style="font-size:.82rem;font-weight:600;">${t.nombre}</span>
+                <button title="Quitar este tema" onclick="quitarTemaAsociado('${t.apariencia_id}','${(t.nombre||'').replace(/'/g,"\\'")}',this)"
+                    style="background:none;border:none;cursor:pointer;color:#c0392b;font-size:.9rem;padding:0;line-height:1;">✕</button>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        contenedor.innerHTML = '<span style="color:#999;font-size:.85rem;">Sin temas asignados.</span>';
+    }
+}
+
+async function quitarTemaAsociado(aparienciaId, nombreTema, btn) {
+    const confirmado = await confirmar(
+        '🗑 Quitar tema',
+        `¿Deseas quitar "${nombreTema}" de la empresa ${_aeEmpresaNombre}?`,
+        'Quitar'
+    );
+    if (!confirmado) return;
+    btn.disabled = true;
+    try {
+        const res  = await fetch(`/config/apariencia-empresa/${_aeEmpresaId}/${aparienciaId}`, { method: 'DELETE' });
+        let json;
+        try { json = await res.json(); } catch(e) { throw new Error(`HTTP ${res.status}`); }
+        if (json.ok) {
+            showToast('✅ Tema quitado correctamente');
+            await _refrescarEmpresaActual();
+        } else {
+            showToast('❌ ' + (json.error || 'Error al quitar'), true);
+            btn.disabled = false;
+        }
+    } catch(e) {
+        showToast('❌ Error: ' + e.message, true);
+        btn.disabled = false;
+    }
+}
+
+function _renderAeGrid() {
+    const grid = document.getElementById('ae-theme-grid');
+    if (!_aeTemasCache.length) {
+        grid.innerHTML = '<p style="grid-column:1/-1;color:#999;text-align:center;padding:20px;">No hay temas disponibles.</p>';
+        return;
+    }
+    grid.innerHTML = _aeTemasCache
+        .filter(t => t.activo !== false && (t.es_predeterminado || _aeYaAsociados.has(t._id)))
+        .map(t => {
+            const yaAsoc   = _aeYaAsociados.has(t._id);
+            const seleccionado = _aeSeleccionados.has(t._id);
+            const vp = t.vista_previa || {};
+            const navStyle   = `background:${vp.color_navegacion||'#042243'};${vp.borde_nav||''}`;
+            const topStyle   = `height:18px;background:${vp.color_navegacion||'#042243'};${vp.borde_topbar||''}`;
+            const fondoStyle = `background:${vp.color_fondo||'#EEF2FF'};flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px;`;
+            const b1 = `height:6px;border-radius:3px;background:${vp.color_barra_fuerte||'rgba(4,34,67,0.3)'};width:70%;`;
+            const b2 = `height:5px;border-radius:3px;background:${vp.color_barra_suave||'rgba(4,34,67,0.15)'};width:50%;`;
+            const sw1 = `background:${vp.color_navegacion||'#042243'};${vp.borde_swatch_nav||''}`;
+            const sw2 = `background:${vp.color_fondo||'#EEF2FF'};${vp.borde_swatch_fondo||''}`;
+            const sw3 = `background:${vp.color_acento||'#00c8f0'};`;
+            const estadoLabel = yaAsoc ? '✅ Ya asociado' : (seleccionado ? '☑ Seleccionado' : 'Seleccionar');
+            const extraStyle  = yaAsoc ? 'opacity:.6;pointer-events:none;' : '';
+            return `<div class="theme-card${seleccionado?' active':''}" data-id="${t._id}" style="${extraStyle}" onclick="${yaAsoc?'':'toggleSeleccionTema(\''+t._id+'\',this)'}">
+                <div class="theme-preview">
+                    <div class="theme-preview-nav" style="${navStyle}"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;">
+                        <div style="${topStyle}"></div>
+                        <div style="${fondoStyle}">
+                            <div style="${b1}"></div>
+                            <div style="${b2}"></div>
+                            <div style="${b2}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="theme-card-info">
+                    <div class="theme-card-name">${t.nombre}</div>
+                    <div class="theme-card-desc">${t.descripcion||''}</div>
+                    <div class="theme-swatches">
+                        <div class="swatch" style="${sw1}" title="Nav"></div>
+                        <div class="swatch" style="${sw2}" title="Fondo"></div>
+                        <div class="swatch" style="${sw3}" title="Acento"></div>
+                    </div>
+                    <div class="theme-card-status">${estadoLabel}</div>
+                </div>
+            </div>`;
+        }).join('');
+    _actualizarBtnAsociar();
+}
+
+function toggleSeleccionTema(aparienciaId, el) {
+    if (_aeYaAsociados.has(aparienciaId)) return;
+    if (_aeSeleccionados.has(aparienciaId)) {
+        _aeSeleccionados.delete(aparienciaId);
+        el.classList.remove('active');
+        const st = el.querySelector('.theme-card-status');
+        if (st) st.textContent = 'Seleccionar';
+    } else {
+        _aeSeleccionados.add(aparienciaId);
+        el.classList.add('active');
+        const st = el.querySelector('.theme-card-status');
+        if (st) st.textContent = '☑ Seleccionado';
+    }
+    _actualizarBtnAsociar();
+}
+
+function _actualizarBtnAsociar() {
+    const btn = document.getElementById('ae-btn-asociar');
+    const n   = _aeSeleccionados.size;
+    btn.textContent = `💾 Asociar seleccionados (${n})`;
+    btn.disabled    = n === 0;
+    btn.style.opacity  = n > 0 ? '1' : '.5';
+    btn.style.cursor   = n > 0 ? 'pointer' : 'not-allowed';
+    const lbl = document.getElementById('ae-sel-count');
+    if (lbl) lbl.textContent = n > 0 ? `— ${n} seleccionado(s)` : '';
+}
+
+async function confirmarAsociacion() {
+    if (!_aeEmpresaId || _aeSeleccionados.size === 0) return;
+    const nombres = _aeTemasCache
+        .filter(t => _aeSeleccionados.has(t._id))
+        .map(t => `• ${t.nombre}`)
+        .join('\n');
+    const confirmado = await confirmar(
+        '💾 Confirmar asociación',
+        `¿Asociar los siguientes temas a <strong>${_aeEmpresaNombre}</strong>?\n\n${nombres}`,
+        'Asociar'
+    );
+    if (!confirmado) return;
+
+    try {
+        const res  = await fetch('/config/apariencia-empresa', {
+            method:  'POST',
+            headers: {'Content-Type':'application/json'},
+            body:    JSON.stringify({ empresa_id: _aeEmpresaId, apariencia_ids: [..._aeSeleccionados] }),
+        });
+        let json;
+        try { json = await res.json(); } catch(e) { throw new Error(`HTTP ${res.status}`); }
+        if (json.ok) {
+            showToast('✅ ' + json.mensaje);
+            await _refrescarEmpresaActual();
+        } else {
+            showToast('❌ ' + (json.error || 'Error al guardar'), true);
+        }
+    } catch(e) {
+        showToast('❌ Error: ' + e.message, true);
+    }
+}
+
+// ── Crear tema personalizado ──────────────────────────────────
+
+function toggleCrearTema() {
+    const card = document.getElementById('ae-crear-card');
+    const visible = card.style.display !== 'none';
+    card.style.display = visible ? 'none' : '';
+    if (!visible) actualizarPreview();
+}
+
+function actualizarSlug() {
+    const nombre = document.getElementById('ct-nombre').value;
+    const clave  = nombre.toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    document.getElementById('ct-clave').value = clave;
+}
+
+function sincColorPicker(pickerId, inputId) {
+    const val = document.getElementById(inputId).value;
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        document.getElementById(pickerId).value = val;
+        actualizarPreview();
+    }
+}
+
+function actualizarPreview() {
+    const nav    = document.getElementById('ct-color-nav').value;
+    const fondo  = document.getElementById('ct-color-fondo').value;
+    const acento = document.getElementById('ct-color-acento').value;
+    const txt    = document.getElementById('ct-color-txt').value;
+    const topbar = document.getElementById('ct-color-topbar').value;
+    const card   = document.getElementById('ct-color-card').value;
+
+    // Sync text inputs
+    ['nav','fondo','acento','txt','topbar','card'].forEach(k => {
+        const el = document.getElementById(`ct-color-${k}-txt`);
+        if (el) el.value = document.getElementById(`ct-color-${k}`).value;
+    });
+
+    // Preview nav
+    document.getElementById('prev-nav').style.background = nav;
+    // Preview topbar
+    document.getElementById('prev-topbar').style.background = topbar;
+    // Preview content/fondo
+    document.getElementById('prev-content').style.background = fondo;
+    // Preview card
+    const cardEl = document.getElementById('prev-card');
+    cardEl.style.background = card;
+    // Page title color
+    document.getElementById('prev-page-title').style.background = txt;
+    document.getElementById('prev-card-title').style.background = acento;
+    ['prev-row1','prev-row2','prev-row3'].forEach(id => {
+        document.getElementById(id).style.background = txt;
+    });
+    // Button (acento)
+    document.getElementById('prev-btn').style.background = acento;
+    // Nav items
+    ['prev-nav-brand','prev-nav-item1','prev-nav-item2','prev-nav-item3','prev-nav-item4'].forEach(id => {
+        document.getElementById(id).style.background = `rgba(255,255,255,0.25)`;
+    });
+    document.getElementById('prev-nav-item2').style.borderLeftColor = acento;
+    document.getElementById('prev-topbar-title').style.background = `rgba(255,255,255,0.5)`;
+    document.getElementById('prev-topbar-avatar').style.background = `rgba(255,255,255,0.4)`;
+
+    // Swatches
+    document.getElementById('sw-nav').style.background    = nav;
+    document.getElementById('sw-topbar').style.background = topbar;
+    document.getElementById('sw-fondo').style.background  = fondo;
+    document.getElementById('sw-acento').style.background = acento;
+    document.getElementById('sw-card').style.background   = card;
+}
+
+function _generarCSS(clave, nav, fondo, acento, txt, topbar, card) {
+    return `html[data-tema="${clave}"] body{background:${fondo};color:${txt}}
+html[data-tema="${clave}"] .topbar{background:${topbar}}
+html[data-tema="${clave}"] .sidebar{background:${nav}}
+html[data-tema="${clave}"] .main-content{background:${fondo}}
+html[data-tema="${clave}"] .nav-item{color:rgba(255,255,255,.75)}
+html[data-tema="${clave}"] .nav-item:hover{color:#fff;background:rgba(255,255,255,.12)}
+html[data-tema="${clave}"] .nav-item.active{color:#fff;background:rgba(255,255,255,.2);border-left-color:${acento}}
+html[data-tema="${clave}"] .config-panel-title span{color:${acento}}
+html[data-tema="${clave}"] .config-form-card{background:${card};border-color:rgba(0,0,0,.08)}
+html[data-tema="${clave}"] .form-control{background:${fondo};border-color:rgba(0,0,0,.15);color:${txt}}
+html[data-tema="${clave}"] .form-control:focus{border-color:${acento};box-shadow:0 0 0 3px ${acento}33}
+html[data-tema="${clave}"] .ptab.active{background:${acento};border-color:${acento}}
+html[data-tema="${clave}"] .btn-primary{background:${acento}}
+html[data-tema="${clave}"] .btn-primary:hover{box-shadow:0 8px 24px ${acento}66}
+html[data-tema="${clave}"] .spinner{border-top-color:${acento}}
+html[data-tema="${clave}"] .data-table th{color:${acento}}
+html[data-tema="${clave}"] .modal-box{background:${card};color:${txt}}
+html[data-tema="${clave}"] .modal-title{color:${acento}}`;
+}
+
+async function guardarTemaPersonalizado() {
+    if (!_aeEmpresaId) return showToast('⚠️ Selecciona una empresa primero', true);
+    const nombre = document.getElementById('ct-nombre').value.trim();
+    const clave  = document.getElementById('ct-clave').value.trim();
+    if (!nombre || !clave) return showToast('⚠️ Nombre y clave son requeridos', true);
+
+    const nav    = document.getElementById('ct-color-nav').value;
+    const fondo  = document.getElementById('ct-color-fondo').value;
+    const acento = document.getElementById('ct-color-acento').value;
+    const txt    = document.getElementById('ct-color-txt').value;
+    const topbar = document.getElementById('ct-color-topbar').value;
+    const card   = document.getElementById('ct-color-card').value;
+
+    const apariencia = {
+        nombre,
+        clave,
+        descripcion:      document.getElementById('ct-descripcion').value.trim(),
+        orden:            99,
+        es_predeterminado: false,
+        activo:           true,
+        vista_previa: {
+            color_navegacion:  nav,
+            color_fondo:       fondo,
+            color_acento:      acento,
+            color_barra_fuerte:`rgba(0,0,0,0.2)`,
+            color_barra_suave: `rgba(0,0,0,0.1)`,
+            borde_nav: '',
+            borde_topbar: '',
+            borde_swatch_nav: '',
+            borde_swatch_fondo: '',
+        },
+        colores_tarjeta: {
+            fondo:             acento,
+            texto:             '#fff',
+            borde:             'rgba(255,255,255,.3)',
+            sombra:            `${acento}44`,
+            texto_descripcion: 'rgba(255,255,255,.8)',
+        },
+        css: _generarCSS(clave, nav, fondo, acento, txt, topbar, card),
+    };
+
+    const res  = await fetch('/config/apariencia-empresa/personalizado', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ empresa_id: _aeEmpresaId, apariencia }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+        showToast('✅ Tema creado y asociado correctamente');
+        toggleCrearTema();
+        await cargarApariencias();
+        await _refrescarEmpresaActual();
+    } else {
+        showToast('❌ ' + (json.error || 'Error al guardar'), true);
+    }
 }
 </script>
 </body>
