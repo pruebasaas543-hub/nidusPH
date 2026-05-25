@@ -1816,6 +1816,7 @@ function _refreshPanel(panelId) {
         case 'cfg-roles-empresa': RE.init();                                          break;
         case 'cfg-asociaciones':  ASOC.init();                                        break;
         case 'cfg-planes':        PLN.init();                                         break;
+        case 'cfg-inicio':        SRV.renderInicio();                                 break;
         case 'cfg-servicios':     SRV.init();                                         break;
         case 'cfg-datos-pago':    cargarEmpresasParaDatosPago();                      break;
     }
@@ -4397,7 +4398,7 @@ const SRV = {
             </tr>`).join('');
     },
 
-    renderInicio() {
+    renderInicio(temaId) {
         const grid = document.getElementById('inicio-servicios-grid');
         if (!grid) return;
         const activos = this._data.filter(s => s.activo);
@@ -4405,7 +4406,7 @@ const SRV = {
             grid.innerHTML = '<div style="padding:40px;text-align:center;color:rgba(4,34,67,.4);grid-column:1/-1;">Sin servicios activos.</div>';
             return;
         }
-        const _tId = document.documentElement.dataset.tema || 'default';
+        const _tId = temaId || document.documentElement.dataset.tema || 'default';
         const c = (window._TEMAS_BTN || {})[_tId] || (window._TEMAS_BTN || {})['default'] || {
             bg:'linear-gradient(135deg,#042243,#00c8f0)', txt:'#fff',
             borde:'rgba(0,200,240,.4)', hsh:'rgba(4,34,67,.3)', desc:'rgba(255,255,255,.75)'
@@ -5311,7 +5312,7 @@ function aplicarTema(id) {
         if (st) st.textContent = activo ? 'Activo' : 'Aplicar';
     });
     mostrarToast('Tema "' + (TEMAS_NOMBRES[id] || id) + '" aplicado');
-    if (typeof SRV !== 'undefined') SRV.renderInicio();
+    if (typeof SRV !== 'undefined') SRV.renderInicio(id);
 }
 </script>
 </body>
