@@ -1173,7 +1173,7 @@
                             <span>🔍</span>
                             <input type="text" placeholder="Buscar usuario..." oninput="filterTable('tbl-usuarios',this.value)">
                         </div>
-                        <button class="btn-primary" onclick="limpiarFormUsuario()">➕ Nuevo usuario</button>
+                        <button class="btn-primary" onclick="limpiarFormUsuario().then(()=>abrirModalUsuario('👤 Nuevo Usuario'))">➕ Nuevo usuario</button>
                     </div>
                     <div class="data-table-wrap">
                         <table class="data-table" id="tbl-usuarios">
@@ -3096,7 +3096,7 @@ var _usuariosData = [];
 
 async function cargarUsuarios() {
     document.getElementById('tbody-usuarios').innerHTML =
-        '<tr><td colspan="7" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>';
+        '<tr><td colspan="5" class="data-table-empty"><span class="spinner"></span> Cargando...</td></tr>';
     const data = await apiFetch('/config/usuarios');
     if (!data.ok) { showToast('Error: ' + data.error, true); return; }
     _usuariosData = data.data || [];
@@ -3106,7 +3106,7 @@ async function cargarUsuarios() {
 function renderTablaUsuarios(lista) {
     var tb = document.getElementById('tbody-usuarios');
     if (!lista.length) {
-        tb.innerHTML = '<tr><td colspan="6" class="data-table-empty">No hay usuarios registrados</td></tr>';
+        tb.innerHTML = '<tr><td colspan="5" class="data-table-empty">No hay usuarios registrados</td></tr>';
         return;
     }
     tb.innerHTML = lista.map(usuario => {
@@ -3174,7 +3174,6 @@ async function limpiarFormUsuario() {
     document.getElementById('sel-rol-sistema').value = '';
     await cargarTiposDocumento();
     await cargarRolesSistemaDisponibles();
-    abrirModalUsuario('👤 Nuevo Usuario');
 }
 
 async function cargarRolesSistemaDisponibles() {
