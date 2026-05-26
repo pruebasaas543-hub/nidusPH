@@ -1,93 +1,170 @@
 """
 app/configuracion/directorio/routes.py
+Endpoints de administración del Directorio de Contactos.
 Prefijo: /config/directorio
+
+Usa ContactoModel/ContactoController del módulo de servicios.
+El campo empresa_id llega como 'propiedad_id' en el payload.
+Los teléfonos se envían como múltiples valores form y se
+normalizan a [{numero, etiqueta}] antes de persistir.
 """
 
 import base64
+import logging
 from io import BytesIO
-from flask import Blueprint, request, session, send_file
-from app.configuracion.utils import requiere_superadmin, ok, err
-from app.configuracion.directorio.controller import DirectorioController
+from flask import Blueprint, request, session, send_file, abort
+from app.configuracion.utils import requiere_superadmin, ok, err, serializar
+from app.servicios.directorio.controller import ContactoController
+from app.servicios.directorio.model import ContactoModel, BLOQUES_VALIDOS
 
-directorio_cfg_bp = Blueprint("config_directorio", __name__, url_prefix="/config")
+logger = logging.getLogger(__name__)
+
+directorio_cfg_bp = Blueprint("directorio_cfg", __name__, url_prefix="/config/directorio")
 
 
-@directorio_cfg_bp.route("/directorio", methods=["GET"])
+def _usuario():
+    return session.get("num_doc") or session.get("usuario_id", "sistema")
+
+
+def _parse_payload():
+    """Extrae y normaliza el payload del request (JSON o multipart)."""
+    import json as _json
+
+    if request.is_json:
+        datos = request.get_json(silent=True) or {}
+        empresa_id = datos.get("propiedad_id") or datos.get("empresa_id", "")
+        foto = None
+        # telefonos puede ser lista de strings o lista de dicts
+        tels = datos.get("telefonos", [])
+    else:
+        empresa_id = request.form.get("propiedad_id") or request.form.get("empresa_id", "")
+        # getlist captura múltiples valores del mismo campo
+        tels_raw = request.form.getlist("telefonos")
+        # Si hay un solo valor que parece JSON, intentar parsearlo
+        if len(tels_raw) == 1:
+            try:
+                parsed = _json.loads(tels_raw[0])
+                if isinstance(parsed, list):
+                    tels_raw = parsed
+            except Exception:
+                pass
+        tels = tels_raw
+        datos = request.form.to_dict()
+        foto = request.files.get("foto")
+
+    # Normalizar teléfonos → [{numero, etiqueta}]
+    tels_norm = []
+    for t in tels:
+        if isinstance(t, dict):
+            num = (t.get("numero") or "").strip()
+            if num:
+                tels_norm.append({"numero": num, "etiqueta": t.get("etiqueta", "").strip()})
+        elif isinstance(t, str) and t.strip():
+            tels_norm.append({"numero": t.strip(), "etiqueta": ""})
+
+    datos["telefonos"] = tels_norm
+
+    for flag in ("es_visible_para_residentes", "es_visible_para_seguridad",
+                 "es_visible_para_administracion", "vinculado_al_boton_de_panico", "activo"):
+        val = datos.get(flag, "")
+        if isinstance(val, bool):
+            continue
+        datos[flag] = str(val).lower() in ("true", "1", "on")
+
+    return empresa_id, datos, foto
+
+
+def _serializar_contacto(doc: dict) -> dict:
+    """Devuelve el documento serializable sin los bytes de la foto."""
+    d = serializar(doc)
+    d.pop("foto_data", None)
+    d.pop("foto_mimetype", None)
+    d["tiene_foto"] = bool(doc.get("foto_data"))
+    # Normalizar teléfonos a lista plana para compatibilidad con el panel
+    tels = doc.get("telefonos", [])
+    d["telefonos"] = [
+        t["numero"] if isinstance(t, dict) else t
+        for t in tels if (t["numero"] if isinstance(t, dict) else t)
+    ]
+    return d
+
+
+# ── GET: listar contactos ─────────────────────────────────────────────────
+
+@directorio_cfg_bp.route("", methods=["GET"])
 @requiere_superadmin
 def listar():
-    propiedad_id = request.args.get("propiedad_id", "").strip()
-    bloque       = request.args.get("bloque", "").strip() or None
-    exito, resultado = DirectorioController.listar(propiedad_id, bloque)
-    if not exito:
-        return err(resultado)
-    return ok(resultado)
+    empresa_id = request.args.get("propiedad_id") or request.args.get("empresa_id", "")
+    if not empresa_id:
+        return err("Debe indicar propiedad_id", 400)
+    bloque = (request.args.get("bloque") or "").upper().strip()
+    try:
+        docs = ContactoModel.listar_por_empresa(empresa_id, solo_activos=False)
+    except Exception as e:
+        logger.error("Error listando contactos empresa=%s: %s", empresa_id, e)
+        return err("Error interno", 500)
+    if bloque and bloque in BLOQUES_VALIDOS:
+        docs = [d for d in docs if d.get("bloque") == bloque]
+    return ok([_serializar_contacto(d) for d in docs])
 
 
-@directorio_cfg_bp.route("/directorio", methods=["POST"])
+# ── POST: crear contacto ──────────────────────────────────────────────────
+
+@directorio_cfg_bp.route("", methods=["POST"])
 @requiere_superadmin
 def crear():
-    propiedad_id = request.form.get("propiedad_id", "").strip()
-    telefonos    = request.form.getlist("telefonos")
-    datos = {
-        "bloque":                       request.form.get("bloque", ""),
-        "nombre":                       request.form.get("nombre", ""),
-        "telefonos":                    telefonos,
-        "correo":                       request.form.get("correo", ""),
-        "nota_referencia":              request.form.get("nota_referencia", ""),
-        "es_visible_para_residentes":   request.form.get("es_visible_para_residentes") == "true",
-        "requiere_autenticacion":       request.form.get("requiere_autenticacion") == "true",
-        "permite_llamada_rapida":       request.form.get("permite_llamada_rapida") == "true",
-        "vinculado_al_boton_de_panico": request.form.get("vinculado_al_boton_de_panico") == "true",
-    }
-    archivo = request.files.get("foto")
-    exito, resultado = DirectorioController.crear(
-        propiedad_id, datos, archivo, session.get("num_doc", "")
-    )
+    empresa_id, datos, foto = _parse_payload()
+    if not empresa_id:
+        return err("Debe indicar propiedad_id", 400)
+    exito, resultado = ContactoController.crear(datos, empresa_id, _usuario(), foto_file=foto)
     if not exito:
         return err(resultado)
-    return ok(resultado)
+    return ok(resultado, status=201)
 
 
-@directorio_cfg_bp.route("/directorio/<contacto_id>", methods=["PUT"])
+# ── GET foto ─────────────────────────────────────────────────────────────
+
+@directorio_cfg_bp.route("/<contacto_id>/foto", methods=["GET"])
 @requiere_superadmin
-def actualizar(contacto_id):
-    telefonos = request.form.getlist("telefonos")
-    datos = {
-        "bloque":                       request.form.get("bloque", ""),
-        "nombre":                       request.form.get("nombre", ""),
-        "telefonos":                    telefonos,
-        "correo":                       request.form.get("correo", ""),
-        "nota_referencia":              request.form.get("nota_referencia", ""),
-        "es_visible_para_residentes":   request.form.get("es_visible_para_residentes") == "true",
-        "requiere_autenticacion":       request.form.get("requiere_autenticacion") == "true",
-        "permite_llamada_rapida":       request.form.get("permite_llamada_rapida") == "true",
-        "vinculado_al_boton_de_panico": request.form.get("vinculado_al_boton_de_panico") == "true",
-    }
-    archivo = request.files.get("foto")
-    exito, resultado = DirectorioController.actualizar(contacto_id, datos, archivo)
-    if not exito:
-        return err(resultado)
-    return ok(mensaje=resultado)
-
-
-@directorio_cfg_bp.route("/directorio/<contacto_id>", methods=["DELETE"])
-@requiere_superadmin
-def eliminar(contacto_id):
-    exito, resultado = DirectorioController.eliminar(contacto_id)
-    if not exito:
-        return err(resultado)
-    return ok(mensaje=resultado)
-
-
-@directorio_cfg_bp.route("/directorio/<contacto_id>/foto", methods=["GET"])
 def foto(contacto_id):
-    exito, resultado = DirectorioController.obtener_foto(contacto_id)
-    if not exito:
-        from flask import abort
+    empresa_id = request.args.get("propiedad_id") or request.args.get("empresa_id") or ""
+    doc = ContactoModel.obtener(contacto_id, empresa_id if empresa_id else None)
+    if not doc or not doc.get("foto_data"):
         abort(404)
     try:
-        raw = base64.b64decode(resultado["data"])
-        return send_file(BytesIO(raw), mimetype=resultado["mimetype"])
+        raw = base64.b64decode(doc["foto_data"])
+        return send_file(BytesIO(raw), mimetype=doc.get("foto_mimetype", "image/jpeg"))
     except Exception:
-        from flask import abort
         abort(500)
+
+
+# ── PUT: actualizar contacto ──────────────────────────────────────────────
+
+@directorio_cfg_bp.route("/<contacto_id>", methods=["PUT"])
+@requiere_superadmin
+def actualizar(contacto_id):
+    empresa_id, datos, foto = _parse_payload()
+    if not empresa_id:
+        return err("Debe indicar propiedad_id", 400)
+    exito, resultado = ContactoController.actualizar(contacto_id, empresa_id, datos, foto_file=foto)
+    if not exito:
+        return err(resultado)
+    return ok(mensaje=resultado)
+
+
+# ── DELETE: eliminar contacto ─────────────────────────────────────────────
+
+@directorio_cfg_bp.route("/<contacto_id>", methods=["DELETE"])
+@requiere_superadmin
+def eliminar(contacto_id):
+    empresa_id = request.args.get("propiedad_id") or request.args.get("empresa_id") or ""
+    if not empresa_id:
+        # Intenta obtener el contacto sin filtro de empresa
+        doc = ContactoModel.obtener(contacto_id)
+        if not doc:
+            return err("Contacto no encontrado", 404)
+        empresa_id = str(doc.get("empresa_id", ""))
+    exito, resultado = ContactoController.eliminar(contacto_id, empresa_id)
+    if not exito:
+        return err(resultado, 404)
+    return ok(mensaje=resultado)

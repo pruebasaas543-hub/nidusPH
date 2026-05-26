@@ -25,6 +25,8 @@
 
         /* ══ LAYOUT ══ */
         .main-layout { flex:1; display:flex; overflow:hidden; min-height:0; }
+        .main-layout.sin-sidebar .sidebar { display:none !important; }
+        .main-layout.sin-sidebar .main-content { padding:20px 28px; }
 
         /* ══ SIDEBAR ══ */
         .sidebar { width:240px; flex-shrink:0; background:#042243; border-right:1px solid rgba(255,255,255,0.2); display:flex; flex-direction:column; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.2) transparent; }
@@ -238,6 +240,16 @@
         .dir-btn-action { flex:1;padding:5px;border-radius:6px;border:1.5px solid rgba(4,34,67,.2);background:transparent;cursor:pointer;font-size:.75rem;transition:all .2s; }
         .dir-btn-action:hover { background:rgba(4,34,67,.08); }
         .dir-btn-del { border-color:rgba(192,48,74,.3);color:#C0304A; }
+        /* Modal directorio – toggles y foto */
+        .dir-toggle { display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;font-size:.83rem;color:#042243; }
+        .dir-toggle input { position:absolute;opacity:0;width:0;height:0; }
+        .dir-toggle-track { width:38px;height:22px;border-radius:11px;background:#cbd5e0;flex-shrink:0;position:relative;transition:background .2s;border:1px solid rgba(4,34,67,.12); }
+        .dir-toggle-track::after { content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.22);transition:transform .2s; }
+        .dir-toggle input:checked ~ .dir-toggle-track { background:var(--dir-accent,#042243); }
+        .dir-toggle input:checked ~ .dir-toggle-track::after { transform:translateX(16px); }
+        .dir-foto-area { border:2px dashed rgba(4,34,67,.2);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:12px;flex-direction:column;min-height:88px; }
+        .dir-foto-area:hover { border-color:rgba(4,34,67,.45);background:rgba(4,34,67,.03); }
+        .dir-dynamic-field { transition:opacity .15s; }
         .dir-btn-del:hover { background:rgba(192,48,74,.08); }
         .theme-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(4,34,67,0.18); border-color:rgba(4,34,67,0.4); }
         .theme-card.active { border-color:#042243; box-shadow:0 0 0 3px rgba(4,34,67,0.25),0 4px 20px rgba(4,34,67,0.15); }
@@ -410,7 +422,6 @@
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-datos-ph')"><span class="nav-icon">📑</span> Datos Generales PH</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-apariencia')"><span class="nav-icon">🎨</span> Apariencia</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-datos-pago')"><span class="nav-icon">💳</span> Asociacion Medios de Pago Empresa</a>
-                <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-directorio');_dirPoblarEmpresas()"><span class="nav-icon">📒</span> Directorio</a>
             </div>
         </div>
 
@@ -1622,7 +1633,11 @@
 
         <!-- ══════════════════════════════════════════════════════ DIRECTORIO -->
         <div id="cfg-directorio" class="config-panel">
-            <h2 class="section-title">📒 Directorio de Contactos</h2>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px;">
+                <button onclick="setActive(document.getElementById('nav-inicio'));mostrarPanel('cfg-inicio')"
+                    style="background:none;border:1.5px solid rgba(4,34,67,.25);border-radius:20px;padding:5px 14px;cursor:pointer;font-size:.8rem;color:#042243;font-weight:600;">← Inicio</button>
+                <h2 class="section-title" style="margin-bottom:0;">📒 Directorio de Contactos</h2>
+            </div>
 
             <!-- Selector empresa -->
             <div class="form-row" style="max-width:420px;margin-bottom:20px;">
@@ -1653,15 +1668,27 @@
         </div><!-- /cfg-directorio -->
 
         <!-- Modal Directorio -->
-        <div class="modal-overlay" id="modal-dir" style="display:none;position:fixed;inset:0;background:rgba(30,39,86,.5);z-index:1000;align-items:center;justify-content:center;">
-            <div class="modal-box" style="width:clamp(340px,95vw,600px);max-height:90vh;overflow-y:auto;">
-                <div class="modal-title" id="modal-dir-title">➕ Nuevo Contacto</div>
-                <input type="hidden" id="dir-id">
+        <div class="modal-overlay" id="modal-dir">
+            <div style="width:clamp(360px,95vw,580px);max-height:92vh;border-radius:18px;background:#fff;box-shadow:0 24px 64px rgba(4,34,67,.22);display:flex;flex-direction:column;overflow:hidden;">
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="form-row">
+                <!-- Header colorido dinámico -->
+                <div id="dir-modal-header" style="background:linear-gradient(135deg,#042243,#00c8f0);padding:18px 22px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
+                    <span id="dir-modal-icon" style="font-size:1.8rem;line-height:1;">🚨</span>
+                    <div style="flex:1;min-width:0;">
+                        <div id="modal-dir-title" style="font-size:.96rem;font-weight:700;color:#fff;">Nuevo Contacto</div>
+                        <div id="dir-modal-subtitle" style="font-size:.74rem;color:#fff;margin-top:1px;">Emergencias</div>
+                    </div>
+                    <button onclick="dirCerrarModal()" style="background:rgba(255,255,255,.22);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;">×</button>
+                </div>
+
+                <!-- Body scrollable -->
+                <div style="padding:20px 22px;overflow-y:auto;flex:1;">
+                    <input type="hidden" id="dir-id">
+
+                    <!-- Bloque -->
+                    <div class="form-row" style="margin-bottom:14px;">
                         <label>Bloque *</label>
-                        <select class="form-control" id="dir-bloque" onchange="dirToggleNotaRef()">
+                        <select class="form-control" id="dir-bloque" onchange="dirCambioBloque()">
                             <option value="EMERGENCIAS">🚨 Emergencias</option>
                             <option value="ADMIN">🏢 Administración</option>
                             <option value="PUBLICOS">💡 Servicios Públicos</option>
@@ -1669,59 +1696,77 @@
                             <option value="LOCAL">📍 Locales</option>
                         </select>
                     </div>
-                    <div class="form-row">
+
+                    <!-- Nombre -->
+                    <div class="form-row" style="margin-bottom:14px;">
                         <label>Nombre *</label>
-                        <input class="form-control" id="dir-nombre" type="text" placeholder="Ej: Bomberos, Administrador...">
+                        <input class="form-control" id="dir-nombre" type="text" placeholder="Nombre del contacto">
                     </div>
-                    <div class="form-row">
+
+                    <!-- Cargo (solo ADMIN / LOGISTICA) -->
+                    <div class="form-row dir-field-cargo dir-dynamic-field" style="margin-bottom:14px;display:none;">
+                        <label>Cargo *</label>
+                        <input class="form-control" id="dir-cargo" type="text" placeholder="Ej: Administrador, Técnico de mantenimiento...">
+                    </div>
+
+                    <!-- Correo (solo ADMIN / PUBLICOS) -->
+                    <div class="form-row dir-field-correo dir-dynamic-field" style="margin-bottom:14px;display:none;">
                         <label>Correo</label>
                         <input class="form-control" id="dir-correo" type="email" placeholder="correo@ejemplo.com">
                     </div>
-                    <div class="form-row" id="dir-nota-ref-wrap" style="display:none;">
-                        <label>Nota / N° Contrato</label>
-                        <input class="form-control" id="dir-nota-ref" type="text" placeholder="Cuenta, contrato, extensión...">
+
+                    <!-- Teléfonos -->
+                    <div class="form-row" style="margin-bottom:14px;">
+                        <label>Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small></label>
+                        <div id="dir-telefonos-wrap" style="display:flex;flex-direction:column;gap:6px;"></div>
+                        <button type="button" onclick="dirAgregarTelefono()" style="margin-top:7px;background:none;border:1.5px dashed rgba(4,34,67,.25);border-radius:8px;padding:6px 12px;cursor:pointer;color:#042243;font-size:.8rem;width:100%;font-family:inherit;">+ Agregar teléfono</button>
+                    </div>
+
+                    <!-- Foto / Logo -->
+                    <div class="form-row" style="margin-bottom:16px;">
+                        <label>Foto / Logo</label>
+                        <div class="dir-foto-area" id="dir-foto-area" onclick="document.getElementById('dir-foto').click()">
+                            <img id="dir-foto-preview" src="" alt="" style="width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid rgba(4,34,67,.12);display:none;">
+                            <div id="dir-foto-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:5px;color:#8A9CC8;">
+                                <span style="font-size:2rem;">📷</span>
+                                <span style="font-size:.76rem;">Haz clic para subir foto / logo</span>
+                            </div>
+                        </div>
+                        <input type="file" id="dir-foto" accept="image/*" hidden onchange="dirPreviewFoto(this)">
+                    </div>
+
+                    <!-- Visibilidad y acceso -->
+                    <div style="border:1.5px solid rgba(4,34,67,.1);border-radius:12px;padding:16px;">
+                        <div style="font-size:.69rem;font-weight:700;letter-spacing:.9px;color:#8A9CC8;margin-bottom:14px;">VISIBILIDAD Y ACCESO</div>
+                        <div style="display:flex;flex-direction:column;gap:13px;">
+                            <label class="dir-toggle">
+                                <input type="checkbox" id="dir-flag-visible" checked>
+                                <span class="dir-toggle-track"></span>
+                                <span>Visible para residentes</span>
+                            </label>
+                            <label class="dir-toggle">
+                                <input type="checkbox" id="dir-flag-auth">
+                                <span class="dir-toggle-track"></span>
+                                <span>Visible para seguridad</span>
+                            </label>
+                            <label class="dir-toggle">
+                                <input type="checkbox" id="dir-flag-llamada">
+                                <span class="dir-toggle-track"></span>
+                                <span>Visible para administración</span>
+                            </label>
+                            <label class="dir-toggle dir-field-panico dir-dynamic-field" style="display:none;">
+                                <input type="checkbox" id="dir-flag-panico">
+                                <span class="dir-toggle-track"></span>
+                                <span style="color:#C0304A;font-weight:600;">🆘 Botón de pánico</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Teléfonos dinámicos -->
-                <div class="form-row" style="margin-top:10px;">
-                    <label>Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small></label>
-                    <div id="dir-telefonos-wrap" style="display:flex;flex-direction:column;gap:6px;"></div>
-                    <button type="button" onclick="dirAgregarTelefono()" style="margin-top:6px;background:none;border:1.5px dashed rgba(4,34,67,.3);border-radius:6px;padding:5px 12px;cursor:pointer;color:#042243;font-size:.8rem;">+ Agregar teléfono</button>
-                </div>
-
-                <!-- Foto -->
-                <div class="form-row" style="margin-top:10px;">
-                    <label>Foto / Logo</label>
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <img id="dir-foto-preview" src="" alt="" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid rgba(4,34,67,.15);display:none;">
-                        <div id="dir-foto-placeholder" style="width:54px;height:54px;border-radius:50%;background:rgba(4,34,67,.08);display:flex;align-items:center;justify-content:center;font-size:1.4rem;">👤</div>
-                        <input type="file" id="dir-foto" accept="image/*" onchange="dirPreviewFoto(this)" style="font-size:.8rem;">
-                    </div>
-                </div>
-
-                <!-- Flags -->
-                <div style="margin-top:14px;padding:12px;background:rgba(4,34,67,.04);border-radius:8px;border:1px solid rgba(4,34,67,.1);">
-                    <div style="font-size:.78rem;font-weight:700;color:#042243;margin-bottom:10px;letter-spacing:.5px;">CONFIGURACIÓN DE ACCESO</div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
-                            <input type="checkbox" id="dir-flag-visible" checked> Visible para residentes
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
-                            <input type="checkbox" id="dir-flag-auth"> Requiere autenticación
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
-                            <input type="checkbox" id="dir-flag-llamada"> Llamada rápida
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
-                            <input type="checkbox" id="dir-flag-panico"> Botón de pánico
-                        </label>
-                    </div>
-                </div>
-
-                <div class="modal-actions" style="margin-top:16px;">
-                    <button class="btn" onclick="dirCerrarModal()">Cancelar</button>
-                    <button class="btn btn-primary" onclick="dirGuardar()">Guardar</button>
+                <!-- Footer -->
+                <div style="padding:14px 22px;border-top:1px solid rgba(4,34,67,.08);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;background:#fafbfc;">
+                    <button onclick="dirCerrarModal()" style="padding:9px 22px;border-radius:8px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#7b0d1e,#e53e3e);color:#fff;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✕ Cancelar</button>
+                    <button id="dir-btn-guardar" class="btn btn-primary" onclick="dirGuardar()">💾 Guardar</button>
                 </div>
             </div>
         </div><!-- /modal-dir -->
@@ -4559,8 +4604,12 @@ const SRV = {
             bg:'linear-gradient(135deg,#042243,#00c8f0)', txt:'#fff',
             borde:'rgba(0,200,240,.4)', hsh:'rgba(4,34,67,.3)', desc:'rgba(255,255,255,.75)'
         };
+        const _panelDestino = (codigo) => {
+            if (codigo === 'directorio') return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
+            return `mostrarPanel('srv-panel-${codigo}')`;
+        };
         grid.innerHTML = activos.map((s, i) => {
-            return `<div onclick="setActive(document.getElementById('nav-inicio'));mostrarPanel('srv-panel-${s.codigo}')"
+            return `<div onclick="setActive(document.getElementById('nav-inicio'));${_panelDestino(s.codigo)}"
                  style="cursor:pointer;background:${c.bg};border-radius:16px;padding:28px 20px;
                         text-align:center;border:1.5px solid ${c.borde};
                         box-shadow:0 2px 12px ${c.hsh};transition:all .25s;color:${c.txt};"
@@ -6006,8 +6055,8 @@ function _dirRenderGrid() {
         ).join('');
         const flags = [
             c.es_visible_para_residentes   ? '<span class="dir-flag dir-flag-on">👁 Residentes</span>' : '',
-            c.requiere_autenticacion       ? '<span class="dir-flag dir-flag-on">🔐 Auth</span>' : '',
-            c.permite_llamada_rapida       ? '<span class="dir-flag dir-flag-on">⚡ Rápida</span>' : '',
+            c.es_visible_para_seguridad       ? '<span class="dir-flag dir-flag-on">🔐 Seguridad</span>' : '',
+            c.es_visible_para_administracion  ? '<span class="dir-flag dir-flag-on">🏢 Administración</span>' : '',
             panico                         ? '<span class="dir-flag" style="background:rgba(192,48,74,.12);color:#C0304A;">🆘 Pánico</span>' : '',
         ].filter(Boolean).join('');
         const notaRef = c.nota_referencia
@@ -6043,17 +6092,36 @@ function dirCambiarBloque(btn) {
 
 // ── Modal ────────────────────────────────────────────────────────────────
 
+const _DIR_META = {
+    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#e53e3e', cargo:false, correo:false, panico:false },
+    ADMIN:       { icon:'🏢', label:'Administración',     color:'#2b6cb0', cargo:true,  correo:true,  panico:true  },
+    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#276749', cargo:false, correo:true,  panico:false },
+    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#b7791f', cargo:true,  correo:false, panico:true  },
+    LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false },
+};
+
+function dirCambioBloque() {
+    const bloque = document.getElementById('dir-bloque').value;
+    const m = _DIR_META[bloque] || _DIR_META.EMERGENCIAS;
+    document.getElementById('dir-modal-icon').textContent     = m.icon;
+    document.getElementById('dir-modal-subtitle').textContent = m.label;
+    document.querySelectorAll('.dir-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
+    document.querySelectorAll('.dir-field-correo').forEach(el => el.style.display = m.correo ? '' : 'none');
+    document.querySelectorAll('.dir-field-panico').forEach(el => el.style.display = m.panico ? '' : 'none');
+}
+
 function dirAbrirModal(contacto = null) {
+    const bloque = contacto ? contacto.bloque : (_dirBloqueAct !== 'TODOS' ? _dirBloqueAct : 'EMERGENCIAS');
     document.getElementById('dir-id').value             = contacto ? contacto._id : '';
     document.getElementById('modal-dir-title').textContent = contacto ? '✏️ Editar Contacto' : '➕ Nuevo Contacto';
-    document.getElementById('dir-bloque').value         = contacto ? contacto.bloque : 'EMERGENCIAS';
-    document.getElementById('dir-nombre').value         = contacto ? contacto.nombre : '';
+    document.getElementById('dir-bloque').value         = bloque;
+    document.getElementById('dir-nombre').value         = contacto ? (contacto.nombre||'') : '';
+    document.getElementById('dir-cargo').value          = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('dir-correo').value         = contacto ? (contacto.correo||'') : '';
-    document.getElementById('dir-nota-ref').value       = contacto ? (contacto.nota_referencia||'') : '';
-    document.getElementById('dir-flag-visible').checked = contacto ? contacto.es_visible_para_residentes : true;
-    document.getElementById('dir-flag-auth').checked    = contacto ? contacto.requiere_autenticacion : false;
-    document.getElementById('dir-flag-llamada').checked = contacto ? contacto.permite_llamada_rapida : false;
-    document.getElementById('dir-flag-panico').checked  = contacto ? contacto.vinculado_al_boton_de_panico : false;
+    document.getElementById('dir-flag-visible').checked = contacto ? !!contacto.es_visible_para_residentes : true;
+    document.getElementById('dir-flag-auth').checked    = contacto ? !!contacto.es_visible_para_seguridad : false;
+    document.getElementById('dir-flag-llamada').checked = contacto ? !!contacto.es_visible_para_administracion : false;
+    document.getElementById('dir-flag-panico').checked  = contacto ? !!contacto.vinculado_al_boton_de_panico : false;
     // Foto preview
     const prev = document.getElementById('dir-foto-preview');
     const ph   = document.getElementById('dir-foto-placeholder');
@@ -6064,22 +6132,14 @@ function dirAbrirModal(contacto = null) {
         prev.src = ''; prev.style.display = 'none'; ph.style.display = '';
     }
     document.getElementById('dir-foto').value = '';
-    // Teléfonos
     const tels = contacto ? (contacto.telefonos||[]) : [''];
     _dirRenderTelefonos(tels);
-    dirToggleNotaRef();
-    const modal = document.getElementById('modal-dir');
-    modal.style.display = 'flex';
+    dirCambioBloque();
+    document.getElementById('modal-dir').classList.add('show');
 }
 
 function dirCerrarModal() {
-    document.getElementById('modal-dir').style.display = 'none';
-}
-
-function dirToggleNotaRef() {
-    const bloque = document.getElementById('dir-bloque').value;
-    document.getElementById('dir-nota-ref-wrap').style.display =
-        (bloque === 'PUBLICOS' || bloque === 'LOGISTICA') ? '' : 'none';
+    document.getElementById('modal-dir').classList.remove('show');
 }
 
 function _dirRenderTelefonos(lista) {
@@ -6121,16 +6181,23 @@ function dirPreviewFoto(input) {
 
 async function dirGuardar() {
     const contactoId = document.getElementById('dir-id').value;
+    const bloque     = document.getElementById('dir-bloque').value;
+    const nombre     = document.getElementById('dir-nombre').value.trim();
+    const cargo      = document.getElementById('dir-cargo').value.trim();
     const telefonos  = [...document.querySelectorAll('.dir-tel-input')].map(i => i.value.trim()).filter(Boolean);
+    const meta = _DIR_META[bloque] || {};
+    if (!nombre)  { showToast('❌ El nombre es obligatorio', true); return; }
+    if (meta.cargo && !cargo) { showToast('❌ El cargo es obligatorio para este bloque', true); return; }
+    if (!telefonos.length)    { showToast('❌ Debe ingresar al menos un teléfono', true); return; }
     const fd = new FormData();
     fd.append('propiedad_id',                _dirEmpresaId);
-    fd.append('bloque',                      document.getElementById('dir-bloque').value);
-    fd.append('nombre',                      document.getElementById('dir-nombre').value.trim());
+    fd.append('bloque',                      bloque);
+    fd.append('nombre',                      nombre);
+    fd.append('cargo_titulo',                cargo);
     fd.append('correo',                      document.getElementById('dir-correo').value.trim());
-    fd.append('nota_referencia',             document.getElementById('dir-nota-ref').value.trim());
     fd.append('es_visible_para_residentes',  document.getElementById('dir-flag-visible').checked ? 'true' : 'false');
-    fd.append('requiere_autenticacion',      document.getElementById('dir-flag-auth').checked    ? 'true' : 'false');
-    fd.append('permite_llamada_rapida',      document.getElementById('dir-flag-llamada').checked  ? 'true' : 'false');
+    fd.append('es_visible_para_seguridad',      document.getElementById('dir-flag-auth').checked    ? 'true' : 'false');
+    fd.append('es_visible_para_administracion', document.getElementById('dir-flag-llamada').checked  ? 'true' : 'false');
     fd.append('vinculado_al_boton_de_panico',document.getElementById('dir-flag-panico').checked   ? 'true' : 'false');
     telefonos.forEach(t => fd.append('telefonos', t));
     const fotoFile = document.getElementById('dir-foto').files[0];
@@ -6153,13 +6220,9 @@ async function dirGuardar() {
     }
 }
 
-async function dirEditarContacto(contactoId) {
-    try {
-        const json = await apiFetch(`/config/directorio?propiedad_id=${_dirEmpresaId}`);
-        const lista = (json.ok && Array.isArray(json.data)) ? json.data : [];
-        const contacto = lista.find(c => c._id === contactoId);
-        if (contacto) dirAbrirModal(contacto);
-    } catch(e) {}
+function dirEditarContacto(contactoId) {
+    const contacto = _dirContactos.find(c => c._id === contactoId);
+    if (contacto) dirAbrirModal(contacto);
 }
 
 async function dirEliminarContacto(contactoId, nombre) {

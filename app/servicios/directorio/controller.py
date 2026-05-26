@@ -1,177 +1,101 @@
 """
 app/servicios/directorio/controller.py
-Lógica de negocio para Cargos y Funcionarios del Directorio.
+Lógica de negocio para el Directorio de Contactos.
 """
 
-import json
-from app.servicios.directorio.model import CargoModel, FuncionarioModel
+import base64
+from app.servicios.directorio.model import ContactoModel, BLOQUES_VALIDOS
 from app.configuracion.utils import email_ok
 
+MAX_FOTO_BYTES = 3 * 1024 * 1024
 
-CATEGORIAS_VALIDAS = {"Administración", "Seguridad", "Órganos de Control"}
+
+def _foto_desde_file(file_storage):
+    """Convierte un FileStorage a (data_b64, mimetype) o (None, None)."""
+    if not file_storage or not getattr(file_storage, "filename", ""):
+        return None, None
+    raw = file_storage.read()
+    if not raw:
+        return None, None
+    if len(raw) > MAX_FOTO_BYTES:
+        return False, "La foto no puede superar 3 MB"
+    return base64.b64encode(raw).decode("utf-8"), (file_storage.mimetype or "image/jpeg")
 
 
-# ── CARGOS ────────────────────────────────────────────────────────────────
+class ContactoController:
 
-class CargoController:
+    CARGO_REQUERIDO = {"ADMIN", "LOGISTICA"}
 
     @staticmethod
-    def crear(datos: dict, creado_por: str):
-        nombre = datos.get("nombre", "").strip()
-        if not nombre:
-            return False, "El nombre del cargo es obligatorio"
-        if len(nombre) > 80:
-            return False, "El nombre del cargo no puede superar 80 caracteres"
-        categoria = datos.get("categoria", "").strip()
-        if categoria not in CATEGORIAS_VALIDAS:
-            return False, f"Categoría inválida. Opciones: {', '.join(sorted(CATEGORIAS_VALIDAS))}"
-        if CargoModel.obtener_por_nombre(nombre):
-            return False, f"Ya existe un cargo con el nombre '{nombre}'"
-        datos["requiere_horario"] = datos.get("requiere_horario") in (True, "true", "True", "1", 1)
-        _id = CargoModel.crear(datos, creado_por)
+    def _validar(datos: dict):
+        if not datos.get("nombre", "").strip():
+            return False, "El nombre del contacto es obligatorio"
+        bloque = datos.get("bloque", "").upper().strip()
+        if bloque not in BLOQUES_VALIDOS:
+            return False, f"Bloque inválido. Opciones: {', '.join(sorted(BLOQUES_VALIDOS))}"
+        if bloque in ContactoController.CARGO_REQUERIDO and not datos.get("cargo_titulo", "").strip():
+            return False, f"El cargo es obligatorio para el bloque {bloque}"
+        correo = datos.get("correo", "").strip()
+        if correo and not email_ok(correo):
+            return False, "El correo electrónico no tiene formato válido"
+        telefonos = datos.get("telefonos", [])
+        if not isinstance(telefonos, list) or not telefonos:
+            return False, "Debe ingresar al menos un teléfono"
+        for t in telefonos:
+            if not isinstance(t, dict) or not t.get("numero", "").strip():
+                return False, "Cada teléfono debe tener al menos el número"
+        return True, None
+
+    @staticmethod
+    def crear(datos: dict, empresa_id: str, creado_por: str, foto_file=None):
+        ok_val, err_val = ContactoController._validar(datos)
+        if not ok_val:
+            return False, err_val
+        if foto_file:
+            foto_data, foto_mime = _foto_desde_file(foto_file)
+            if foto_data is False:
+                return False, foto_mime
+            datos["foto_data"]     = foto_data
+            datos["foto_mimetype"] = foto_mime
+        _id = ContactoModel.crear(datos, empresa_id, creado_por)
         return True, _id
 
     @staticmethod
-    def listar(solo_activos: bool = True):
+    def listar(empresa_id: str, solo_activos: bool = True):
         try:
-            return True, CargoModel.listar(solo_activos)
+            return True, ContactoModel.listar_por_empresa(empresa_id, solo_activos)
         except Exception as e:
             return False, str(e)
 
     @staticmethod
-    def obtener(cargo_id: str):
-        doc = CargoModel.obtener(cargo_id)
+    def obtener(contacto_id: str, empresa_id: str):
+        doc = ContactoModel.obtener(contacto_id, empresa_id)
         if not doc:
-            return False, "Cargo no encontrado"
+            return False, "Contacto no encontrado"
         return True, doc
 
     @staticmethod
-    def actualizar(cargo_id: str, datos: dict):
-        nombre = datos.get("nombre", "").strip()
-        if not nombre:
-            return False, "El nombre del cargo es obligatorio"
-        categoria = datos.get("categoria", "").strip()
-        if categoria not in CATEGORIAS_VALIDAS:
-            return False, f"Categoría inválida. Opciones: {', '.join(sorted(CATEGORIAS_VALIDAS))}"
-        existente = CargoModel.obtener_por_nombre(nombre)
-        if existente and str(existente["_id"]) != cargo_id:
-            return False, f"Ya existe otro cargo con el nombre '{nombre}'"
-        datos["requiere_horario"] = datos.get("requiere_horario") in (True, "true", "True", "1", 1)
-        CargoModel.actualizar(cargo_id, datos)
-        return True, "Cargo actualizado correctamente"
-
-    @staticmethod
-    def cambiar_estado(cargo_id: str, activo: bool):
-        if not activo and CargoModel.en_uso(cargo_id):
-            return False, "No se puede inactivar: hay funcionarios activos con este cargo"
-        CargoModel.cambiar_estado(cargo_id, activo)
-        return True, "Estado del cargo actualizado"
-
-
-# ── FUNCIONARIOS ──────────────────────────────────────────────────────────
-
-def _horario_raw(datos: dict) -> dict:
-    """Extrae el sub-objeto horario del payload (soporta string JSON o dict)."""
-    raw = datos.get("horario", {})
-    if isinstance(raw, str):
-        try:    return json.loads(raw)
-        except: return {}
-    return raw if isinstance(raw, dict) else {}
-
-
-class FuncionarioController:
-
-    @staticmethod
-    def crear(datos: dict, creado_por: str, ip: str):
-        if not datos.get("nombres", "").strip():
-            return False, "El nombre es obligatorio"
-        if not datos.get("apellidos", "").strip():
-            return False, "Los apellidos son obligatorios"
-        if not datos.get("cargo_id", "").strip():
-            return False, "Debe seleccionar un cargo"
-        if not datos.get("fecha_inicio", "").strip():
-            return False, "La fecha de inicio es obligatoria"
-        email = datos.get("email", "").strip()
-        if email and not email_ok(email):
-            return False, "El correo electrónico no tiene formato válido"
-
-        # RN-DIR-01: habeas data obligatorio en creación
-        if datos.get("habeas_data") not in (True, "true", "True", "1", 1):
-            return False, "Debe aceptar la autorización de tratamiento de datos personales"
-
-        cargo = CargoModel.obtener(datos["cargo_id"])
-        if not cargo:
-            return False, "El cargo seleccionado no existe"
-        datos["cargo_nombre"]    = cargo.get("nombre", "")
-        datos["cargo_categoria"] = cargo.get("categoria", "")
-
-        if cargo.get("requiere_horario"):
-            h = _horario_raw(datos)
-            if not h.get("hora_entrada", "").strip():
-                return False, "La hora de entrada es obligatoria para este cargo"
-            if not h.get("hora_salida", "").strip():
-                return False, "La hora de salida es obligatoria para este cargo"
-
-        _id = FuncionarioModel.crear(datos, creado_por, ip)
-        return True, _id
-
-    @staticmethod
-    def listar(solo_activos: bool = True):
-        try:
-            return True, FuncionarioModel.listar(solo_activos)
-        except Exception as e:
-            return False, str(e)
-
-    @staticmethod
-    def obtener(funcionario_id: str):
-        doc = FuncionarioModel.obtener(funcionario_id)
+    def actualizar(contacto_id: str, empresa_id: str, datos: dict, foto_file=None):
+        doc = ContactoModel.obtener(contacto_id, empresa_id)
         if not doc:
-            return False, "Funcionario no encontrado"
-        return True, doc
+            return False, "Contacto no encontrado"
+        ok_val, err_val = ContactoController._validar(datos)
+        if not ok_val:
+            return False, err_val
+        if foto_file:
+            foto_data, foto_mime = _foto_desde_file(foto_file)
+            if foto_data is False:
+                return False, foto_mime
+            if foto_data:
+                datos["foto_data"]     = foto_data
+                datos["foto_mimetype"] = foto_mime
+        ContactoModel.actualizar(contacto_id, empresa_id, datos)
+        return True, "Contacto actualizado correctamente"
 
     @staticmethod
-    def actualizar(funcionario_id: str, datos: dict):
-        doc = FuncionarioModel.obtener(funcionario_id)
+    def eliminar(contacto_id: str, empresa_id: str):
+        doc = ContactoModel.obtener(contacto_id, empresa_id)
         if not doc:
-            return False, "Funcionario no encontrado"
-        if not doc.get("activo"):
-            return False, "No se puede editar un funcionario inactivo"
-        email = datos.get("email", "").strip()
-        if email and not email_ok(email):
-            return False, "El correo electrónico no tiene formato válido"
-        cargo = CargoModel.obtener(datos.get("cargo_id", ""))
-        if not cargo:
-            return False, "El cargo seleccionado no existe"
-        datos["cargo_nombre"]    = cargo.get("nombre", "")
-        datos["cargo_categoria"] = cargo.get("categoria", "")
-        if cargo.get("requiere_horario"):
-            h = _horario_raw(datos)
-            if not h.get("hora_entrada", "").strip():
-                return False, "La hora de entrada es obligatoria para este cargo"
-            if not h.get("hora_salida", "").strip():
-                return False, "La hora de salida es obligatoria para este cargo"
-        FuncionarioModel.actualizar(funcionario_id, datos)
-        return True, "Funcionario actualizado correctamente"
-
-    @staticmethod
-    def inactivar(funcionario_id: str, fecha_fin: str, inactivado_por: str):
-        """RN-DIR-03: inactivación histórica."""
-        doc = FuncionarioModel.obtener(funcionario_id)
-        if not doc:
-            return False, "Funcionario no encontrado"
-        if not doc.get("activo"):
-            return False, "El funcionario ya está inactivo"
-        if not fecha_fin or not fecha_fin.strip():
-            return False, "La fecha de fin de labores es obligatoria"
-        FuncionarioModel.inactivar(funcionario_id, fecha_fin.strip(), inactivado_por)
-        return True, "Funcionario inactivado. El registro se mantiene en el histórico"
-
-    @staticmethod
-    def reactivar(funcionario_id: str):
-        doc = FuncionarioModel.obtener(funcionario_id)
-        if not doc:
-            return False, "Funcionario no encontrado"
-        if doc.get("activo"):
-            return False, "El funcionario ya está activo"
-        FuncionarioModel.reactivar(funcionario_id)
-        return True, "Funcionario reactivado correctamente"
+            return False, "Contacto no encontrado"
+        ContactoModel.eliminar(contacto_id, empresa_id)
+        return True, "Contacto eliminado"
