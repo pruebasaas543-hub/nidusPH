@@ -5,137 +5,346 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Directorio de Contactos</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:      #080e2e;
-      --bg2:     #0d1540;
-      --bg3:     #111d52;
+      --bg:      #060c26;
+      --bg2:     #0b1235;
+      --bg3:     #0f1a4a;
+      --bg4:     #152060;
       --accent:  #00d4ff;
+      --accent2: #0a7fff;
       --red:     #ff4d6d;
       --green:   #00e676;
       --yellow:  #ffd600;
       --purple:  #bf5af2;
+      --orange:  #ff9500;
       --text:    #e8eaf6;
-      --muted:   rgba(232,234,246,.45);
-      --border:  rgba(0,212,255,.18);
-      --radius:  12px;
+      --muted:   rgba(232,234,246,.42);
+      --border:  rgba(0,212,255,.14);
+      --radius:  14px;
+
+      --c-emer:  #ff4d6d;
+      --c-admin: #00a8ff;
+      --c-pub:   #00e676;
+      --c-log:   #ffd600;
+      --c-loc:   #bf5af2;
     }
 
     html, body { height:100%; overflow:hidden; font-family:'Outfit','Segoe UI',sans-serif; background:var(--bg); color:var(--text); }
 
-    .page { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+    /* ── Fondo con patrón de puntos ── */
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image: radial-gradient(rgba(0,212,255,.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
 
-    /* Topbar */
-    .topbar { display:flex; align-items:center; gap:14px; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; }
-    .topbar a { color:var(--accent); text-decoration:none; font-size:.85rem; }
-    .topbar a:hover { text-decoration:underline; }
-    .topbar h1 { font-size:1.1rem; font-weight:600; }
+    .page { display:flex; flex-direction:column; height:100%; overflow:hidden; position:relative; z-index:1; }
 
-    /* Toolbar */
-    .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 24px; border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0; }
-    .btn { border:none; border-radius:8px; padding:8px 18px; font-family:inherit; font-size:.85rem; font-weight:600; cursor:pointer; transition:opacity .2s; }
-    .btn:hover { opacity:.85; }
-    .btn-primary { background:var(--accent); color:#000; }
-    .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+    /* ── Topbar ── */
+    .topbar {
+      display:flex; align-items:center; gap:16px; padding:0 28px;
+      height:62px; flex-shrink:0;
+      background:linear-gradient(90deg, #060c26 0%, #0b1a4a 60%, #0a1a3a 100%);
+      border-bottom:1px solid var(--border);
+      box-shadow:0 2px 20px rgba(0,0,0,.4);
+    }
+    .topbar-back {
+      display:flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none;
+      font-size:.8rem; font-weight:500; padding:5px 10px; border-radius:8px;
+      border:1px solid rgba(255,255,255,.08); transition:all .2s;
+    }
+    .topbar-back:hover { color:var(--accent); border-color:var(--border); background:rgba(0,212,255,.06); }
+    .topbar-divider { width:1px; height:22px; background:rgba(255,255,255,.1); }
+    .topbar-title { display:flex; align-items:center; gap:10px; }
+    .topbar-icon {
+      width:36px; height:36px; border-radius:10px;
+      background:linear-gradient(135deg,var(--accent2),var(--accent));
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; box-shadow:0 0 16px rgba(0,212,255,.35);
+    }
+    .topbar-name { font-size:1rem; font-weight:700; letter-spacing:.2px; }
+    .topbar-sub  { font-size:.72rem; color:var(--muted); margin-top:1px; }
+    .topbar-stats { margin-left:auto; display:flex; gap:8px; }
+    .stat-pill {
+      display:flex; align-items:center; gap:5px;
+      padding:4px 12px; border-radius:99px;
+      background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+      font-size:.74rem; color:var(--muted);
+    }
+    .stat-pill strong { color:var(--text); font-weight:700; }
 
-    /* Tabs */
-    .tabs { display:flex; gap:4px; padding:12px 24px 0; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto; }
-    .tab { padding:8px 16px; border-radius:8px 8px 0 0; cursor:pointer; font-size:.8rem; font-weight:600; border:1px solid transparent; border-bottom:none; color:var(--muted); background:transparent; white-space:nowrap; }
-    .tab:hover { color:var(--text); }
-    .tab.active { background:var(--bg3); color:var(--accent); border-color:var(--border); }
+    /* ── Toolbar ── */
+    .toolbar {
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      padding:12px 28px; border-bottom:1px solid var(--border);
+      background:rgba(11,18,53,.8); backdrop-filter:blur(8px); flex-shrink:0;
+    }
+    .btn-nuevo {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:9px 20px; border:none; border-radius:10px; cursor:pointer;
+      font-family:inherit; font-size:.85rem; font-weight:700;
+      background:linear-gradient(135deg,var(--accent2),var(--accent));
+      color:#000; transition:all .25s;
+      box-shadow:0 4px 14px rgba(0,212,255,.3);
+    }
+    .btn-nuevo:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,212,255,.45); }
+    .btn-nuevo:active { transform:translateY(0); }
+    .search-wrap { margin-left:auto; position:relative; }
+    .search-wrap input {
+      background:rgba(255,255,255,.05); color:var(--text);
+      border:1px solid rgba(255,255,255,.1); border-radius:10px;
+      padding:8px 14px 8px 36px; font-family:inherit; font-size:.83rem;
+      width:220px; transition:all .2s;
+    }
+    .search-wrap input:focus { outline:none; border-color:var(--accent); background:rgba(0,212,255,.06); width:260px; }
+    .search-wrap::before {
+      content:'🔍'; position:absolute; left:11px; top:50%; transform:translateY(-50%);
+      font-size:.8rem; pointer-events:none;
+    }
 
-    /* Content */
-    .content { flex:1; overflow-y:auto; padding:24px; }
-    .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(272px,1fr)); gap:16px; }
+    /* ── Tabs ── */
+    .tabs-wrap {
+      padding:14px 28px 0; border-bottom:1px solid var(--border);
+      background:rgba(6,12,38,.6); flex-shrink:0; overflow-x:auto;
+    }
+    .tabs { display:flex; gap:6px; }
+    .tab {
+      display:flex; align-items:center; gap:7px;
+      padding:8px 18px 10px; border-radius:10px 10px 0 0;
+      cursor:pointer; font-size:.8rem; font-weight:600; white-space:nowrap;
+      border:1px solid transparent; border-bottom:none;
+      color:var(--muted); background:transparent; transition:all .2s;
+      position:relative;
+    }
+    .tab:hover { color:var(--text); background:rgba(255,255,255,.04); }
+    .tab.active { background:var(--bg3); color:#fff; border-color:var(--border); }
+    .tab.active::after {
+      content:''; position:absolute; bottom:-1px; left:0; right:0; height:2px;
+      background:var(--tab-color, var(--accent));
+      border-radius:2px 2px 0 0;
+    }
+    .tab-badge {
+      font-size:.65rem; font-weight:800; padding:1px 6px; border-radius:99px;
+      background:rgba(255,255,255,.1); color:var(--muted);
+      min-width:18px; text-align:center;
+    }
+    .tab.active .tab-badge { background:var(--tab-color, var(--accent)); color:#000; }
 
-    /* Contact card */
-    .contact-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:10px; transition:box-shadow .2s; }
-    .contact-card:hover { box-shadow:0 4px 20px rgba(0,212,255,.1); }
-    .card-header { display:flex; align-items:center; gap:12px; }
-    .card-avatar { width:48px; height:48px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:1.4rem; background:var(--bg3); }
+    /* ── Content area ── */
+    .content { flex:1; overflow-y:auto; padding:24px 28px; }
+    .section-header {
+      display:flex; align-items:center; gap:10px; margin-bottom:20px;
+    }
+    .section-header h2 { font-size:.85rem; font-weight:700; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; }
+    .section-header-line { flex:1; height:1px; background:var(--border); }
+
+    /* ── Cards grid ── */
+    .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+
+    /* ── Contact card ── */
+    .contact-card {
+      background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+      display:flex; flex-direction:column; overflow:hidden;
+      transition:transform .2s, box-shadow .2s;
+      animation:fadeUp .3s ease both;
+    }
+    .contact-card:hover {
+      transform:translateY(-3px);
+      box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px var(--card-color, var(--accent));
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* Franja de color superior */
+    .card-stripe {
+      height:4px;
+      background:var(--card-color, var(--accent));
+      flex-shrink:0;
+    }
+
+    .card-body { padding:16px; display:flex; flex-direction:column; gap:11px; flex:1; }
+
+    .card-header { display:flex; align-items:center; gap:13px; }
+    .card-avatar {
+      width:52px; height:52px; border-radius:50%; flex-shrink:0;
+      overflow:hidden; display:flex; align-items:center; justify-content:center;
+      font-size:1.5rem; background:var(--bg3);
+      border:2.5px solid var(--card-color, var(--border));
+      box-shadow:0 0 12px color-mix(in srgb, var(--card-color, var(--accent)) 30%, transparent);
+    }
     .card-avatar img { width:100%; height:100%; object-fit:cover; }
-    .card-name { font-weight:700; font-size:.94rem; }
-    .card-role { font-size:.76rem; color:var(--muted); }
-    .card-phones { font-size:.81rem; }
-    .card-email { font-size:.77rem; color:var(--accent); }
-    .card-flags { display:flex; flex-wrap:wrap; gap:5px; }
-    .flag-chip { font-size:.67rem; padding:2px 8px; border-radius:99px; font-weight:600; }
-    .flag-chip.on { background:rgba(0,230,118,.15); color:var(--green); }
-    .flag-chip.off { background:rgba(232,234,246,.07); color:var(--muted); }
-    .card-actions { display:flex; gap:8px; margin-top:2px; }
-    .card-actions button { flex:1; border:none; border-radius:7px; padding:6px; font-family:inherit; font-size:.77rem; font-weight:600; cursor:pointer; }
-    .edit-btn { background:var(--bg3); color:var(--accent); border:1px solid var(--border) !important; }
-    .delete-btn { background:rgba(255,77,109,.12); color:var(--red); }
-    .empty-state { text-align:center; color:var(--muted); padding:60px 0; font-size:.9rem; }
+    .card-info { min-width:0; flex:1; }
+    .card-name { font-weight:700; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-cargo { font-size:.75rem; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-bloque-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      font-size:.67rem; padding:2px 8px; border-radius:99px; font-weight:700;
+      margin-top:4px;
+    }
 
-    /* Modal overlay */
-    .modal-overlay { position:fixed; inset:0; background:rgba(8,14,46,.88); display:flex; align-items:center; justify-content:center; z-index:9999; opacity:0; visibility:hidden; transition:opacity .2s,visibility .2s; padding:16px; }
+    .card-contacts { display:flex; flex-direction:column; gap:5px; }
+    .card-contact-row { display:flex; align-items:center; gap:7px; font-size:.8rem; color:var(--text); }
+    .card-contact-icon { font-size:.85rem; width:18px; text-align:center; flex-shrink:0; }
+    .card-contact-val { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .card-contact-val.email { color:var(--accent); }
+
+    .card-flags { display:flex; flex-wrap:wrap; gap:5px; }
+    .flag-chip {
+      font-size:.66rem; padding:2px 9px; border-radius:99px; font-weight:700;
+      display:inline-flex; align-items:center; gap:3px;
+    }
+    .flag-on  { background:rgba(0,230,118,.13); color:var(--green); border:1px solid rgba(0,230,118,.2); }
+    .flag-off { background:rgba(255,255,255,.05); color:var(--muted); border:1px solid rgba(255,255,255,.07); }
+    .flag-panic { background:rgba(255,77,109,.15); color:var(--red); border:1px solid rgba(255,77,109,.25); }
+
+    .card-actions {
+      display:flex; gap:8px; padding:10px 16px;
+      border-top:1px solid var(--border); background:rgba(0,0,0,.15);
+    }
+    .card-actions button {
+      flex:1; border:none; border-radius:8px; padding:7px;
+      font-family:inherit; font-size:.77rem; font-weight:700; cursor:pointer; transition:all .2s;
+    }
+    .btn-edit {
+      background:rgba(0,212,255,.08); color:var(--accent);
+      border:1px solid rgba(0,212,255,.2) !important;
+    }
+    .btn-edit:hover { background:rgba(0,212,255,.16); }
+    .btn-delete { background:rgba(255,77,109,.1); color:var(--red); }
+    .btn-delete:hover { background:rgba(255,77,109,.2); }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:14px; padding:80px 0; color:var(--muted);
+    }
+    .empty-state .empty-icon { font-size:3.5rem; opacity:.4; }
+    .empty-state p { font-size:.9rem; }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(4,8,30,.9);
+      display:flex; align-items:center; justify-content:center;
+      z-index:9999; opacity:0; visibility:hidden;
+      transition:opacity .2s,visibility .2s; padding:16px;
+      backdrop-filter:blur(4px);
+    }
     .modal-overlay.show { opacity:1; visibility:visible; }
 
-    /* Modal box */
-    .modal-box { width:100%; max-width:560px; max-height:92vh; border-radius:18px; background:var(--bg2); border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.5); }
-
-    /* Modal header */
-    .modal-header { padding:18px 22px 16px; display:flex; align-items:center; gap:12px; flex-shrink:0; }
-    .modal-header-icon { font-size:1.8rem; line-height:1; }
-    .modal-header-info { flex:1; min-width:0; }
-    .modal-header-title { font-size:.96rem; font-weight:700; color:#fff; }
-    .modal-header-sub { font-size:.74rem; color:#fff; margin-top:2px; }
-    .modal-close { background:rgba(255,255,255,.18); border:none; border-radius:50%; width:32px; height:32px; cursor:pointer; color:#fff; font-size:1.1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-
-    /* Modal body */
-    .modal-body { padding:20px 22px; overflow-y:auto; flex:1; }
-
-    /* Form */
-    .form-group { margin-bottom:14px; }
-    .form-group label { display:block; font-size:.76rem; color:var(--muted); margin-bottom:5px; font-weight:600; letter-spacing:.3px; }
-    .form-group input, .form-group select, .form-group textarea {
-      width:100%; background:var(--bg3); color:var(--text);
-      border:1px solid var(--border); border-radius:8px;
-      padding:9px 12px; font-family:inherit; font-size:.85rem;
+    .modal-box {
+      width:100%; max-width:560px; max-height:92vh; border-radius:20px;
+      background:var(--bg2); border:1px solid rgba(0,212,255,.2);
+      display:flex; flex-direction:column; overflow:hidden;
+      box-shadow:0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(0,212,255,.08);
+      animation:modalIn .25s ease;
     }
-    .form-group input:focus, .form-group select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,212,255,.12); }
+    @keyframes modalIn {
+      from { opacity:0; transform:scale(.96) translateY(10px); }
+      to   { opacity:1; transform:scale(1)   translateY(0); }
+    }
+
+    .modal-header {
+      padding:20px 24px 18px; display:flex; align-items:center; gap:14px; flex-shrink:0;
+      background:linear-gradient(135deg,#0a1a4a,#00d4ff);
+    }
+    .modal-header-icon { font-size:2rem; line-height:1; }
+    .modal-header-info { flex:1; min-width:0; }
+    .modal-header-title { font-size:1rem; font-weight:800; color:#fff; letter-spacing:.2px; }
+    .modal-header-sub { font-size:.76rem; color:#fff; margin-top:3px; opacity:.9; }
+    .modal-close {
+      background:rgba(255,255,255,.18); border:none; border-radius:50%;
+      width:34px; height:34px; cursor:pointer; color:#fff; font-size:1.1rem;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      transition:background .2s;
+    }
+    .modal-close:hover { background:rgba(255,255,255,.3); }
+
+    .modal-body { padding:20px 24px; overflow-y:auto; flex:1; }
+
+    .form-group { margin-bottom:15px; }
+    .form-group label {
+      display:block; font-size:.74rem; color:var(--muted); margin-bottom:6px;
+      font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+    }
+    .form-group input, .form-group select {
+      width:100%; background:var(--bg3); color:var(--text);
+      border:1px solid var(--border); border-radius:10px;
+      padding:10px 13px; font-family:inherit; font-size:.85rem; transition:all .2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline:none; border-color:var(--accent); background:rgba(0,212,255,.06);
+      box-shadow:0 0 0 3px rgba(0,212,255,.1);
+    }
     .form-group select option { background:var(--bg3); }
 
-    /* Phone list */
-    .phone-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+    .phone-row { display:flex; gap:7px; align-items:center; margin-bottom:7px; }
     .phone-row input { flex:1; }
-    .phone-row button { background:rgba(255,77,109,.14); color:var(--red); border:none; border-radius:6px; padding:7px 10px; cursor:pointer; font-size:.85rem; }
-    .add-phone-btn { background:transparent; color:var(--accent); border:1.5px dashed rgba(0,212,255,.4); border-radius:8px; padding:7px 14px; font-family:inherit; font-size:.78rem; cursor:pointer; width:100%; margin-top:2px; }
-    .add-phone-btn:hover { background:rgba(0,212,255,.06); }
+    .phone-row button {
+      background:rgba(255,77,109,.14); color:var(--red); border:none;
+      border-radius:8px; padding:8px 11px; cursor:pointer; font-size:.85rem; transition:background .2s;
+    }
+    .phone-row button:hover { background:rgba(255,77,109,.25); }
+    .add-phone-btn {
+      background:transparent; color:var(--accent); border:1.5px dashed rgba(0,212,255,.35);
+      border-radius:9px; padding:7px 14px; font-family:inherit; font-size:.78rem;
+      cursor:pointer; width:100%; transition:all .2s;
+    }
+    .add-phone-btn:hover { background:rgba(0,212,255,.06); border-color:var(--accent); }
 
-    /* Foto upload */
-    .foto-area { border:2px dashed rgba(0,212,255,.25); border-radius:12px; padding:18px; cursor:pointer; transition:all .2s; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; min-height:90px; }
-    .foto-area:hover { border-color:rgba(0,212,255,.6); background:rgba(0,212,255,.04); }
-    .foto-area img { width:72px; height:72px; border-radius:50%; object-fit:cover; border:2px solid var(--border); }
-    .foto-area .foto-hint { font-size:.75rem; color:var(--muted); }
+    .foto-area {
+      border:2px dashed rgba(0,212,255,.22); border-radius:13px; padding:18px;
+      cursor:pointer; transition:all .2s; display:flex; align-items:center;
+      justify-content:center; flex-direction:column; gap:7px; min-height:94px;
+    }
+    .foto-area:hover { border-color:rgba(0,212,255,.55); background:rgba(0,212,255,.05); }
+    .foto-area img { width:74px; height:74px; border-radius:50%; object-fit:cover; border:2px solid var(--border); }
+    .foto-hint { font-size:.75rem; color:var(--muted); }
 
-    /* Toggle switches */
-    .toggle-section { border:1px solid var(--border); border-radius:12px; padding:16px; }
-    .toggle-section-title { font-size:.68rem; font-weight:700; letter-spacing:.9px; color:var(--muted); margin-bottom:14px; }
-    .toggle-label { display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; font-size:.83rem; margin-bottom:12px; }
+    .toggle-section { border:1px solid var(--border); border-radius:12px; padding:16px; background:rgba(0,0,0,.15); }
+    .toggle-section-title { font-size:.68rem; font-weight:800; letter-spacing:1px; color:var(--muted); margin-bottom:14px; text-transform:uppercase; }
+    .toggle-label { display:flex; align-items:center; gap:11px; cursor:pointer; user-select:none; font-size:.84rem; margin-bottom:12px; }
     .toggle-label:last-child { margin-bottom:0; }
     .toggle-label input { position:absolute; opacity:0; width:0; height:0; }
-    .toggle-track { width:38px; height:22px; border-radius:11px; background:rgba(232,234,246,.12); flex-shrink:0; position:relative; transition:background .2s; border:1px solid var(--border); }
-    .toggle-track::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--muted); transition:transform .2s, background .2s; }
-    .toggle-label input:checked ~ .toggle-track { background:var(--modal-accent, var(--accent)); border-color:var(--modal-accent, var(--accent)); }
-    .toggle-label input:checked ~ .toggle-track::after { transform:translateX(16px); background:#fff; }
+    .toggle-track {
+      width:40px; height:23px; border-radius:12px; background:rgba(255,255,255,.1);
+      flex-shrink:0; position:relative; transition:background .2s; border:1px solid rgba(255,255,255,.1);
+    }
+    .toggle-track::after {
+      content:''; position:absolute; top:3px; left:3px; width:15px; height:15px;
+      border-radius:50%; background:var(--muted); transition:transform .2s,background .2s;
+    }
+    .toggle-label input:checked ~ .toggle-track { background:var(--accent); border-color:var(--accent); }
+    .toggle-label input:checked ~ .toggle-track::after { transform:translateX(17px); background:#fff; }
 
-    /* Modal footer */
-    .modal-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; }
-    .modal-footer .btn-save { padding:9px 22px; font-size:.88rem; border:none; border-radius:8px; font-family:inherit; font-weight:700; cursor:pointer; color:#fff; transition:opacity .2s; }
-    .modal-footer .btn-save:hover { opacity:.85; }
+    .modal-footer {
+      padding:14px 24px; border-top:1px solid var(--border);
+      display:flex; justify-content:flex-end; gap:10px; flex-shrink:0;
+      background:rgba(0,0,0,.2);
+    }
+    .btn-footer {
+      padding:10px 24px; font-size:.86rem; font-weight:700;
+      border:none; border-radius:10px; font-family:inherit; cursor:pointer; transition:all .2s;
+    }
+    .btn-footer:hover { transform:translateY(-1px); }
 
-    /* Dynamic fields */
     .dynamic-field { transition:opacity .15s; }
 
-    /* Toast */
-    #toast { position:fixed; bottom:24px; right:24px; background:var(--bg3); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:12px 20px; font-size:.85rem; z-index:99999; opacity:0; transform:translateY(12px); transition:opacity .3s,transform .3s; pointer-events:none; }
+    #toast {
+      position:fixed; bottom:24px; right:24px; z-index:99999;
+      background:var(--bg3); color:var(--text); border:1px solid var(--border);
+      border-radius:12px; padding:12px 20px; font-size:.85rem;
+      opacity:0; transform:translateY(14px); transition:opacity .3s,transform .3s; pointer-events:none;
+      box-shadow:0 8px 24px rgba(0,0,0,.4);
+    }
     #toast.show { opacity:1; transform:translateY(0); }
     #toast.err  { border-color:var(--red); color:var(--red); }
+    #toast.ok   { border-color:var(--green); color:var(--green); }
   </style>
 </head>
 <body>
@@ -144,25 +353,41 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <a href="{{ url_for('configuracion.panel') }}">&#8592; Volver</a>
-    <span style="color:var(--muted);">|</span>
-    <h1>&#128212; Directorio de Contactos</h1>
+    <a class="topbar-back" href="{{ url_for('configuracion.panel') }}">&#8592; Volver</a>
+    <div class="topbar-divider"></div>
+    <div class="topbar-title">
+      <div class="topbar-icon">📒</div>
+      <div>
+        <div class="topbar-name">Directorio de Contactos</div>
+        <div class="topbar-sub">Gestión de contactos por bloque</div>
+      </div>
+    </div>
+    <div class="topbar-stats">
+      <div class="stat-pill">Total: <strong id="stat-total">0</strong></div>
+    </div>
   </div>
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <button class="btn btn-primary" id="btn-nuevo" onclick="DC.abrirModal()">+ Nuevo Contacto</button>
-    <div style="margin-left:auto;">
-      <input id="buscador" type="text" placeholder="Buscar..." onInput="DC.filtrar(this.value)"
-        style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:.83rem;width:200px;" />
+    <button class="btn-nuevo" onclick="DC.abrirModal()">
+      <span style="font-size:1rem;line-height:1;">＋</span> Nuevo Contacto
+    </button>
+    <div class="search-wrap">
+      <input id="buscador" type="text" placeholder="Buscar contacto..." onInput="DC.filtrar(this.value)" />
     </div>
   </div>
 
   <!-- Tabs -->
-  <div class="tabs" id="bloques-tabs"></div>
+  <div class="tabs-wrap">
+    <div class="tabs" id="bloques-tabs"></div>
+  </div>
 
   <!-- Content -->
   <div class="content">
+    <div class="section-header">
+      <h2 id="section-label">Todos los contactos</h2>
+      <div class="section-header-line"></div>
+    </div>
     <div class="cards-grid" id="cards-grid"></div>
   </div>
 </div>
@@ -171,8 +396,7 @@
 <div class="modal-overlay" id="modal-dc">
   <div class="modal-box">
 
-    <!-- Header -->
-    <div class="modal-header" id="dc-modal-header" style="background:linear-gradient(135deg,#0a1a4a,#00d4ff);">
+    <div class="modal-header" id="dc-modal-header">
       <span class="modal-header-icon" id="dc-modal-icon">🚨</span>
       <div class="modal-header-info">
         <div class="modal-header-title" id="dc-modal-title">Nuevo Contacto</div>
@@ -181,11 +405,9 @@
       <button class="modal-close" onclick="DC.cerrarModal()">×</button>
     </div>
 
-    <!-- Body -->
     <div class="modal-body">
       <input type="hidden" id="f-id" />
 
-      <!-- Bloque -->
       <div class="form-group">
         <label>Bloque *</label>
         <select id="f-bloque" onchange="DC.cambioBloque()">
@@ -197,48 +419,41 @@
         </select>
       </div>
 
-      <!-- Nombre -->
       <div class="form-group">
         <label>Nombre *</label>
         <input id="f-nombre" type="text" placeholder="Nombre del contacto" />
       </div>
 
-      <!-- Cargo (ADMIN / LOGISTICA) -->
       <div class="form-group dynamic-field dc-field-cargo" style="display:none;">
         <label>Cargo *</label>
         <input id="f-cargo" type="text" placeholder="Ej: Administrador, Técnico..." />
       </div>
 
-      <!-- Correo (ADMIN / PUBLICOS) -->
       <div class="form-group dynamic-field dc-field-correo" style="display:none;">
         <label>Correo</label>
         <input id="f-correo" type="email" placeholder="correo@ejemplo.com" />
       </div>
 
-      <!-- Teléfonos -->
       <div class="form-group">
-        <label>Teléfonos * <span style="font-weight:400;font-size:.72rem;">(mín. 1)</span></label>
+        <label>Teléfonos * <span style="font-weight:400;font-size:.72rem;text-transform:none;">(mín. 1)</span></label>
         <div id="phone-list"></div>
         <button class="add-phone-btn" onclick="DC.agregarTelefono()">+ Agregar teléfono</button>
       </div>
 
-      <!-- Foto / Logo -->
       <div class="form-group">
         <label>Foto / Logo</label>
         <div class="foto-area" id="foto-area" onclick="document.getElementById('f-foto').click()">
           <img id="foto-preview" src="" alt="" style="display:none;" />
-          <div id="foto-hint" style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-            <span style="font-size:2rem;">📷</span>
+          <div id="foto-hint" style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+            <span style="font-size:2.2rem;opacity:.5;">📷</span>
             <span class="foto-hint">Haz clic para subir foto / logo</span>
           </div>
         </div>
         <input type="file" id="f-foto" accept="image/*" hidden onchange="DC.previewFoto(this)" />
       </div>
 
-      <!-- Visibilidad y acceso -->
       <div class="toggle-section">
-        <div class="toggle-section-title">VISIBILIDAD Y ACCESO</div>
-
+        <div class="toggle-section-title">Visibilidad y acceso</div>
         <label class="toggle-label">
           <input type="checkbox" id="f-visible" checked />
           <span class="toggle-track"></span>
@@ -256,21 +471,21 @@
         </label>
         <label class="toggle-label dynamic-field dc-field-panico" style="display:none;">
           <input type="checkbox" id="f-panico" />
-          <span class="toggle-track"></span>
-          <span style="color:var(--red);font-weight:600;">🆘 Botón de pánico</span>
+          <span class="toggle-track" style="background:rgba(255,77,109,.15);border-color:rgba(255,77,109,.3);"></span>
+          <span style="color:var(--red);font-weight:700;">🆘 Botón de pánico</span>
         </label>
       </div>
     </div>
 
-    <!-- Footer -->
     <div class="modal-footer">
-      <button class="btn-save" onclick="DC.cerrarModal()" style="background:linear-gradient(135deg,#7b0d1e,#e53e3e);color:#fff;">✕ Cancelar</button>
-      <button class="btn-save" id="dc-btn-save" style="background:var(--accent);color:#000;" onclick="DC.guardar()">💾 Guardar</button>
+      <button class="btn-footer" onclick="DC.cerrarModal()"
+        style="background:linear-gradient(135deg,#7b0d1e,#e53e3e);color:#fff;">✕ Cancelar</button>
+      <button class="btn-footer" id="dc-btn-save" onclick="DC.guardar()"
+        style="background:linear-gradient(135deg,var(--accent2),var(--accent));color:#000;">💾 Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
 <div id="toast"></div>
 
 <script>
@@ -278,39 +493,52 @@ const DC = (() => {
   const BASE = '/servicios/directorio/contactos';
 
   const META = {
-    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#e53e3e', cargo:false, correo:false, panico:false },
-    ADMIN:       { icon:'🏢', label:'Administración',     color:'#2b6cb0', cargo:true,  correo:true,  panico:true  },
-    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#276749', cargo:false, correo:true,  panico:false },
-    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#b7791f', cargo:true,  correo:false, panico:true  },
-    LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false },
+    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#ff4d6d', cargo:false, correo:false, panico:false },
+    ADMIN:       { icon:'🏢', label:'Administración',     color:'#00a8ff', cargo:true,  correo:true,  panico:true  },
+    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#00e676', cargo:false, correo:true,  panico:false },
+    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#ffd600', cargo:true,  correo:false, panico:true  },
+    LOCAL:       { icon:'📍', label:'Locales',            color:'#bf5af2', cargo:false, correo:false, panico:false },
   };
+
+  const TAB_COLOR = { TODOS:'#00d4ff', ...Object.fromEntries(Object.entries(META).map(([k,v])=>[k,v.color])) };
 
   let _todos = [];
   let _bloqueActual = 'TODOS';
   let _busqueda = '';
 
-  function toast(msg, esError = false) {
+  function toast(msg, tipo = 'ok') {
     const el = document.getElementById('toast');
     el.textContent = msg;
-    el.className = 'show' + (esError ? ' err' : '');
+    el.className = 'show ' + (tipo === 'err' ? 'err' : 'ok');
     clearTimeout(el._t);
     el._t = setTimeout(() => el.className = '', 3200);
   }
 
   function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function contarBloque(b) {
+    return b === 'TODOS' ? _todos.length : _todos.filter(c => c.bloque === b).length;
   }
 
   function renderTabs() {
     const cont = document.getElementById('bloques-tabs');
     cont.innerHTML = ['TODOS', ...Object.keys(META)].map(b => {
-      const lbl = b === 'TODOS' ? '🌐 Todos' : (META[b].icon + ' ' + META[b].label);
-      return `<div class="tab ${b === _bloqueActual ? 'active' : ''}" onclick="DC.setBloque('${b}')">${lbl}</div>`;
+      const lbl  = b === 'TODOS' ? '🌐 Todos' : (META[b].icon + ' ' + META[b].label);
+      const col  = TAB_COLOR[b] || '#00d4ff';
+      const cnt  = contarBloque(b);
+      const act  = b === _bloqueActual ? 'active' : '';
+      return `<div class="tab ${act}" style="--tab-color:${col}" onclick="DC.setBloque('${b}')">
+        ${lbl} <span class="tab-badge">${cnt}</span>
+      </div>`;
     }).join('');
+    document.getElementById('stat-total').textContent = _todos.length;
   }
 
   function renderCards() {
     const grid = document.getElementById('cards-grid');
+    const label = document.getElementById('section-label');
     let lista = _todos;
     if (_bloqueActual !== 'TODOS') lista = lista.filter(c => c.bloque === _bloqueActual);
     if (_busqueda) {
@@ -320,45 +548,74 @@ const DC = (() => {
         (c.cargo_titulo||'').toLowerCase().includes(q) ||
         (c.correo||'').toLowerCase().includes(q));
     }
+    label.textContent = _bloqueActual === 'TODOS'
+      ? `Todos los contactos (${lista.length})`
+      : `${META[_bloqueActual]?.icon} ${META[_bloqueActual]?.label} (${lista.length})`;
+
     if (!lista.length) {
-      grid.innerHTML = '<div class="empty-state">No hay contactos en este bloque.</div>';
+      grid.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>No hay contactos${_bloqueActual !== 'TODOS' ? ' en este bloque' : ''}.</p>
+      </div>`;
       return;
     }
-    grid.innerHTML = lista.map(c => {
-      const m = META[c.bloque] || {};
-      const tels = (c.telefonos||[]).map(t => typeof t==='string'?t:(t.numero||'')).filter(Boolean).join(', ');
+
+    grid.innerHTML = lista.map((c, i) => {
+      const m = META[c.bloque] || { color:'#00d4ff', icon:'👤', label:c.bloque };
+      const tels = (c.telefonos||[]).map(t => typeof t==='string'?t:(t.numero||'')).filter(Boolean);
       const avatar = c.tiene_foto
-        ? `<img src="/servicios/directorio/contactos/${c._id}/foto" alt="" />`
-        : (m.icon || '👤');
-      const bloqueBadge = `<span style="font-size:.68rem;padding:2px 8px;border-radius:99px;background:${m.color}22;color:${m.color};font-weight:700;">${m.label||c.bloque}</span>`;
+        ? `<img src="/servicios/directorio/contactos/${c._id}/foto?_t=${c.actualizado_en||c.creado_en||0}" alt="" />`
+        : m.icon;
+      const delay = (i % 12) * 0.04;
       return `
-        <div class="contact-card">
-          <div class="card-header">
-            <div class="card-avatar">${avatar}</div>
-            <div style="min-width:0;flex:1;">
-              <div class="card-name">${esc(c.nombre)}</div>
-              <div class="card-role">${c.cargo_titulo ? esc(c.cargo_titulo)+' · ' : ''}${bloqueBadge}</div>
+        <div class="contact-card" style="--card-color:${m.color};animation-delay:${delay}s">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="card-header">
+              <div class="card-avatar">${avatar}</div>
+              <div class="card-info">
+                <div class="card-name">${esc(c.nombre)}</div>
+                ${c.cargo_titulo ? `<div class="card-cargo">${esc(c.cargo_titulo)}</div>` : ''}
+                <span class="card-bloque-badge" style="background:${m.color}18;color:${m.color};">
+                  ${m.icon} ${m.label}
+                </span>
+              </div>
+            </div>
+
+            ${(tels.length || c.correo) ? `
+            <div class="card-contacts">
+              ${tels.slice(0,2).map(t => `
+                <div class="card-contact-row">
+                  <span class="card-contact-icon">📞</span>
+                  <span class="card-contact-val">${esc(t)}</span>
+                </div>`).join('')}
+              ${tels.length > 2 ? `<div class="card-contact-row" style="color:var(--muted);font-size:.74rem;">+${tels.length-2} más</div>` : ''}
+              ${c.correo ? `
+                <div class="card-contact-row">
+                  <span class="card-contact-icon">✉️</span>
+                  <span class="card-contact-val email">${esc(c.correo)}</span>
+                </div>` : ''}
+            </div>` : ''}
+
+            <div class="card-flags">
+              ${chipFlag(c.es_visible_para_residentes,    '👁 Residentes')}
+              ${chipFlag(c.es_visible_para_seguridad,     '🔐 Seguridad')}
+              ${chipFlag(c.es_visible_para_administracion,'🏢 Admin')}
+              ${c.vinculado_al_boton_de_panico
+                ? '<span class="flag-chip flag-panic">🆘 Pánico</span>' : ''}
             </div>
           </div>
-          ${tels ? `<div class="card-phones">📞 ${esc(tels)}</div>` : ''}
-          ${c.correo ? `<div class="card-email">✉️ ${esc(c.correo)}</div>` : ''}
-          <div class="card-flags">
-            ${flag(c.es_visible_para_residentes,    'Residentes')}
-            ${flag(c.es_visible_para_seguridad,     'Seguridad')}
-            ${flag(c.es_visible_para_administracion,'Administración')}
-            ${c.vinculado_al_boton_de_panico ? '<span class="flag-chip" style="background:rgba(255,77,109,.18);color:var(--red);">🆘 Pánico</span>' : ''}
-          </div>
           <div class="card-actions">
-            <button class="edit-btn"   onclick="DC.editar('${c._id}')">Editar</button>
-            <button class="delete-btn" onclick="DC.eliminar('${c._id}','${esc(c.nombre)}')">Eliminar</button>
+            <button class="btn-edit"   onclick="DC.editar('${c._id}')">✏️ Editar</button>
+            <button class="btn-delete" onclick="DC.eliminar('${c._id}','${esc(c.nombre)}')">🗑 Eliminar</button>
           </div>
         </div>`;
     }).join('');
   }
 
-  function flag(val, label) {
+  function chipFlag(val, label) {
     const on = val === true || val === 'true' || val === 1;
-    return `<span class="flag-chip ${on?'on':'off'}">${label}</span>`;
+    return `<span class="flag-chip ${on?'flag-on':'flag-off'}">${label}</span>`;
   }
 
   async function cargar() {
@@ -366,8 +623,8 @@ const DC = (() => {
       const r = await fetch(BASE + '?solo_activos=0');
       const j = await r.json();
       if (j.ok) _todos = j.data || [];
-      else toast(j.error || 'Error al cargar', true);
-    } catch(e) { toast('Error de red', true); }
+      else toast(j.error || 'Error al cargar', 'err');
+    } catch(e) { toast('Error de red', 'err'); }
     renderTabs();
     renderCards();
   }
@@ -375,7 +632,6 @@ const DC = (() => {
   function setBloque(b) { _bloqueActual = b; renderTabs(); renderCards(); }
   function filtrar(q)   { _busqueda = q; renderCards(); }
 
-  /* ── Modal ── */
   function cambioBloque() {
     const b = document.getElementById('f-bloque').value;
     const m = META[b] || META.EMERGENCIAS;
@@ -388,27 +644,25 @@ const DC = (() => {
 
   function abrirModal(contacto = null) {
     const bloque = contacto ? contacto.bloque : (_bloqueActual !== 'TODOS' ? _bloqueActual : 'EMERGENCIAS');
-    document.getElementById('f-id').value        = contacto ? contacto._id : '';
+    document.getElementById('f-id').value                 = contacto ? contacto._id : '';
     document.getElementById('dc-modal-title').textContent = contacto ? 'Editar Contacto' : 'Nuevo Contacto';
-    document.getElementById('f-bloque').value    = bloque;
-    document.getElementById('f-nombre').value    = contacto ? (contacto.nombre||'') : '';
-    document.getElementById('f-cargo').value     = contacto ? (contacto.cargo_titulo||'') : '';
-    document.getElementById('f-correo').value    = contacto ? (contacto.correo||'') : '';
-    document.getElementById('f-visible').checked       = contacto ? !!contacto.es_visible_para_residentes : true;
-    document.getElementById('f-seguridad').checked     = contacto ? !!contacto.es_visible_para_seguridad : false;
-    document.getElementById('f-administracion').checked= contacto ? !!contacto.es_visible_para_administracion : false;
-    document.getElementById('f-panico').checked        = contacto ? !!contacto.vinculado_al_boton_de_panico : false;
-    // Foto
+    document.getElementById('f-bloque').value             = bloque;
+    document.getElementById('f-nombre').value             = contacto ? (contacto.nombre||'') : '';
+    document.getElementById('f-cargo').value              = contacto ? (contacto.cargo_titulo||'') : '';
+    document.getElementById('f-correo').value             = contacto ? (contacto.correo||'') : '';
+    document.getElementById('f-visible').checked          = contacto ? !!contacto.es_visible_para_residentes : true;
+    document.getElementById('f-seguridad').checked        = contacto ? !!contacto.es_visible_para_seguridad : false;
+    document.getElementById('f-administracion').checked   = contacto ? !!contacto.es_visible_para_administracion : false;
+    document.getElementById('f-panico').checked           = contacto ? !!contacto.vinculado_al_boton_de_panico : false;
     const prev = document.getElementById('foto-preview');
     const hint = document.getElementById('foto-hint');
     if (contacto && contacto.tiene_foto) {
-      prev.src = `/servicios/directorio/contactos/${contacto._id}/foto`;
+      prev.src = `/servicios/directorio/contactos/${contacto._id}/foto?_t=${contacto.actualizado_en||contacto.creado_en||0}`;
       prev.style.display = ''; hint.style.display = 'none';
     } else {
       prev.src = ''; prev.style.display = 'none'; hint.style.display = '';
     }
     document.getElementById('f-foto').value = '';
-    // Teléfonos
     renderTelefonos(contacto ? (contacto.telefonos||[]) : ['']);
     cambioBloque();
     document.getElementById('modal-dc').classList.add('show');
@@ -419,10 +673,7 @@ const DC = (() => {
   function renderTelefonos(tels) {
     const list = document.getElementById('phone-list');
     list.innerHTML = '';
-    tels.forEach(t => {
-      const num = typeof t === 'string' ? t : (t.numero || '');
-      _addPhoneRow(num, tels.length > 1);
-    });
+    tels.forEach(t => _addPhoneRow(typeof t==='string'?t:(t.numero||''), tels.length > 1));
     if (!tels.length) _addPhoneRow('', false);
   }
 
@@ -437,8 +688,8 @@ const DC = (() => {
 
   function agregarTelefono() {
     const rows = document.querySelectorAll('#phone-list .phone-row');
-    if (rows.length === 1) {
-      rows[0].querySelector('button') || rows[0].insertAdjacentHTML('beforeend',
+    if (rows.length === 1 && !rows[0].querySelector('button')) {
+      rows[0].insertAdjacentHTML('beforeend',
         '<button onclick="this.closest(\'.phone-row\').remove()">✕</button>');
     }
     _addPhoneRow('', true);
@@ -462,31 +713,30 @@ const DC = (() => {
     const m = META[bloque] || {};
     const tels = [...document.querySelectorAll('#phone-list input[type="tel"]')]
       .map(i => i.value.trim()).filter(Boolean);
-    if (!nombre)           { toast('El nombre es obligatorio', true); return; }
-    if (m.cargo && !cargo) { toast('El cargo es obligatorio para este bloque', true); return; }
-    if (!tels.length)      { toast('Debe ingresar al menos un teléfono', true); return; }
+    if (!nombre)           { toast('El nombre es obligatorio', 'err'); return; }
+    if (m.cargo && !cargo) { toast('El cargo es obligatorio para este bloque', 'err'); return; }
+    if (!tels.length)      { toast('Ingresa al menos un teléfono', 'err'); return; }
 
     const fd = new FormData();
     fd.append('bloque',  bloque);
     fd.append('nombre',  nombre);
     fd.append('cargo_titulo', cargo);
-    fd.append('correo',       document.getElementById('f-correo').value.trim());
-    fd.append('es_visible_para_residentes',   document.getElementById('f-visible').checked);
-    fd.append('es_visible_para_seguridad',    document.getElementById('f-seguridad').checked);
-    fd.append('es_visible_para_administracion', document.getElementById('f-administracion').checked);
-    fd.append('vinculado_al_boton_de_panico', document.getElementById('f-panico').checked);
+    fd.append('correo',  document.getElementById('f-correo').value.trim());
+    fd.append('es_visible_para_residentes',    document.getElementById('f-visible').checked);
+    fd.append('es_visible_para_seguridad',     document.getElementById('f-seguridad').checked);
+    fd.append('es_visible_para_administracion',document.getElementById('f-administracion').checked);
+    fd.append('vinculado_al_boton_de_panico',  document.getElementById('f-panico').checked);
     fd.append('telefonos', JSON.stringify(tels.map(n => ({numero:n, etiqueta:''}))));
     const fotoInput = document.getElementById('f-foto');
     if (fotoInput.files[0]) fd.append('foto', fotoInput.files[0]);
 
-    const url    = id ? `${BASE}/${id}` : BASE;
-    const method = id ? 'PUT' : 'POST';
+    const url = id ? `${BASE}/${id}` : BASE;
     try {
-      const r = await fetch(url, {method, body:fd});
+      const r = await fetch(url, {method: id?'PUT':'POST', body:fd});
       const j = await r.json();
-      if (j.ok) { toast(id ? 'Contacto actualizado' : 'Contacto creado'); cerrarModal(); cargar(); }
-      else       { toast(j.error || 'Error al guardar', true); }
-    } catch(e) { toast('Error de red', true); }
+      if (j.ok) { toast(id ? '✅ Contacto actualizado' : '✅ Contacto creado'); cerrarModal(); cargar(); }
+      else       { toast('❌ ' + (j.error || 'Error al guardar'), 'err'); }
+    } catch(e) { toast('❌ Error de red', 'err'); }
   }
 
   function editar(id) {
@@ -499,9 +749,9 @@ const DC = (() => {
     try {
       const r = await fetch(`${BASE}/${id}`, {method:'DELETE'});
       const j = await r.json();
-      if (j.ok) { toast('Contacto eliminado'); cargar(); }
-      else       { toast(j.error || 'Error', true); }
-    } catch(e) { toast('Error de red', true); }
+      if (j.ok) { toast('🗑 Contacto eliminado'); cargar(); }
+      else       { toast('❌ ' + (j.error||'Error'), 'err'); }
+    } catch(e) { toast('❌ Error de red', 'err'); }
   }
 
   document.addEventListener('DOMContentLoaded', cargar);
