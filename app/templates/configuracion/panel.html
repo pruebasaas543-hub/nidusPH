@@ -108,6 +108,8 @@
         .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(4,34,67,0.4); }
         .btn-primary:disabled { opacity:.5; cursor:not-allowed; transform:none; }
         .btn-secondary { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; background:rgba(255,255,255,0.8); border:1.5px solid rgba(4,34,67,0.25); border-radius:10px; color:#4A5680; font-size:0.85rem; cursor:pointer; transition:all .2s; }
+        .btn-cancelar { display:inline-flex; align-items:center; gap:6px; padding:10px 22px; background:linear-gradient(135deg,#7b0d1e,#e53e3e); border:none; border-radius:10px; color:#fff; font-weight:700; font-size:0.85rem; cursor:pointer; transition:opacity .2s; }
+        .btn-cancelar:hover { opacity:.85; }
         .btn-secondary:hover { background:rgba(4,34,67,0.08); border-color:#042243; color:#042243; }
         .btn-icon { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .2s; border:none; font-size:0.9rem; }
         .btn-icon-edit { background:rgba(4,34,67,0.1); color:#042243; }
@@ -659,7 +661,7 @@
         </div><!-- /scrollable -->
 
         <div class="modal-actions" style="padding:14px 20px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
-            <button type="button" class="btn-secondary" onclick="cerrarModalEmpresa()">Cancelar</button>
+            <button type="button" class="btn-cancelar" onclick="cerrarModalEmpresa()">✕ Cancelar</button>
             <button type="button" class="btn-primary" id="btn-guardar-empresa" onclick="guardarEmpresa()">
                 💾 <span id="btn-guardar-txt">Guardar empresa</span>
             </button>
@@ -781,7 +783,7 @@
                     </div>
                 </div>
                 <div class="modal-actions" style="padding:14px 22px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
-                    <button class="btn-secondary" onclick="RE.cerrarModal()">Cancelar</button>
+                    <button class="btn-cancelar" onclick="RE.cerrarModal()">✕ Cancelar</button>
                     <button class="btn-primary" id="re-btn-guardar" onclick="RE.guardar()" disabled>💾 Guardar roles</button>
                 </div>
             </div>
@@ -1113,7 +1115,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="switchPTabById('dph-lista')">← Volver</button>
+                        <button type="button" class="btn-cancelar" onclick="switchPTabById('dph-lista')">✕ Volver</button>
                         <button type="button" class="btn-primary" id="btn-guardar-dph" onclick="guardarDatosPH()">
                             💾 <span id="btn-guardar-dph-txt">Guardar Configuración</span>
                         </button>
@@ -1191,7 +1193,7 @@
                 <div class="modal-title" id="modal-pago-title">➕ Agregar Medio de Pago</div>
                 <div id="modal-pago-body"></div>
                 <div class="modal-actions">
-                    <button class="btn-secondary" onclick="cerrarModalPago()">Cancelar</button>
+                    <button class="btn-cancelar" onclick="cerrarModalPago()">✕ Cancelar</button>
                     <button class="btn-primary" id="btn-guardar-pago" onclick="guardarMedioPago()">💾 Guardar</button>
                 </div>
             </div>
@@ -1307,7 +1309,7 @@
                         </div>
 
                         <div class="modal-actions">
-                            <button type="button" class="btn-secondary" onclick="cerrarModalUsuario()">Cancelar</button>
+                            <button type="button" class="btn-cancelar" onclick="cerrarModalUsuario()">✕ Cancelar</button>
                             <button type="button" class="btn-primary" id="btn-guardar-usuario" onclick="guardarUsuario()">
                                 💾 <span id="btn-guardar-usuario-txt">Crear Usuario</span>
                             </button>
@@ -1376,7 +1378,7 @@
                     </div>
                 </div>
                 <div class="modal-actions" style="padding:14px 22px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
-                    <button class="btn-secondary" onclick="ASOC.cerrarGestion()">Cerrar</button>
+                    <button class="btn-cancelar" onclick="ASOC.cerrarGestion()">✕ Cerrar</button>
                     <button class="btn-primary" id="btn-nueva-asoc" onclick="ASOC.abrirNuevaAsociacion()">➕ Nueva asociación</button>
                 </div>
             </div>
@@ -1400,7 +1402,7 @@
                     </select>
                 </div>
                 <div class="modal-actions">
-                    <button class="btn-secondary" onclick="ASOC.cerrarModalAsoc()">Cancelar</button>
+                    <button class="btn-cancelar" onclick="ASOC.cerrarModalAsoc()">✕ Cancelar</button>
                     <button class="btn-primary" onclick="ASOC.guardarAsociacion()">💾 Guardar</button>
                 </div>
             </div>
@@ -1578,7 +1580,7 @@
                                     </div>
                                 </div>
                                 <div style="display:flex;gap:10px;margin-top:16px;">
-                                    <button class="btn-secondary" onclick="toggleCrearTema()">Cancelar</button>
+                                    <button class="btn-cancelar" onclick="toggleCrearTema()">✕ Cancelar</button>
                                     <button class="btn-primary" onclick="guardarTemaPersonalizado()">💾 Crear y asociar</button>
                                 </div>
                             </div>
@@ -1802,7 +1804,7 @@
             </div>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn-secondary" onclick="SRV.cerrarModal()">Cancelar</button>
+            <button type="button" class="btn-cancelar" onclick="SRV.cerrarModal()">✕ Cancelar</button>
             <button type="button" class="btn-primary" id="srv-btn" onclick="SRV.guardar()">
                 💾 <span id="srv-btn-txt">Crear Servicio</span>
             </button>
@@ -1826,7 +1828,7 @@
             </div>
         </div>
         <div class="modal-actions" style="padding:16px 24px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
-            <button type="button" class="btn-secondary" onclick="cerrarModalRol()">Cancelar</button>
+            <button type="button" class="btn-cancelar" onclick="cerrarModalRol()">✕ Cancelar</button>
             <button type="button" class="btn-primary" id="btn-guardar-rol" onclick="guardarRol()">💾 <span id="btn-guardar-rol-txt">Crear Rol</span></button>
         </div>
     </div>
@@ -1856,7 +1858,7 @@
             <div id="plan-modulos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:8px;"></div>
         </div>
         <div class="modal-actions" style="padding:16px 24px;border-top:1px solid rgba(4,34,67,0.1);flex-shrink:0;">
-            <button type="button" class="btn-secondary" onclick="PLN.cerrarModal()">Cancelar</button>
+            <button type="button" class="btn-cancelar" onclick="PLN.cerrarModal()">✕ Cancelar</button>
             <button type="button" class="btn-primary" id="plan-btn" onclick="PLN.guardar()">💾 <span id="plan-btn-txt">Crear plan</span></button>
         </div>
     </div>
