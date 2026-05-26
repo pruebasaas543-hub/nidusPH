@@ -212,6 +212,33 @@
         /* ══ SELECTOR DE TEMAS ══ */
         .theme-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:16px; }
         .theme-card { border-radius:14px; border:2px solid rgba(4,34,67,0.15); overflow:hidden; cursor:pointer; transition:all .25s; box-shadow:0 2px 12px rgba(4,34,67,0.08); }
+        /* ── Directorio ── */
+        .dir-tab-btn { padding:6px 14px;border-radius:20px;border:1.5px solid rgba(4,34,67,.25);background:transparent;color:#042243;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s; }
+        .dir-tab-btn:hover { background:rgba(4,34,67,.08); }
+        .dir-tab-btn.active { background:#042243;color:#fff;border-color:#042243; }
+        .dir-card { background:rgba(255,255,255,.97);border:1.5px solid rgba(4,34,67,.12);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 8px rgba(4,34,67,.06);transition:box-shadow .2s; }
+        .dir-card:hover { box-shadow:0 4px 16px rgba(4,34,67,.12); }
+        .dir-card-panico { border-color:rgba(192,48,74,.4);box-shadow:0 0 0 2px rgba(192,48,74,.15); }
+        .dir-card-header { display:flex;align-items:center;gap:10px; }
+        .dir-avatar { width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(4,34,67,.12);flex-shrink:0; }
+        .dir-avatar-placeholder { width:44px;height:44px;border-radius:50%;background:rgba(4,34,67,.08);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0; }
+        .dir-badge { display:inline-block;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:.4px; }
+        .dir-badge-EMERGENCIAS { background:rgba(192,48,74,.12);color:#C0304A; }
+        .dir-badge-ADMIN       { background:rgba(4,34,67,.10);color:#042243; }
+        .dir-badge-PUBLICOS    { background:rgba(0,150,80,.10);color:#007A40; }
+        .dir-badge-LOGISTICA   { background:rgba(180,100,0,.10);color:#A05A00; }
+        .dir-badge-LOCAL       { background:rgba(80,0,180,.10);color:#5000B4; }
+        .dir-telefonos { display:flex;flex-direction:column;gap:3px; }
+        .dir-tel-link { display:flex;align-items:center;gap:5px;font-size:.8rem;color:#042243;text-decoration:none; }
+        .dir-tel-link:hover { color:#00c8f0; }
+        .dir-flags { display:flex;flex-wrap:wrap;gap:4px;margin-top:2px; }
+        .dir-flag { font-size:.65rem;padding:2px 6px;border-radius:8px;background:rgba(4,34,67,.06);color:#042243; }
+        .dir-flag-on { background:rgba(0,150,80,.1);color:#007A40; }
+        .dir-card-actions { display:flex;gap:6px;margin-top:4px; }
+        .dir-btn-action { flex:1;padding:5px;border-radius:6px;border:1.5px solid rgba(4,34,67,.2);background:transparent;cursor:pointer;font-size:.75rem;transition:all .2s; }
+        .dir-btn-action:hover { background:rgba(4,34,67,.08); }
+        .dir-btn-del { border-color:rgba(192,48,74,.3);color:#C0304A; }
+        .dir-btn-del:hover { background:rgba(192,48,74,.08); }
         .theme-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(4,34,67,0.18); border-color:rgba(4,34,67,0.4); }
         .theme-card.active { border-color:#042243; box-shadow:0 0 0 3px rgba(4,34,67,0.25),0 4px 20px rgba(4,34,67,0.15); }
         .theme-preview { height:76px; display:flex; }
@@ -383,6 +410,7 @@
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-datos-ph')"><span class="nav-icon">📑</span> Datos Generales PH</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-apariencia')"><span class="nav-icon">🎨</span> Apariencia</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-datos-pago')"><span class="nav-icon">💳</span> Asociacion Medios de Pago Empresa</a>
+                <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-directorio');_dirPoblarEmpresas()"><span class="nav-icon">📒</span> Directorio</a>
             </div>
         </div>
 
@@ -1591,6 +1619,112 @@
             </div><!-- /tab-empresa-tema -->
 
         </div><!-- /cfg-apariencia -->
+
+        <!-- ══════════════════════════════════════════════════════ DIRECTORIO -->
+        <div id="cfg-directorio" class="config-panel">
+            <h2 class="section-title">📒 Directorio de Contactos</h2>
+
+            <!-- Selector empresa -->
+            <div class="form-row" style="max-width:420px;margin-bottom:20px;">
+                <label>Empresa / Propiedad</label>
+                <select class="form-control" id="dir-empresa-sel" onchange="dirSeleccionarEmpresa(this.value)">
+                    <option value="">— Selecciona una empresa —</option>
+                </select>
+            </div>
+
+            <!-- Panel principal (oculto hasta seleccionar empresa) -->
+            <div id="dir-panel" style="display:none;">
+
+                <!-- Tabs de bloque -->
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+                    <button class="dir-tab-btn active" data-bloque="TODOS"        onclick="dirCambiarBloque(this)">Todos</button>
+                    <button class="dir-tab-btn" data-bloque="EMERGENCIAS"         onclick="dirCambiarBloque(this)">🚨 Emergencias</button>
+                    <button class="dir-tab-btn" data-bloque="ADMIN"               onclick="dirCambiarBloque(this)">🏢 Administración</button>
+                    <button class="dir-tab-btn" data-bloque="PUBLICOS"            onclick="dirCambiarBloque(this)">💡 Servicios Públicos</button>
+                    <button class="dir-tab-btn" data-bloque="LOGISTICA"           onclick="dirCambiarBloque(this)">🔧 Logística</button>
+                    <button class="dir-tab-btn" data-bloque="LOCAL"               onclick="dirCambiarBloque(this)">📍 Locales</button>
+                    <button class="btn btn-primary" style="margin-left:auto;" onclick="dirAbrirModal()">+ Nuevo Contacto</button>
+                </div>
+
+                <!-- Grid de contactos -->
+                <div id="dir-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;"></div>
+
+            </div><!-- /dir-panel -->
+        </div><!-- /cfg-directorio -->
+
+        <!-- Modal Directorio -->
+        <div class="modal-overlay" id="modal-dir" style="display:none;position:fixed;inset:0;background:rgba(30,39,86,.5);z-index:1000;align-items:center;justify-content:center;">
+            <div class="modal-box" style="width:clamp(340px,95vw,600px);max-height:90vh;overflow-y:auto;">
+                <div class="modal-title" id="modal-dir-title">➕ Nuevo Contacto</div>
+                <input type="hidden" id="dir-id">
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="form-row">
+                        <label>Bloque *</label>
+                        <select class="form-control" id="dir-bloque" onchange="dirToggleNotaRef()">
+                            <option value="EMERGENCIAS">🚨 Emergencias</option>
+                            <option value="ADMIN">🏢 Administración</option>
+                            <option value="PUBLICOS">💡 Servicios Públicos</option>
+                            <option value="LOGISTICA">🔧 Logística</option>
+                            <option value="LOCAL">📍 Locales</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Nombre *</label>
+                        <input class="form-control" id="dir-nombre" type="text" placeholder="Ej: Bomberos, Administrador...">
+                    </div>
+                    <div class="form-row">
+                        <label>Correo</label>
+                        <input class="form-control" id="dir-correo" type="email" placeholder="correo@ejemplo.com">
+                    </div>
+                    <div class="form-row" id="dir-nota-ref-wrap" style="display:none;">
+                        <label>Nota / N° Contrato</label>
+                        <input class="form-control" id="dir-nota-ref" type="text" placeholder="Cuenta, contrato, extensión...">
+                    </div>
+                </div>
+
+                <!-- Teléfonos dinámicos -->
+                <div class="form-row" style="margin-top:10px;">
+                    <label>Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small></label>
+                    <div id="dir-telefonos-wrap" style="display:flex;flex-direction:column;gap:6px;"></div>
+                    <button type="button" onclick="dirAgregarTelefono()" style="margin-top:6px;background:none;border:1.5px dashed rgba(4,34,67,.3);border-radius:6px;padding:5px 12px;cursor:pointer;color:#042243;font-size:.8rem;">+ Agregar teléfono</button>
+                </div>
+
+                <!-- Foto -->
+                <div class="form-row" style="margin-top:10px;">
+                    <label>Foto / Logo</label>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <img id="dir-foto-preview" src="" alt="" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid rgba(4,34,67,.15);display:none;">
+                        <div id="dir-foto-placeholder" style="width:54px;height:54px;border-radius:50%;background:rgba(4,34,67,.08);display:flex;align-items:center;justify-content:center;font-size:1.4rem;">👤</div>
+                        <input type="file" id="dir-foto" accept="image/*" onchange="dirPreviewFoto(this)" style="font-size:.8rem;">
+                    </div>
+                </div>
+
+                <!-- Flags -->
+                <div style="margin-top:14px;padding:12px;background:rgba(4,34,67,.04);border-radius:8px;border:1px solid rgba(4,34,67,.1);">
+                    <div style="font-size:.78rem;font-weight:700;color:#042243;margin-bottom:10px;letter-spacing:.5px;">CONFIGURACIÓN DE ACCESO</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+                            <input type="checkbox" id="dir-flag-visible" checked> Visible para residentes
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+                            <input type="checkbox" id="dir-flag-auth"> Requiere autenticación
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+                            <input type="checkbox" id="dir-flag-llamada"> Llamada rápida
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.82rem;">
+                            <input type="checkbox" id="dir-flag-panico"> Botón de pánico
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top:16px;">
+                    <button class="btn" onclick="dirCerrarModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="dirGuardar()">Guardar</button>
+                </div>
+            </div>
+        </div><!-- /modal-dir -->
 
     </div><!-- /main-content -->
 </div><!-- /main-layout -->
@@ -5803,6 +5937,249 @@ async function guardarTemaPersonalizado() {
         showToast('❌ ' + (json.error || 'Error al guardar'), true);
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// MÓDULO DIRECTORIO
+// ══════════════════════════════════════════════════════════════════════════
+
+let _dirEmpresaId  = null;
+let _dirBloqueAct  = 'TODOS';
+let _dirContactos  = [];
+
+// ── Inicialización ──────────────────────────────────────────────────────
+
+async function _dirPoblarEmpresas() {
+    const sel = document.getElementById('dir-empresa-sel');
+    if (sel.options.length > 1) return;
+    try {
+        const json = await apiFetch('/config/empresas');
+        if (!json.ok || !Array.isArray(json.data)) return;
+        [...json.data]
+            .sort((a,b) => (a.razon_social||'').localeCompare(b.razon_social||''))
+            .forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e._id;
+                opt.textContent = e.razon_social;
+                sel.appendChild(opt);
+            });
+    } catch(e) {}
+}
+
+async function dirSeleccionarEmpresa(empresaId) {
+    _dirEmpresaId = empresaId || null;
+    const panel = document.getElementById('dir-panel');
+    if (!_dirEmpresaId) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    _dirBloqueAct = 'TODOS';
+    document.querySelectorAll('.dir-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.bloque === 'TODOS'));
+    await _dirCargar();
+}
+
+async function _dirCargar() {
+    if (!_dirEmpresaId) return;
+    const bloque = _dirBloqueAct === 'TODOS' ? '' : _dirBloqueAct;
+    const url = `/config/directorio?propiedad_id=${_dirEmpresaId}${bloque ? '&bloque='+bloque : ''}`;
+    try {
+        const json = await apiFetch(url);
+        _dirContactos = (json.ok && Array.isArray(json.data)) ? json.data : [];
+    } catch(e) { _dirContactos = []; }
+    _dirRenderGrid();
+}
+
+// ── Render ───────────────────────────────────────────────────────────────
+
+function _dirRenderGrid() {
+    const grid = document.getElementById('dir-grid');
+    if (!_dirContactos.length) {
+        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#999;padding:24px;">Sin contactos en este bloque.</p>';
+        return;
+    }
+    const BLOQUE_ICON = { EMERGENCIAS:'🚨', ADMIN:'🏢', PUBLICOS:'💡', LOGISTICA:'🔧', LOCAL:'📍' };
+    grid.innerHTML = _dirContactos.map(c => {
+        const panico    = c.vinculado_al_boton_de_panico;
+        const fotoSrc   = c.tiene_foto ? `/config/directorio/${c._id}/foto` : '';
+        const avatarHtml = fotoSrc
+            ? `<img class="dir-avatar" src="${fotoSrc}" alt="${c.nombre}">`
+            : `<div class="dir-avatar-placeholder">${BLOQUE_ICON[c.bloque]||'👤'}</div>`;
+        const tels = (c.telefonos||[]).map(t =>
+            `<a class="dir-tel-link" href="tel:${t}">📞 ${t}</a>`
+        ).join('');
+        const flags = [
+            c.es_visible_para_residentes   ? '<span class="dir-flag dir-flag-on">👁 Residentes</span>' : '',
+            c.requiere_autenticacion       ? '<span class="dir-flag dir-flag-on">🔐 Auth</span>' : '',
+            c.permite_llamada_rapida       ? '<span class="dir-flag dir-flag-on">⚡ Rápida</span>' : '',
+            panico                         ? '<span class="dir-flag" style="background:rgba(192,48,74,.12);color:#C0304A;">🆘 Pánico</span>' : '',
+        ].filter(Boolean).join('');
+        const notaRef = c.nota_referencia
+            ? `<div style="font-size:.72rem;color:#8A9CC8;margin-top:2px;">📋 ${c.nota_referencia}</div>` : '';
+        return `<div class="dir-card${panico?' dir-card-panico':''}">
+            <div class="dir-card-header">
+                ${avatarHtml}
+                <div style="min-width:0;">
+                    <div style="font-weight:700;font-size:.88rem;color:#042243;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre}</div>
+                    <span class="dir-badge dir-badge-${c.bloque}">${BLOQUE_ICON[c.bloque]||''} ${c.bloque}</span>
+                </div>
+            </div>
+            <div class="dir-telefonos">${tels}</div>
+            ${c.correo ? `<div style="font-size:.75rem;color:#8A9CC8;">✉️ ${c.correo}</div>` : ''}
+            ${notaRef}
+            <div class="dir-flags">${flags}</div>
+            <div class="dir-card-actions">
+                <button class="dir-btn-action" onclick="dirEditarContacto('${c._id}')">✏️ Editar</button>
+                <button class="dir-btn-action dir-btn-del" onclick="dirEliminarContacto('${c._id}','${(c.nombre||'').replace(/'/g,"\\'")}')">🗑 Eliminar</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────
+
+function dirCambiarBloque(btn) {
+    document.querySelectorAll('.dir-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _dirBloqueAct = btn.dataset.bloque;
+    _dirCargar();
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────
+
+function dirAbrirModal(contacto = null) {
+    document.getElementById('dir-id').value             = contacto ? contacto._id : '';
+    document.getElementById('modal-dir-title').textContent = contacto ? '✏️ Editar Contacto' : '➕ Nuevo Contacto';
+    document.getElementById('dir-bloque').value         = contacto ? contacto.bloque : 'EMERGENCIAS';
+    document.getElementById('dir-nombre').value         = contacto ? contacto.nombre : '';
+    document.getElementById('dir-correo').value         = contacto ? (contacto.correo||'') : '';
+    document.getElementById('dir-nota-ref').value       = contacto ? (contacto.nota_referencia||'') : '';
+    document.getElementById('dir-flag-visible').checked = contacto ? contacto.es_visible_para_residentes : true;
+    document.getElementById('dir-flag-auth').checked    = contacto ? contacto.requiere_autenticacion : false;
+    document.getElementById('dir-flag-llamada').checked = contacto ? contacto.permite_llamada_rapida : false;
+    document.getElementById('dir-flag-panico').checked  = contacto ? contacto.vinculado_al_boton_de_panico : false;
+    // Foto preview
+    const prev = document.getElementById('dir-foto-preview');
+    const ph   = document.getElementById('dir-foto-placeholder');
+    if (contacto && contacto.tiene_foto) {
+        prev.src = `/config/directorio/${contacto._id}/foto`;
+        prev.style.display = ''; ph.style.display = 'none';
+    } else {
+        prev.src = ''; prev.style.display = 'none'; ph.style.display = '';
+    }
+    document.getElementById('dir-foto').value = '';
+    // Teléfonos
+    const tels = contacto ? (contacto.telefonos||[]) : [''];
+    _dirRenderTelefonos(tels);
+    dirToggleNotaRef();
+    const modal = document.getElementById('modal-dir');
+    modal.style.display = 'flex';
+}
+
+function dirCerrarModal() {
+    document.getElementById('modal-dir').style.display = 'none';
+}
+
+function dirToggleNotaRef() {
+    const bloque = document.getElementById('dir-bloque').value;
+    document.getElementById('dir-nota-ref-wrap').style.display =
+        (bloque === 'PUBLICOS' || bloque === 'LOGISTICA') ? '' : 'none';
+}
+
+function _dirRenderTelefonos(lista) {
+    const wrap = document.getElementById('dir-telefonos-wrap');
+    wrap.innerHTML = lista.map((t, i) => `
+        <div style="display:flex;gap:6px;align-items:center;">
+            <input class="form-control dir-tel-input" type="tel" value="${t}" placeholder="Ej: 311 234 5678" style="flex:1;">
+            ${lista.length > 1 ? `<button type="button" onclick="dirQuitarTelefono(this)" style="background:none;border:none;cursor:pointer;color:#C0304A;font-size:1rem;padding:0 4px;">✕</button>` : ''}
+        </div>`).join('');
+}
+
+function dirAgregarTelefono() {
+    const inputs = document.querySelectorAll('.dir-tel-input');
+    const vals = [...inputs].map(i => i.value.trim());
+    _dirRenderTelefonos([...vals, '']);
+}
+
+function dirQuitarTelefono(btn) {
+    const inputs = document.querySelectorAll('.dir-tel-input');
+    const vals = [...inputs].map(i => i.value.trim());
+    const idx = [...btn.closest('#dir-telefonos-wrap').querySelectorAll('div')].indexOf(btn.parentElement);
+    vals.splice(idx, 1);
+    _dirRenderTelefonos(vals.length ? vals : ['']);
+}
+
+function dirPreviewFoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const prev = document.getElementById('dir-foto-preview');
+        const ph   = document.getElementById('dir-foto-placeholder');
+        prev.src = e.target.result;
+        prev.style.display = ''; ph.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+// ── CRUD ─────────────────────────────────────────────────────────────────
+
+async function dirGuardar() {
+    const contactoId = document.getElementById('dir-id').value;
+    const telefonos  = [...document.querySelectorAll('.dir-tel-input')].map(i => i.value.trim()).filter(Boolean);
+    const fd = new FormData();
+    fd.append('propiedad_id',                _dirEmpresaId);
+    fd.append('bloque',                      document.getElementById('dir-bloque').value);
+    fd.append('nombre',                      document.getElementById('dir-nombre').value.trim());
+    fd.append('correo',                      document.getElementById('dir-correo').value.trim());
+    fd.append('nota_referencia',             document.getElementById('dir-nota-ref').value.trim());
+    fd.append('es_visible_para_residentes',  document.getElementById('dir-flag-visible').checked ? 'true' : 'false');
+    fd.append('requiere_autenticacion',      document.getElementById('dir-flag-auth').checked    ? 'true' : 'false');
+    fd.append('permite_llamada_rapida',      document.getElementById('dir-flag-llamada').checked  ? 'true' : 'false');
+    fd.append('vinculado_al_boton_de_panico',document.getElementById('dir-flag-panico').checked   ? 'true' : 'false');
+    telefonos.forEach(t => fd.append('telefonos', t));
+    const fotoFile = document.getElementById('dir-foto').files[0];
+    if (fotoFile) fd.append('foto', fotoFile);
+
+    const method = contactoId ? 'PUT' : 'POST';
+    const url    = contactoId ? `/config/directorio/${contactoId}` : '/config/directorio';
+    try {
+        const res  = await fetch(url, { method, body: fd });
+        const json = await res.json();
+        if (json.ok) {
+            showToast('✅ Contacto guardado correctamente');
+            dirCerrarModal();
+            await _dirCargar();
+        } else {
+            showToast('❌ ' + (json.error || 'Error al guardar'), true);
+        }
+    } catch(e) {
+        showToast('❌ Error: ' + e.message, true);
+    }
+}
+
+async function dirEditarContacto(contactoId) {
+    try {
+        const json = await apiFetch(`/config/directorio?propiedad_id=${_dirEmpresaId}`);
+        const lista = (json.ok && Array.isArray(json.data)) ? json.data : [];
+        const contacto = lista.find(c => c._id === contactoId);
+        if (contacto) dirAbrirModal(contacto);
+    } catch(e) {}
+}
+
+async function dirEliminarContacto(contactoId, nombre) {
+    const confirmado = await confirmar('Eliminar contacto', `¿Eliminar "${nombre}" del directorio?`, 'Eliminar');
+    if (!confirmado) return;
+    try {
+        const res  = await fetch(`/config/directorio/${contactoId}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.ok) {
+            showToast('✅ Contacto eliminado');
+            await _dirCargar();
+        } else {
+            showToast('❌ ' + (json.error || 'Error al eliminar'), true);
+        }
+    } catch(e) {
+        showToast('❌ Error: ' + e.message, true);
+    }
+}
+
+// La carga de empresas se dispara desde el onclick del nav-item (mostrarPanel + _dirPoblarEmpresas)
 </script>
 </body>
 </html>
