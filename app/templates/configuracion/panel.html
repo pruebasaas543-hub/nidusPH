@@ -1739,7 +1739,9 @@
                     <!-- Cargo (solo ADMIN / LOGISTICA) -->
                     <div class="form-row dir-field-cargo dir-dynamic-field" style="margin-bottom:14px;display:none;">
                         <label>Cargo *</label>
-                        <input class="form-control" id="dir-cargo" type="text" placeholder="Ej: Administrador, Técnico de mantenimiento...">
+                        <select class="form-control" id="dir-cargo">
+                            <option value="">— Selecciona un cargo —</option>
+                        </select>
                     </div>
 
                     <!-- Correo (solo ADMIN / PUBLICOS) -->
@@ -6154,7 +6156,7 @@ const _DIR_META = {
     LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false },
 };
 
-function dirCambioBloque() {
+function dirCambioBloque(cargoActual = '') {
     const bloque = document.getElementById('dir-bloque').value;
     const m = _DIR_META[bloque] || _DIR_META.EMERGENCIAS;
     document.getElementById('dir-modal-icon').textContent     = m.icon;
@@ -6162,6 +6164,23 @@ function dirCambioBloque() {
     document.querySelectorAll('.dir-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
     document.querySelectorAll('.dir-field-correo').forEach(el => el.style.display = m.correo ? '' : 'none');
     document.querySelectorAll('.dir-field-panico').forEach(el => el.style.display = m.panico ? '' : 'none');
+    if (m.cargo) _dirCargarCargos(bloque, cargoActual);
+}
+
+async function _dirCargarCargos(bloque, valorActual = '') {
+    const sel = document.getElementById('dir-cargo');
+    sel.innerHTML = '<option value="">Cargando...</option>';
+    try {
+        const r = await fetch(`/servicios/directorio/cargos?bloque=${bloque}&_t=${Date.now()}`);
+        const j = await r.json();
+        if (j.ok) {
+            sel.innerHTML = '<option value="">— Selecciona un cargo —</option>' +
+                (j.data||[]).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+            if (valorActual) sel.value = valorActual;
+        }
+    } catch(e) {
+        sel.innerHTML = '<option value="">Error al cargar cargos</option>';
+    }
 }
 
 function dirAbrirModal(contacto = null) {
@@ -6170,7 +6189,7 @@ function dirAbrirModal(contacto = null) {
     document.getElementById('modal-dir-title').textContent = contacto ? '✏️ Editar Contacto' : '➕ Nuevo Contacto';
     document.getElementById('dir-bloque').value         = bloque;
     document.getElementById('dir-nombre').value         = contacto ? (contacto.nombre||'') : '';
-    document.getElementById('dir-cargo').value          = contacto ? (contacto.cargo_titulo||'') : '';
+    const _cargoVal = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('dir-correo').value         = contacto ? (contacto.correo||'') : '';
     document.getElementById('dir-flag-visible').checked = contacto ? !!contacto.es_visible_para_residentes : true;
     document.getElementById('dir-flag-auth').checked    = contacto ? !!contacto.es_visible_para_seguridad : false;
@@ -6188,7 +6207,7 @@ function dirAbrirModal(contacto = null) {
     document.getElementById('dir-foto').value = '';
     const tels = contacto ? (contacto.telefonos||[]) : [''];
     _dirRenderTelefonos(tels);
-    dirCambioBloque();
+    dirCambioBloque(_cargoVal);
     document.getElementById('modal-dir').classList.add('show');
 }
 

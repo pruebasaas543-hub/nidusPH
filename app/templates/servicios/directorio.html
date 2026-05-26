@@ -426,7 +426,9 @@
 
       <div class="form-group dynamic-field dc-field-cargo" style="display:none;">
         <label>Cargo *</label>
-        <input id="f-cargo" type="text" placeholder="Ej: Administrador, Técnico..." />
+        <select id="f-cargo">
+          <option value="">— Selecciona un cargo —</option>
+        </select>
       </div>
 
       <div class="form-group dynamic-field dc-field-correo" style="display:none;">
@@ -632,7 +634,7 @@ const DC = (() => {
   function setBloque(b) { _bloqueActual = b; renderTabs(); renderCards(); }
   function filtrar(q)   { _busqueda = q; renderCards(); }
 
-  function cambioBloque() {
+  function cambioBloque(cargoActual = '') {
     const b = document.getElementById('f-bloque').value;
     const m = META[b] || META.EMERGENCIAS;
     document.getElementById('dc-modal-icon').textContent = m.icon;
@@ -640,6 +642,23 @@ const DC = (() => {
     document.querySelectorAll('.dc-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
     document.querySelectorAll('.dc-field-correo').forEach(el => el.style.display = m.correo ? '' : 'none');
     document.querySelectorAll('.dc-field-panico').forEach(el => el.style.display = m.panico ? '' : 'none');
+    if (m.cargo) _cargarCargos(b, cargoActual);
+  }
+
+  async function _cargarCargos(bloque, valorActual = '') {
+    const sel = document.getElementById('f-cargo');
+    sel.innerHTML = '<option value="">Cargando...</option>';
+    try {
+      const r = await fetch(`/servicios/directorio/cargos?bloque=${bloque}&_t=${Date.now()}`);
+      const j = await r.json();
+      if (j.ok) {
+        sel.innerHTML = '<option value="">— Selecciona un cargo —</option>' +
+          (j.data||[]).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+        if (valorActual) sel.value = valorActual;
+      }
+    } catch(e) {
+      sel.innerHTML = '<option value="">Error al cargar cargos</option>';
+    }
   }
 
   function abrirModal(contacto = null) {
@@ -648,7 +667,7 @@ const DC = (() => {
     document.getElementById('dc-modal-title').textContent = contacto ? 'Editar Contacto' : 'Nuevo Contacto';
     document.getElementById('f-bloque').value             = bloque;
     document.getElementById('f-nombre').value             = contacto ? (contacto.nombre||'') : '';
-    document.getElementById('f-cargo').value              = contacto ? (contacto.cargo_titulo||'') : '';
+    const _cargoVal = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('f-correo').value             = contacto ? (contacto.correo||'') : '';
     document.getElementById('f-visible').checked          = contacto ? !!contacto.es_visible_para_residentes : true;
     document.getElementById('f-seguridad').checked        = contacto ? !!contacto.es_visible_para_seguridad : false;
@@ -664,7 +683,7 @@ const DC = (() => {
     }
     document.getElementById('f-foto').value = '';
     renderTelefonos(contacto ? (contacto.telefonos||[]) : ['']);
-    cambioBloque();
+    cambioBloque(_cargoVal);
     document.getElementById('modal-dc').classList.add('show');
   }
 

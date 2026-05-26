@@ -9,6 +9,7 @@ from flask import Blueprint, request, session, send_file, abort
 from io import BytesIO
 from app.configuracion.utils import requiere_login, ok, err, serializar
 from app.servicios.directorio.controller import ContactoController
+from app import db
 
 directorio_bp = Blueprint("directorio", __name__, url_prefix="/servicios/directorio")
 
@@ -37,6 +38,25 @@ def _parse_contacto_payload():
             datos[flag] = datos.get(flag, "").lower() in ("true", "1", "on")
         foto = request.files.get("foto")
     return datos, foto
+
+
+_BLOQUE_MAP = {"ADMIN": "ADMINISTRACION", "LOGISTICA": "LOGISTICA"}
+
+@directorio_bp.route("/cargos", methods=["GET"])
+@requiere_login
+def listar_cargos():
+    bloque = request.args.get("bloque", "").upper().strip()
+    bloque_col = _BLOQUE_MAP.get(bloque)
+    if not bloque_col:
+        return ok([])
+    try:
+        docs = list(db["cargofuncionarios"].find(
+            {"bloque_directorio_defecto": bloque_col},
+            {"nombre_cargo": 1}
+        ).sort("nombre_cargo", 1))
+        return ok([{"_id": str(d["_id"]), "nombre": d["nombre_cargo"]} for d in docs])
+    except Exception as e:
+        return err(str(e))
 
 
 @directorio_bp.route("/contactos", methods=["GET"])
