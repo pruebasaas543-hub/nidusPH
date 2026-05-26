@@ -95,8 +95,7 @@ def create_app():
     db["servicios"].create_index("codigo", unique=True, sparse=True)
 
     # ── Índices para directorio ────────────────────────────────────────────
-    db["directorio_cargos"].create_index("nombre", unique=True)
-    db["directorio_funcionarios"].create_index([("cargo_id", 1), ("activo", 1)])
+    db["directorio_contactos"].create_index([("empresa_id", 1), ("bloque", 1), ("orden", 1)])
 
     # ── Blueprints ─────────────────────────────────────────────────────────
     from app.auth.routes            import auth_bp
