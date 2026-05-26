@@ -31,7 +31,8 @@ def portal_empresa(slug):
     branding = SlugController.contexto_branding(slug)
 
     if _request.method == "GET":
-        return render_template("auth/login.html", branding=branding)
+        from app.auth.routes import _tipos_documento
+        return render_template("auth/login.html", branding=branding, tipos_doc=_tipos_documento())
 
     # ── POST: delegar al controlador de auth ───────────────────────────────
     from flask import session
@@ -50,8 +51,10 @@ def portal_empresa(slug):
 
     if not exito_login:
         logger.warning("Login fallido slug=%s: %s", slug, resultado)
+        from app.auth.routes import _tipos_documento
         return render_template("auth/login.html",
                                branding=branding,
+                               tipos_doc=_tipos_documento(),
                                error=resultado,
                                form_data={"tipoDoc": tipo_doc, "numDoc": num_doc})
 

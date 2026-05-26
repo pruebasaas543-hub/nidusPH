@@ -25,7 +25,7 @@
         .left-panel {
             flex: 1 1 0; min-width: 0;
             position: relative;
-            background: #2787F5;
+            background: {{ branding.color_panel_izq if branding else '#2787F5' }};
             display: flex; flex-direction: column; overflow: hidden;
         }
         .animated-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
@@ -45,12 +45,12 @@
         .carousel-indicators { position: absolute; bottom: clamp(30px,5vh,55px); left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 5; }
         .indicator-dot { width: clamp(8px,1vw,12px); height: clamp(8px,1vw,12px); border-radius: 50%; background: rgba(30,39,86,0.25); cursor: pointer; transition: background 0.3s, transform 0.3s; border: none; }
         .indicator-dot.active { background: #00A8D6; transform: scale(1.35); }
-        .brand-footer { position: relative; z-index: 5; width: 100%; padding: clamp(8px,1.2vh,14px) 20px; text-align: center; background: #2787F5; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.25); }
+        .brand-footer { position: relative; z-index: 5; width: 100%; padding: clamp(8px,1.2vh,14px) 20px; text-align: center; background: {{ branding.color_panel_izq if branding else '#2787F5' }}; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.25); }
         .brand-footer p { color: #ffffff; font-size: clamp(0.7rem,1vw,0.85rem); font-weight: 600; letter-spacing: 1.5px; }
 
         /* ── PANEL DERECHO ──────────────────────────────── */
         .right-panel { width: clamp(300px,35vw,480px); flex-shrink: 0; background: rgba(255,255,255,0.97); backdrop-filter: blur(20px); display: flex; flex-direction: column; position: relative; overflow-y: auto; overflow-x: hidden; box-shadow: -10px 0 50px rgba(30,60,180,0.12); }
-        .logo-header { width: 100%; background: #2787F5; padding: clamp(8px,1.5vh,14px) 10px; text-align: center; border-bottom: 2px solid rgba(255,255,255,0.25); position: relative; overflow: hidden; flex-shrink: 0; }
+        .logo-header { width: 100%; background: {{ branding.color_topbar if branding else '#2787F5' }}; padding: clamp(8px,1.5vh,14px) 10px; text-align: center; border-bottom: 2px solid rgba(255,255,255,0.25); position: relative; overflow: hidden; flex-shrink: 0; }
         .logo-header::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); animation: shimmer 3s infinite; pointer-events: none; }
         @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
         .logo-container { position: relative; z-index: 1; }
@@ -117,15 +117,33 @@
         <div class="grid-bg"></div>
         <div class="carousel-wrapper">
             <div class="carousel-container">
-                <div class="carousel-slide active">
-                    <img src="{{ url_for('static', filename='images/slide1.jpg') }}" alt="Imagen 1 Nidus">
-                </div>
-                <div class="carousel-slide">
-                    <img src="{{ url_for('static', filename='images/slide2.jpg') }}" alt="Imagen 2 Nidus">
-                </div>
-                <div class="carousel-slide">
-                    <img src="{{ url_for('static', filename='images/slide3.jpg') }}" alt="Imagen 3 Nidus">
-                </div>
+                {% if branding and (branding.tiene_carousel_1 or branding.tiene_carousel_2 or branding.tiene_carousel_3) %}
+                    {% if branding.tiene_carousel_1 %}
+                    <div class="carousel-slide active">
+                        <img src="{{ url_for('slug.imagen_empresa', slug=branding.slug, campo='carousel_1') }}" alt="Slide 1">
+                    </div>
+                    {% endif %}
+                    {% if branding.tiene_carousel_2 %}
+                    <div class="carousel-slide {% if not branding.tiene_carousel_1 %}active{% endif %}">
+                        <img src="{{ url_for('slug.imagen_empresa', slug=branding.slug, campo='carousel_2') }}" alt="Slide 2">
+                    </div>
+                    {% endif %}
+                    {% if branding.tiene_carousel_3 %}
+                    <div class="carousel-slide">
+                        <img src="{{ url_for('slug.imagen_empresa', slug=branding.slug, campo='carousel_3') }}" alt="Slide 3">
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="carousel-slide active">
+                        <img src="{{ url_for('static', filename='images/slide1.jpg') }}" alt="Imagen 1 Nidus">
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="{{ url_for('static', filename='images/slide2.jpg') }}" alt="Imagen 2 Nidus">
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="{{ url_for('static', filename='images/slide3.jpg') }}" alt="Imagen 3 Nidus">
+                    </div>
+                {% endif %}
                 <div class="carousel-indicators">
                     <button class="indicator-dot active" onclick="goToSlide(0)"></button>
                     <button class="indicator-dot" onclick="goToSlide(1)"></button>
@@ -133,7 +151,7 @@
                 </div>
             </div>
             <div class="brand-footer">
-                <p>By Nidus Tecnologia y Soluciones S.A.S</p>
+                <p>{{ branding.razon_social if branding else 'By Nidus Tecnologia y Soluciones S.A.S' }}</p>
             </div>
         </div>
     </div>
@@ -143,7 +161,11 @@
 
         <div class="logo-header">
             <div class="logo-container">
+                {% if branding and branding.tiene_logo %}
+                <img src="{{ url_for('slug.imagen_empresa', slug=branding.slug, campo='logo') }}" alt="{{ branding.razon_social }}" class="logo-image">
+                {% else %}
                 <img src="{{ url_for('static', filename='images/Logo-Caminos-1.png') }}" alt="Nidus Logo" class="logo-image">
+                {% endif %}
             </div>
         </div>
 
@@ -153,7 +175,10 @@
                 <p class="form-subtitle">Ingresa tus credenciales para continuar</p>
             </div>
 
-            <form id="loginForm" class="login-form" method="POST" action="/login">
+            <form id="loginForm" class="login-form" method="POST" action="{{ url_for('slug.portal_empresa', slug=branding.slug) if branding else '/login' }}">
+                {% if branding and branding.empresa_id %}
+                <input type="hidden" name="empresa_id" value="{{ branding.empresa_id }}">
+                {% endif %}
 
                 {% if error %}
                 <div class="alert-error">
