@@ -6169,11 +6169,15 @@ function _dirRenderGrid() {
         const avatar  = fotoSrc
             ? `<img class="dir-avatar" src="${fotoSrc}" alt="${c.nombre}" style="--dc-color:${m.color}">`
             : `<div class="dir-avatar-placeholder" style="--dc-color:${m.color}">${m.icon}</div>`;
-        const tels = (c.telefonos||[]).slice(0,2).map(t =>
-            `<div class="dir-contact-row">
+        const tels = (c.telefonos||[]).slice(0,2).map(t => {
+            const num = typeof t === 'object' ? (t.numero||'') : t;
+            const pre = typeof t === 'object' ? (t.prefijo||'+57') : '+57';
+            const full = pre + num;
+            return `<div class="dir-contact-row">
                 <span class="dir-contact-icon">📞</span>
-                <a class="dir-tel-link" href="tel:${t}">${t}</a>
-            </div>`).join('') +
+                <a class="dir-tel-link" href="tel:${full}">${full}</a>
+            </div>`;
+        }).join('') +
             (c.telefonos?.length > 2
                 ? `<div style="font-size:.72rem;color:#8A9CC8;padding-left:25px;">+${c.telefonos.length-2} más</div>` : '');
         const correoHtml = c.correo
@@ -6496,7 +6500,11 @@ async function _panicoCargarContactos() {
         const bloqueColor = { EMERGENCIAS:'#e53e3e', ADMIN:'#2b6cb0', PUBLICOS:'#276749', LOGISTICA:'#b7791f', LOCAL:'#6b46c1' };
         grid.innerHTML = lista.map(c => {
             const color = bloqueColor[c.bloque] || '#8A9CC8';
-            const tels  = (c.telefonos || []).slice(0,2).map(t => `<span style="font-size:.72rem;background:rgba(4,34,67,.06);padding:2px 8px;border-radius:6px;">${t.numero}</span>`).join('');
+            const tels  = (c.telefonos || []).slice(0,2).map(t => {
+                const num = typeof t === 'object' ? (t.numero||'') : t;
+                const pre = typeof t === 'object' ? (t.prefijo||'+57') : '+57';
+                return `<span style="font-size:.72rem;background:rgba(4,34,67,.06);padding:2px 8px;border-radius:6px;">${pre}${num}</span>`;
+            }).join('');
             return `<div style="background:#fff;border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:16px;position:relative;overflow:hidden;">
                 <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:${color};border-radius:4px 0 0 4px;"></div>
                 <div style="padding-left:8px;">

@@ -42,6 +42,19 @@ def _parse_contacto_payload():
 
 _BLOQUE_MAP = {"ADMIN": "ADMINISTRACION", "LOGISTICA": "LOGISTICA"}
 
+
+@directorio_bp.route("/paises", methods=["GET"])
+@requiere_login
+def listar_paises():
+    try:
+        paises = list(db["paises_prefijos"].find(
+            {}, {"nombre_pais": 1, "prefijo": 1, "bandera": 1, "longitud_celular_estandar": 1}
+        ).sort("nombre_pais", 1))
+        return ok(serializar(paises))
+    except Exception as e:
+        return err(str(e))
+
+
 @directorio_bp.route("/cargos", methods=["GET"])
 @requiere_login
 def listar_cargos():

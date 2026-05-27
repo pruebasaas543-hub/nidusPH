@@ -284,6 +284,7 @@
     .form-group select option { background:var(--bg3); }
 
     .phone-row { display:flex; gap:7px; align-items:center; margin-bottom:7px; }
+    .phone-row .pais-sel { width:96px; flex-shrink:0; font-size:.78rem; padding:8px 4px; }
     .phone-row input { flex:1; }
     .phone-row button {
       background:rgba(255,77,109,.14); color:var(--red); border:none;
@@ -564,7 +565,11 @@ const DC = (() => {
 
     grid.innerHTML = lista.map((c, i) => {
       const m = META[c.bloque] || { color:'#00d4ff', icon:'👤', label:c.bloque };
-      const tels = (c.telefonos||[]).map(t => typeof t==='string'?t:(t.numero||'')).filter(Boolean);
+      const tels = (c.telefonos||[]).map(t => {
+        const num = typeof t==='string' ? t : (t.numero||'');
+        const pre = typeof t==='object' ? (t.prefijo||'+57') : '+57';
+        return num ? (pre + num) : '';
+      }).filter(Boolean);
       const avatar = c.tiene_foto
         ? `<img src="/servicios/directorio/contactos/${c._id}/foto?_t=${c.actualizado_en||c.creado_en||0}" alt="" />`
         : m.icon;
@@ -661,7 +666,27 @@ const DC = (() => {
     }
   }
 
-  function abrirModal(contacto = null) {
+  let _paises = [];
+
+  async function _cargarPaises() {
+    if (_paises.length) return;
+    try {
+      const r = await fetch('/servicios/directorio/paises');
+      const j = await r.json();
+      if (j.ok) _paises = j.data || [];
+    } catch(e) {}
+  }
+
+  function _paisesOptions(selected) {
+    const sel = selected || '+57';
+    const opts = _paises.map(p =>
+      `<option value="${p.prefijo}" ${p.prefijo===sel?'selected':''}>${p.bandera||''} ${p.prefijo}</option>`
+    ).join('');
+    return opts || `<option value="+57" selected>🇨🇴 +57</option>`;
+  }
+
+  async function abrirModal(contacto = null) {
+    await _cargarPaises();
     const bloque = contacto ? contacto.bloque : (_bloqueActual !== 'TODOS' ? _bloqueActual : 'EMERGENCIAS');
     document.getElementById('f-id').value                 = contacto ? contacto._id : '';
     document.getElementById('dc-modal-title').textContent = contacto ? 'Editar Contacto' : 'Nuevo Contacto';
@@ -682,36 +707,50 @@ const DC = (() => {
       prev.src = ''; prev.style.display = 'none'; hint.style.display = '';
     }
     document.getElementById('f-foto').value = '';
-    renderTelefonos(contacto ? (contacto.telefonos||[]) : ['']);
+    const telsInit = contacto && contacto.telefonos && contacto.telefonos.length
+      ? contacto.telefonos
+      : [{ numero: '', prefijo: '+57' }];
+    renderTelefonos(telsInit);
     cambioBloque(_cargoVal);
     document.getElementById('modal-dc').classList.add('show');
   }
 
   function cerrarModal() { document.getElementById('modal-dc').classList.remove('show'); }
 
+  function _leerTelefonos() {
+    return [...document.querySelectorAll('#phone-list .phone-row')].map(row => ({
+      numero:  row.querySelector('input[type="tel"]').value.trim(),
+      prefijo: row.querySelector('.pais-sel').value,
+    }));
+  }
+
   function renderTelefonos(tels) {
     const list = document.getElementById('phone-list');
     list.innerHTML = '';
-    tels.forEach(t => _addPhoneRow(typeof t==='string'?t:(t.numero||''), tels.length > 1));
-    if (!tels.length) _addPhoneRow('', false);
+    const items = tels.length ? tels : [{ numero: '', prefijo: '+57' }];
+    items.forEach((t, i) => _addPhoneRow(t, items.length > 1));
   }
 
-  function _addPhoneRow(val, canDelete) {
+  function _addPhoneRow(t, canDelete) {
+    const num = typeof t === 'object' ? (t.numero || '') : t;
+    const pre = typeof t === 'object' ? (t.prefijo || '+57') : '+57';
     const list = document.getElementById('phone-list');
     const row = document.createElement('div');
     row.className = 'phone-row';
-    row.innerHTML = `<input type="tel" placeholder="Ej: 311 234 5678" value="${esc(val)}" />` +
+    row.innerHTML =
+      `<select class="pais-sel">${_paisesOptions(pre)}</select>` +
+      `<input type="tel" placeholder="Ej: 3112345678" value="${esc(num)}" />` +
       (canDelete ? `<button onclick="this.closest('.phone-row').remove()">✕</button>` : '');
     list.appendChild(row);
   }
 
   function agregarTelefono() {
-    const rows = document.querySelectorAll('#phone-list .phone-row');
+    const rows = [...document.querySelectorAll('#phone-list .phone-row')];
     if (rows.length === 1 && !rows[0].querySelector('button')) {
       rows[0].insertAdjacentHTML('beforeend',
-        '<button onclick="this.closest(\'.phone-row\').remove()">✕</button>');
+        `<button onclick="this.closest('.phone-row').remove()">✕</button>`);
     }
-    _addPhoneRow('', true);
+    _addPhoneRow({ numero: '', prefijo: '+57' }, true);
   }
 
   function previewFoto(input) {
@@ -730,8 +769,7 @@ const DC = (() => {
     const nombre = document.getElementById('f-nombre').value.trim();
     const cargo  = document.getElementById('f-cargo').value.trim();
     const m = META[bloque] || {};
-    const tels = [...document.querySelectorAll('#phone-list input[type="tel"]')]
-      .map(i => i.value.trim()).filter(Boolean);
+    const tels = _leerTelefonos().filter(t => t.numero);
     if (!nombre)           { toast('El nombre es obligatorio', 'err'); return; }
     if (m.cargo && !cargo) { toast('El cargo es obligatorio para este bloque', 'err'); return; }
     if (!tels.length)      { toast('Ingresa al menos un teléfono', 'err'); return; }
@@ -745,7 +783,7 @@ const DC = (() => {
     fd.append('es_visible_para_seguridad',     document.getElementById('f-seguridad').checked);
     fd.append('es_visible_para_administracion',document.getElementById('f-administracion').checked);
     fd.append('vinculado_al_boton_de_panico',  document.getElementById('f-panico').checked);
-    fd.append('telefonos', JSON.stringify(tels.map(n => ({numero:n, etiqueta:''}))));
+    fd.append('telefonos', JSON.stringify(tels));
     const fotoInput = document.getElementById('f-foto');
     if (fotoInput.files[0]) fd.append('foto', fotoInput.files[0]);
 
