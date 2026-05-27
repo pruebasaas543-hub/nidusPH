@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🚨 Botón de Pánico</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+
+* { box-sizing:border-box; margin:0; padding:0; font-family:'Outfit','Segoe UI',sans-serif; }
+
+:root {
+  --bg:      #EEF2FF;
+  --white:   #ffffff;
+  --blue:    #2787F5;
+  --blue2:   #1a6fd4;
+  --navy:    #1E2756;
+  --muted:   #8A9CC8;
+  --border:  rgba(39,135,245,.15);
+  --red:     #e53e3e;
+  --red2:    #7b0d1e;
+  --green:   #276749;
+  --orange:  #b7791f;
+  --shadow:  0 2px 12px rgba(39,135,245,.1);
+}
+
+body { background:var(--bg); color:var(--navy); min-height:100vh; }
+
+/* ── Topbar ── */
+.topbar {
+  height:58px; background:var(--blue);
+  display:flex; align-items:center; padding:0 24px; gap:14px;
+  box-shadow:0 2px 16px rgba(39,135,245,.35);
+  position:sticky; top:0; z-index:100;
+}
+.topbar a {
+  display:flex; align-items:center; gap:5px;
+  color:rgba(255,255,255,.8); text-decoration:none;
+  font-size:.8rem; padding:5px 12px; border-radius:8px;
+  border:1px solid rgba(255,255,255,.25); transition:all .2s;
+}
+.topbar a:hover { background:rgba(255,255,255,.15); color:#fff; }
+.topbar-divider { width:1px; height:22px; background:rgba(255,255,255,.2); }
+.topbar-icon {
+  width:34px; height:34px; border-radius:10px;
+  background:rgba(255,255,255,.2);
+  display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+}
+.topbar-name { font-size:1rem; font-weight:700; color:#fff; }
+.topbar-sub  { font-size:.72rem; color:rgba(255,255,255,.7); }
+
+/* ── Layout ── */
+.main {
+  display:grid; grid-template-columns:1fr 400px;
+  gap:22px; padding:24px 20px;
+  max-width:1060px; margin:0 auto;
+}
+@media(max-width:800px){ .main{ grid-template-columns:1fr; } }
+
+/* ── Cards ── */
+.card {
+  background:var(--white); border:1.5px solid var(--border);
+  border-radius:16px; padding:20px 22px;
+  box-shadow:var(--shadow);
+}
+.card-title {
+  font-size:.72rem; font-weight:700; letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--blue); margin-bottom:14px;
+  display:flex; align-items:center; gap:7px;
+}
+
+/* ── Selector de país ── */
+.pais-cel-wrap { display:flex; gap:6px; }
+.pais-sel {
+  width:130px; flex-shrink:0;
+  background:#fff; border:1.5px solid var(--border);
+  border-radius:9px; color:var(--navy); padding:8px 10px;
+  font-size:.82rem; outline:none; cursor:pointer;
+  transition:border .2s;
+}
+.pais-sel:focus { border-color:var(--blue); }
+.cel-input {
+  flex:1; background:#fff; border:1.5px solid var(--border);
+  border-radius:9px; color:var(--navy); padding:8px 12px;
+  font-size:.82rem; outline:none; transition:border .2s;
+}
+.cel-input:focus { border-color:var(--blue); }
+.cel-input::placeholder { color:var(--muted); }
+
+/* ── Contactos externos ── */
+.ext-list { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+.ext-card {
+  background:#f8faff; border:1.5px solid var(--border);
+  border-radius:12px; padding:14px 16px;
+  position:relative;
+}
+.ext-card-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.ext-num-badge {
+  width:26px; height:26px; border-radius:50%;
+  background:var(--blue); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.75rem; font-weight:700; flex-shrink:0;
+}
+.ext-nombre-input {
+  flex:1; background:#fff; border:1.5px solid var(--border);
+  border-radius:9px; color:var(--navy); padding:7px 12px;
+  font-size:.83rem; outline:none; transition:border .2s;
+}
+.ext-nombre-input:focus { border-color:var(--blue); }
+.ext-nombre-input::placeholder { color:var(--muted); }
+.btn-remove {
+  width:30px; height:30px; border-radius:50%;
+  background:rgba(229,62,62,.08); border:1px solid rgba(229,62,62,.25);
+  color:var(--red); cursor:pointer; font-size:.85rem;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s; flex-shrink:0;
+}
+.btn-remove:hover { background:rgba(229,62,62,.18); }
+
+.notif-label { font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:.5px; margin:10px 0 7px; }
+.notif-opts { display:flex; gap:8px; flex-wrap:wrap; }
+.notif-chip {
+  display:flex; align-items:center; gap:5px;
+  padding:5px 12px; border-radius:20px; cursor:pointer;
+  border:1.5px solid var(--border); font-size:.78rem; font-weight:600;
+  color:var(--muted); background:#fff; transition:all .2s; user-select:none;
+}
+.notif-chip input { display:none; }
+.notif-chip.checked-sms      { background:rgba(39,103,73,.08); border-color:#276749; color:#276749; }
+.notif-chip.checked-llamada  { background:rgba(39,135,245,.08); border-color:var(--blue); color:var(--blue); }
+.notif-chip.checked-whatsapp { background:rgba(37,211,102,.08); border-color:#25d366; color:#128c7e; }
+
+.btn-add-ext {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 16px; border-radius:10px;
+  background:rgba(39,135,245,.07); border:1.5px solid var(--border);
+  color:var(--blue); font-size:.82rem; font-weight:600;
+  cursor:pointer; transition:all .2s;
+}
+.btn-add-ext:hover { background:rgba(39,135,245,.14); }
+.btn-add-ext:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ── Contactos directorio ── */
+.dir-list { display:flex; flex-direction:column; gap:8px; }
+.dir-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; background:#f8faff;
+  border:1.5px solid var(--border); border-radius:12px;
+}
+.dir-avatar {
+  width:36px; height:36px; border-radius:50%;
+  background:linear-gradient(135deg,var(--blue2),var(--blue));
+  display:flex; align-items:center; justify-content:center;
+  font-size:.9rem; flex-shrink:0; color:#fff;
+}
+.dir-info { flex:1; min-width:0; }
+.dir-nombre { font-size:.84rem; font-weight:600; color:var(--navy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dir-cargo  { font-size:.7rem; color:var(--muted); }
+.dir-toggles { display:flex; gap:8px; flex-shrink:0; }
+.toggle-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.toggle-lbl  { font-size:.58rem; color:var(--muted); letter-spacing:.3px; font-weight:600; }
+.toggle-sw   { position:relative; width:34px; height:18px; cursor:pointer; }
+.toggle-sw input { display:none; }
+.toggle-track {
+  position:absolute; inset:0; border-radius:9px;
+  background:rgba(0,0,0,.1); transition:background .25s;
+}
+.toggle-sw input:checked ~ .toggle-track { background:var(--blue); }
+.toggle-sw.wa input:checked ~ .toggle-track { background:#25d366; }
+.toggle-sw.sms input:checked ~ .toggle-track { background:#276749; }
+.toggle-thumb {
+  position:absolute; top:2px; left:2px;
+  width:14px; height:14px; border-radius:50%;
+  background:#fff; transition:transform .25s; pointer-events:none;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.toggle-sw input:checked ~ .toggle-thumb { transform:translateX(16px); }
+
+.empty-state {
+  text-align:center; padding:18px; color:var(--muted);
+  font-size:.82rem; line-height:1.6;
+}
+
+/* ── Botón guardar ── */
+.btn-guardar {
+  width:100%; margin-top:16px; padding:11px;
+  border-radius:12px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,var(--blue2),var(--blue));
+  color:#fff; font-size:.88rem; font-weight:700; letter-spacing:.5px;
+  transition:opacity .2s; box-shadow:0 4px 14px rgba(39,135,245,.3);
+}
+.btn-guardar:hover { opacity:.88; }
+.btn-guardar:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ── Divider ── */
+.divider { border:none; border-top:1.5px solid var(--border); margin:16px 0; }
+
+/* ── Panel del botón ── */
+.panic-panel {
+  background:var(--white); border:1.5px solid rgba(229,62,62,.2);
+  border-radius:16px; padding:28px 22px;
+  display:flex; flex-direction:column; align-items:center; gap:22px;
+  box-shadow:0 4px 20px rgba(229,62,62,.08);
+  min-height:400px; justify-content:center;
+}
+
+.panic-status {
+  font-size:.72rem; font-weight:700; letter-spacing:2px;
+  text-transform:uppercase; padding:5px 14px; border-radius:20px;
+}
+.panic-status.listo     { background:rgba(39,103,73,.1); color:#276749; border:1.5px solid rgba(39,103,73,.25); }
+.panic-status.activando { background:rgba(229,62,62,.1); color:var(--red); border:1.5px solid rgba(229,62,62,.25); }
+.panic-status.enviando  { background:rgba(183,121,31,.1); color:var(--orange); border:1.5px solid rgba(183,121,31,.25); }
+
+.panic-btn-wrap { position:relative; width:210px; height:210px; user-select:none; }
+
+.panic-ring {
+  position:absolute; inset:0; width:100%; height:100%;
+  transform:rotate(-90deg); pointer-events:none;
+}
+.ring-track { fill:none; stroke:rgba(229,62,62,.12); stroke-width:6; }
+.ring-fill  {
+  fill:none; stroke:var(--red); stroke-width:6; stroke-linecap:round;
+  stroke-dasharray:628.32; stroke-dashoffset:628.32;
+  transition:stroke-dashoffset .05s linear;
+  filter:drop-shadow(0 0 5px rgba(229,62,62,.4));
+}
+
+.panic-btn {
+  position:absolute; inset:15px; border-radius:50%;
+  background:radial-gradient(circle at 38% 35%, #ff6b6b, var(--red2));
+  border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  box-shadow:0 6px 24px rgba(229,62,62,.35), inset 0 -3px 10px rgba(0,0,0,.3), inset 0 3px 8px rgba(255,255,255,.15);
+  transition:box-shadow .2s, transform .1s;
+  touch-action:none; -webkit-tap-highlight-color:transparent;
+}
+.panic-btn:active, .panic-btn.holding {
+  transform:scale(.95);
+  box-shadow:0 4px 30px rgba(229,62,62,.5), inset 0 -3px 10px rgba(0,0,0,.3);
+}
+@keyframes pulse-btn {
+  0%,100% { box-shadow:0 6px 24px rgba(229,62,62,.35), inset 0 -3px 10px rgba(0,0,0,.3), inset 0 3px 8px rgba(255,255,255,.15); }
+  50%      { box-shadow:0 6px 36px rgba(229,62,62,.55), inset 0 -3px 10px rgba(0,0,0,.3), inset 0 3px 8px rgba(255,255,255,.15); }
+}
+.panic-btn.pulsing { animation:pulse-btn 2.4s ease-in-out infinite; }
+.panic-btn-icon  { font-size:2.2rem; pointer-events:none; }
+.panic-btn-label { font-size:.72rem; font-weight:800; letter-spacing:2px; color:rgba(255,255,255,.9); pointer-events:none; }
+.panic-btn-count { font-size:1.6rem; font-weight:800; color:#fff; pointer-events:none; display:none; }
+
+.panic-hint { font-size:.78rem; color:var(--muted); text-align:center; line-height:1.5; }
+
+/* ── Resultado ── */
+.result-box {
+  width:100%; background:#f8faff; border:1.5px solid var(--border);
+  border-radius:12px; padding:14px 16px; display:none;
+}
+.result-box.show { display:block; }
+.result-section { margin-bottom:10px; }
+.result-section:last-child { margin-bottom:0; }
+.result-section-title { font-size:.68rem; font-weight:700; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; margin-bottom:6px; }
+.result-row {
+  display:flex; align-items:center; gap:8px;
+  font-size:.78rem; padding:5px 8px; border-radius:8px;
+  background:#fff; border:1px solid rgba(0,0,0,.06); margin-bottom:4px;
+}
+.result-row:last-child { margin-bottom:0; }
+.r-nombre { font-weight:600; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.r-canal  { font-size:.7rem; padding:2px 7px; border-radius:6px; white-space:nowrap; }
+.r-ok     { background:rgba(39,103,73,.1); color:#276749; }
+.r-err    { background:rgba(229,62,62,.1); color:var(--red); }
+.r-mock   { background:rgba(183,121,31,.1); color:var(--orange); }
+
+/* ── Historial ── */
+.hist-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; background:#f8faff;
+  border:1.5px solid var(--border); border-radius:10px;
+  font-size:.8rem; margin-bottom:8px;
+}
+.hist-item:last-child { margin-bottom:0; }
+.hist-dot { width:9px; height:9px; border-radius:50%; background:var(--red); flex-shrink:0; }
+.hist-fecha { color:var(--muted); margin-left:auto; font-size:.7rem; }
+
+/* ── Overlay ── */
+.panic-overlay {
+  position:fixed; inset:0; z-index:500;
+  background:rgba(120,0,0,.88);
+  display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+}
+.panic-overlay.show { display:flex; }
+@keyframes pulse-ov { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+.ov-icon { font-size:4.5rem; animation:pulse-ov 1s ease-in-out infinite; }
+.ov-title { font-size:1.4rem; font-weight:800; color:#fff; letter-spacing:2px; }
+.ov-sub   { color:rgba(255,255,255,.75); font-size:.88rem; text-align:center; padding:0 20px; }
+.ov-close { margin-top:8px; padding:10px 28px; border-radius:12px; border:2px solid rgba(255,255,255,.4); background:transparent; color:#fff; font-size:.88rem; font-weight:700; cursor:pointer; }
+.ov-close:hover { background:rgba(255,255,255,.15); }
+
+/* ── Toast ── */
+#toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(16px);
+  background:var(--navy); color:#fff; padding:9px 20px; border-radius:12px;
+  font-size:.83rem; opacity:0; transition:all .3s; z-index:9999; pointer-events:none;
+  white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#toast.error { background:var(--red); }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <a href="javascript:history.back()">← Volver</a>
+  <div class="topbar-divider"></div>
+  <div class="topbar-icon">🚨</div>
+  <div>
+    <div class="topbar-name">Botón de Pánico</div>
+    <div class="topbar-sub">Sistema de emergencia multi-canal</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── Col izquierda: Configuración ── -->
+  <div style="display:flex;flex-direction:column;gap:18px;">
+
+    <!-- Contactos externos -->
+    <div class="card">
+      <div class="card-title">📞 Contactos de emergencia externos</div>
+      <p style="font-size:.77rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+        Máximo <strong style="color:var(--navy);">2 contactos</strong>. Define cómo notificarlos.
+      </p>
+      <div class="ext-list" id="extList"></div>
+      <button class="btn-add-ext" id="btnAddExt" onclick="agregarExterno()">＋ Agregar contacto</button>
+    </div>
+
+    <!-- Contactos directorio -->
+    <div class="card">
+      <div class="card-title">📒 Contactos del directorio</div>
+      <p style="font-size:.77rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+        Activa cómo contactar a cada persona vinculada al botón de pánico.
+      </p>
+      <div class="dir-list" id="dirList">
+        <div class="empty-state">Cargando…</div>
+      </div>
+    </div>
+
+    <button class="btn-guardar" id="btnGuardar" onclick="guardarConfig()">💾 Guardar Configuración</button>
+  </div>
+
+  <!-- ── Col derecha: Botón + historial ── -->
+  <div style="display:flex;flex-direction:column;gap:18px;">
+
+    <div class="panic-panel">
+      <div class="panic-status listo" id="panicStatus">● LISTO</div>
+
+      <div class="panic-btn-wrap">
+        <svg class="panic-ring" viewBox="0 0 210 210">
+          <circle class="ring-track" cx="105" cy="105" r="100"/>
+          <circle class="ring-fill"  cx="105" cy="105" r="100" id="ringFill"/>
+        </svg>
+        <div class="panic-btn pulsing" id="panicBtn"
+             onmousedown="iniciarHold(event)" onmouseup="cancelarHold()" onmouseleave="cancelarHold()"
+             ontouchstart="iniciarHold(event)" ontouchend="cancelarHold()" ontouchcancel="cancelarHold()">
+          <span class="panic-btn-icon" id="btnIcon">🚨</span>
+          <span class="panic-btn-label" id="btnLabel">EMERGENCIA</span>
+          <span class="panic-btn-count" id="btnCount"></span>
+        </div>
+      </div>
+
+      <p class="panic-hint" id="panicHint">Mantén presionado <strong>3 segundos</strong><br>para activar la alerta</p>
+
+      <div class="result-box" id="resultBox"></div>
+    </div>
+
+    <!-- Historial -->
+    <div class="card">
+      <div class="card-title">📋 Últimas activaciones</div>
+      <div id="histList"><div class="empty-state" style="padding:10px 0;">Sin activaciones</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="panic-overlay" id="panicOverlay">
+  <div class="ov-icon">🚨</div>
+  <div class="ov-title">¡ALERTA ENVIADA!</div>
+  <div class="ov-sub" id="overlayMsg">Notificaciones enviadas</div>
+  <button class="ov-close" onclick="cerrarOverlay()">Cerrar</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Estado global ──────────────────────────────────────────────
+let _externos   = [];
+let _directorio = [];
+let _paises     = [];
+let _holding = false, _holdTimer = null, _animFrame = null, _holdStart = null;
+const HOLD_MS = 3000;
+const CIRCUM  = 628.32; // 2π×100
+
+// ── Toast ──────────────────────────────────────────────────────
+function toast(msg, isError=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show' + (isError ? ' error' : '');
+  clearTimeout(el._t); el._t = setTimeout(() => el.className='', 3200);
+}
+
+// ── Carga inicial ──────────────────────────────────────────────
+async function init() {
+  const ts = Date.now();
+  const [rP, rDir, rCfg, rHist] = await Promise.all([
+    fetch(`/servicios/boton_panico/paises?_t=${ts}`),
+    fetch(`/servicios/boton_panico/directorio?_t=${ts}`),
+    fetch(`/servicios/boton_panico/config?_t=${ts}`),
+    fetch(`/servicios/boton_panico/eventos?_t=${ts}`),
+  ]);
+  const [dP, dDir, dCfg, dHist] = await Promise.all([rP.json(), rDir.json(), rCfg.json(), rHist.json()]);
+
+  _paises = dP.ok ? (dP.data||[]) : [{nombre_pais:'Colombia', prefijo:'+57', bandera:'🇨🇴'}];
+
+  const dirContactos = dDir.ok ? (dDir.data||[]) : [];
+  const cfg          = dCfg.ok ? (dCfg.data||{})  : {};
+
+  const savedMap = {};
+  (cfg.contactos_directorio||[]).forEach(c => { savedMap[c.contacto_id] = c; });
+
+  _directorio = dirContactos.map(c => ({
+    ...c,
+    habilitado_para_sms:      savedMap[c._id]?.habilitado_para_sms      || false,
+    habilitado_para_llamar:   savedMap[c._id]?.habilitado_para_llamar   || false,
+    habilitado_para_whatsapp: savedMap[c._id]?.habilitado_para_whatsapp || false,
+  }));
+
+  _externos = cfg.contactos_externos || [];
+
+  renderExternos();
+  renderDirectorio();
+  renderHistorial(dHist.ok ? (dHist.data||[]) : []);
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function _fmtFecha(str){
+  if(!str) return '—';
+  const d = new Date(str.includes('T') ? str : str.replace(' ','T'));
+  if(isNaN(d)) return str;
+  return d.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})
+       + ' ' + d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+}
+function _paisesOpts(selPrefijo='+57'){
+  return _paises.map(p =>
+    `<option value="${p.prefijo}" ${p.prefijo===selPrefijo?'selected':''}>${p.bandera||''} ${p.prefijo}</option>`
+  ).join('');
+}
+
+// ── Contactos externos ─────────────────────────────────────────
+function renderExternos(){
+  const list = document.getElementById('extList');
+  list.innerHTML = _externos.map((c,i) => {
+    const tipos = c.tipo_notificacion || [];
+    return `
+    <div class="ext-card">
+      <div class="ext-card-header">
+        <div class="ext-num-badge">${i+1}</div>
+        <input class="ext-nombre-input" type="text" placeholder="Nombre del contacto"
+               value="${_esc(c.nombre)}" oninput="_externos[${i}].nombre=this.value">
+        <button class="btn-remove" onclick="quitarExterno(${i})" title="Eliminar">✕</button>
+      </div>
+      <div class="pais-cel-wrap">
+        <select class="pais-sel" onchange="_externos[${i}].prefijo=this.value">${_paisesOpts(c.prefijo||'+57')}</select>
+        <input class="cel-input" type="tel" placeholder="Número celular"
+               value="${_esc(c.celular)}" oninput="_externos[${i}].celular=this.value">
+      </div>
+      <div class="notif-label">TIPO DE NOTIFICACIÓN</div>
+      <div class="notif-opts">
+        <label class="notif-chip ${tipos.includes('sms')?'checked-sms':''}">
+          <input type="checkbox" ${tipos.includes('sms')?'checked':''}
+                 onchange="_toggleTipo(${i},'sms',this.checked)">
+          📱 SMS
+        </label>
+        <label class="notif-chip ${tipos.includes('llamada')?'checked-llamada':''}">
+          <input type="checkbox" ${tipos.includes('llamada')?'checked':''}
+                 onchange="_toggleTipo(${i},'llamada',this.checked)">
+          ☎️ Llamada
+        </label>
+        <label class="notif-chip ${tipos.includes('whatsapp')?'checked-whatsapp':''}">
+          <input type="checkbox" ${tipos.includes('whatsapp')?'checked':''}
+                 onchange="_toggleTipo(${i},'whatsapp',this.checked)">
+          💬 WhatsApp
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('btnAddExt').disabled = _externos.length >= 2;
+}
+
+function _toggleTipo(i, tipo, checked){
+  const tipos = _externos[i].tipo_notificacion || [];
+  if(checked && !tipos.includes(tipo)) tipos.push(tipo);
+  if(!checked) _externos[i].tipo_notificacion = tipos.filter(t => t!==tipo);
+  else _externos[i].tipo_notificacion = tipos;
+  renderExternos();
+}
+
+function agregarExterno(){
+  if(_externos.length >= 2) return;
+  _externos.push({ nombre:'', prefijo:'+57', celular:'', tipo_notificacion:[] });
+  renderExternos();
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('.ext-nombre-input');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+
+function quitarExterno(i){
+  _externos.splice(i,1);
+  renderExternos();
+}
+
+// ── Contactos directorio ───────────────────────────────────────
+function renderDirectorio(){
+  const list = document.getElementById('dirList');
+  if(!_directorio.length){
+    list.innerHTML = `<div class="empty-state">No hay contactos vinculados.<br>
+      <span style="font-size:.7rem;">Actívalos en el Directorio de Contactos.</span></div>`;
+    return;
+  }
+  list.innerHTML = _directorio.map((c,i) => `
+    <div class="dir-item">
+      <div class="dir-avatar">👤</div>
+      <div class="dir-info">
+        <div class="dir-nombre">${_esc(c.nombre)}</div>
+        <div class="dir-cargo">${_esc(c.cargo_titulo||c.bloque||'')}</div>
+      </div>
+      <div class="dir-toggles">
+        <div class="toggle-wrap">
+          <label class="toggle-sw sms">
+            <input type="checkbox" ${c.habilitado_para_sms?'checked':''}
+                   onchange="_directorio[${i}].habilitado_para_sms=this.checked">
+            <div class="toggle-track"></div><div class="toggle-thumb"></div>
+          </label>
+          <span class="toggle-lbl">SMS</span>
+        </div>
+        <div class="toggle-wrap">
+          <label class="toggle-sw">
+            <input type="checkbox" ${c.habilitado_para_llamar?'checked':''}
+                   onchange="_directorio[${i}].habilitado_para_llamar=this.checked">
+            <div class="toggle-track"></div><div class="toggle-thumb"></div>
+          </label>
+          <span class="toggle-lbl">LLAMADA</span>
+        </div>
+        <div class="toggle-wrap">
+          <label class="toggle-sw wa">
+            <input type="checkbox" ${c.habilitado_para_whatsapp?'checked':''}
+                   onchange="_directorio[${i}].habilitado_para_whatsapp=this.checked">
+            <div class="toggle-track"></div><div class="toggle-thumb"></div>
+          </label>
+          <span class="toggle-lbl">WHATSAPP</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Guardar config ─────────────────────────────────────────────
+async function guardarConfig(){
+  const btn = document.getElementById('btnGuardar');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  const payload = {
+    contactos_externos: _externos.map(c => ({
+      nombre: c.nombre.trim(), prefijo: c.prefijo||'+57',
+      celular: c.celular.trim(), tipo_notificacion: c.tipo_notificacion||[]
+    })),
+    contactos_directorio: _directorio.map(c => ({
+      contacto_id: c._id, nombre: c.nombre,
+      habilitado_para_sms:      c.habilitado_para_sms,
+      habilitado_para_llamar:   c.habilitado_para_llamar,
+      habilitado_para_whatsapp: c.habilitado_para_whatsapp,
+    })),
+  };
+  try {
+    const r = await fetch('/servicios/boton_panico/config', {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+    const d = await r.json();
+    d.ok ? toast('✅ Configuración guardada') : toast('✗ '+(d.error||'Error'), true);
+  } catch { toast('✗ Error de conexión', true); }
+  finally { btn.disabled=false; btn.textContent='💾 Guardar Configuración'; }
+}
+
+// ── Hold logic ─────────────────────────────────────────────────
+const panicBtn = document.getElementById('panicBtn');
+const ringFill = document.getElementById('ringFill');
+const btnIcon  = document.getElementById('btnIcon');
+const btnLabel = document.getElementById('btnLabel');
+const btnCount = document.getElementById('btnCount');
+
+function iniciarHold(e){
+  e.preventDefault(); if(_holding) return;
+  _holding=true; _holdStart=Date.now();
+  panicBtn.classList.remove('pulsing'); panicBtn.classList.add('holding');
+  btnLabel.style.display='none'; btnCount.style.display='block';
+  navigator.vibrate && navigator.vibrate(50);
+  setStatus('activando','● MANTENIENDO…');
+  _animFrame = requestAnimationFrame(animarAnillo);
+  _holdTimer = setTimeout(dispararPanico, HOLD_MS);
+}
+
+function cancelarHold(){
+  if(!_holding) return;
+  clearTimeout(_holdTimer); cancelAnimationFrame(_animFrame);
+  _holding=false; _holdStart=null; _holdTimer=null; _animFrame=null;
+  ringFill.style.strokeDashoffset=CIRCUM;
+  panicBtn.classList.remove('holding'); panicBtn.classList.add('pulsing');
+  btnLabel.style.display=''; btnCount.style.display='none'; btnCount.textContent='';
+  btnIcon.textContent='🚨'; setStatus('listo','● LISTO');
+  document.getElementById('panicHint').innerHTML='Mantén presionado <strong>3 segundos</strong><br>para activar la alerta';
+}
+
+function animarAnillo(){
+  if(!_holdStart) return;
+  const elapsed  = Date.now()-_holdStart;
+  const progress = Math.min(elapsed/HOLD_MS, 1);
+  ringFill.style.strokeDashoffset = CIRCUM*(1-progress);
+  const restante = Math.ceil((HOLD_MS-elapsed)/1000);
+  btnCount.textContent = restante>0 ? restante : '…';
+  if(progress<1) _animFrame=requestAnimationFrame(animarAnillo);
+}
+
+// ── Disparar pánico ────────────────────────────────────────────
+async function dispararPanico(){
+  _holding=false; cancelAnimationFrame(_animFrame);
+  navigator.vibrate && navigator.vibrate([100,50,100,50,200]);
+  ringFill.style.strokeDashoffset=0;
+  panicBtn.disabled=true;
+  setStatus('enviando','● ENVIANDO…');
+  document.getElementById('panicHint').textContent='Enviando alertas…';
+  btnIcon.textContent='⏳'; btnLabel.style.display=''; btnCount.style.display='none';
+
+  try {
+    const r = await fetch('/servicios/boton_panico/trigger', {method:'POST'});
+    const d = await r.json();
+    if(d.ok){
+      mostrarResultado(d.data.resultado);
+      mostrarOverlay(d.data.resultado);
+      await recargarHistorial();
+    } else {
+      toast('✗ '+(d.error||'Error al activar'), true);
+      resetBtn();
+    }
+  } catch {
+    toast('✗ Error de conexión', true);
+    resetBtn();
+  }
+}
+
+function resetBtn(){
+  panicBtn.disabled=false;
+  ringFill.style.strokeDashoffset=CIRCUM;
+  panicBtn.classList.remove('holding'); panicBtn.classList.add('pulsing');
+  btnIcon.textContent='🚨'; btnLabel.style.display=''; btnCount.style.display='none';
+  setStatus('listo','● LISTO');
+  document.getElementById('panicHint').innerHTML='Mantén presionado <strong>3 segundos</strong><br>para activar la alerta';
+}
+
+// ── Mostrar resultado ──────────────────────────────────────────
+function mostrarResultado(r){
+  const box = document.getElementById('resultBox');
+  const canalesHtml = (grupo, titulo) => {
+    if(!grupo||!grupo.length) return '';
+    const rows = grupo.map(c => {
+      const canales = c.canales||{};
+      const chips = Object.entries(canales).map(([canal, res]) => {
+        const cls  = res.estado==='enviado'||res.estado==='iniciado' ? 'r-ok'
+                   : res.estado==='mock'   ? 'r-mock' : 'r-err';
+        const icon = canal==='sms'?'📱':canal==='llamada'?'☎️':'💬';
+        const txt  = res.estado==='enviado'?'Enviado':res.estado==='iniciado'?'Iniciado'
+                   : res.estado==='mock'?'Mock':'Error';
+        return `<span class="r-canal ${cls}">${icon} ${txt}</span>`;
+      }).join('');
+      return `<div class="result-row">
+        <span class="r-nombre">${_esc(c.nombre||c.numero)}</span>${chips}
+      </div>`;
+    }).join('');
+    return `<div class="result-section"><div class="result-section-title">${titulo}</div>${rows}</div>`;
+  };
+
+  const html = canalesHtml(r.externos,'📞 Externos') + canalesHtml(r.directorio,'📒 Directorio');
+  box.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:#276749;letter-spacing:.5px;margin-bottom:8px;">✅ ALERTA ACTIVADA</div>${html||'<div style="font-size:.78rem;color:var(--muted);">Sin contactos configurados</div>'}`;
+  box.classList.add('show');
+
+  setStatus('listo','● LISTO');
+  panicBtn.disabled=false; panicBtn.classList.add('pulsing');
+  btnIcon.textContent='✅';
+  document.getElementById('panicHint').textContent='Alerta enviada correctamente.';
+  setTimeout(()=>{ btnIcon.textContent='🚨'; },5000);
+}
+
+function mostrarOverlay(r){
+  const total=(r.externos||[]).length+(r.directorio||[]).length;
+  document.getElementById('overlayMsg').textContent=
+    total>0 ? `Se notificaron ${total} contacto(s)` : 'Sin contactos configurados';
+  document.getElementById('panicOverlay').classList.add('show');
+  navigator.vibrate && navigator.vibrate([200,100,200]);
+}
+function cerrarOverlay(){ document.getElementById('panicOverlay').classList.remove('show'); }
+
+// ── Historial ──────────────────────────────────────────────────
+function renderHistorial(eventos){
+  const list = document.getElementById('histList');
+  if(!eventos.length){
+    list.innerHTML='<div class="empty-state" style="padding:10px 0;">Sin activaciones registradas</div>';
+    return;
+  }
+  list.innerHTML = eventos.map(e => {
+    const r=e.resultado||{};
+    const total=(r.externos||[]).length+(r.directorio||[]).length;
+    return `<div class="hist-item">
+      <div class="hist-dot"></div>
+      <div><div style="font-weight:600;font-size:.82rem;">Pánico activado</div>
+        <div style="font-size:.7rem;color:var(--muted);">${total} contacto(s) notificado(s)</div>
+      </div>
+      <span class="hist-fecha">${_fmtFecha(e.activado_en)}</span>
+    </div>`;
+  }).join('');
+}
+
+async function recargarHistorial(){
+  const r = await fetch(`/servicios/boton_panico/eventos?_t=${Date.now()}`);
+  const d = await r.json();
+  if(d.ok) renderHistorial(d.data||[]);
+}
+
+function setStatus(tipo, txt){
+  const el=document.getElementById('panicStatus');
+  el.className=`panic-status ${tipo}`; el.textContent=txt;
+}
+
+init();
+</script>
+</body>
+</html>

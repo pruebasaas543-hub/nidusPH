@@ -52,15 +52,19 @@ def _parse_payload():
         datos = request.form.to_dict()
         foto = request.files.get("foto")
 
-    # Normalizar teléfonos → [{numero, etiqueta}]
+    # Normalizar teléfonos → [{numero, prefijo, etiqueta}]
     tels_norm = []
     for t in tels:
         if isinstance(t, dict):
             num = (t.get("numero") or "").strip()
             if num:
-                tels_norm.append({"numero": num, "etiqueta": t.get("etiqueta", "").strip()})
+                tels_norm.append({
+                    "numero":   num,
+                    "prefijo":  t.get("prefijo", "").strip(),
+                    "etiqueta": t.get("etiqueta", "").strip(),
+                })
         elif isinstance(t, str) and t.strip():
-            tels_norm.append({"numero": t.strip(), "etiqueta": ""})
+            tels_norm.append({"numero": t.strip(), "prefijo": "", "etiqueta": ""})
 
     datos["telefonos"] = tels_norm
 
@@ -80,13 +84,30 @@ def _serializar_contacto(doc: dict) -> dict:
     d.pop("foto_data", None)
     d.pop("foto_mimetype", None)
     d["tiene_foto"] = bool(doc.get("foto_data"))
-    # Normalizar teléfonos a lista plana para compatibilidad con el panel
+    # Normalizar teléfonos → [{numero, prefijo, etiqueta}]
     tels = doc.get("telefonos", [])
     d["telefonos"] = [
-        t["numero"] if isinstance(t, dict) else t
-        for t in tels if (t["numero"] if isinstance(t, dict) else t)
+        {"numero": t["numero"], "prefijo": t.get("prefijo",""), "etiqueta": t.get("etiqueta","")}
+        if isinstance(t, dict) else {"numero": t, "prefijo": "", "etiqueta": ""}
+        for t in tels
+        if (t.get("numero","") if isinstance(t, dict) else t)
     ]
     return d
+
+
+# ── GET: países / prefijos ───────────────────────────────────────────────
+
+@directorio_cfg_bp.route("/paises", methods=["GET"])
+@requiere_superadmin
+def listar_paises():
+    from app import db
+    try:
+        paises = list(db["paises_prefijos"].find(
+            {}, {"nombre_pais": 1, "prefijo": 1, "bandera": 1}
+        ).sort("nombre_pais", 1))
+        return ok(serializar(paises))
+    except Exception as e:
+        return err(str(e))
 
 
 # ── GET: listar contactos ─────────────────────────────────────────────────

@@ -1700,6 +1700,77 @@
             </div><!-- /dir-panel -->
         </div><!-- /cfg-directorio -->
 
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- cfg-boton-panico                                            -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div id="cfg-boton-panico" class="config-panel">
+
+            <!-- Cabecera -->
+            <div style="display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;">
+                <button onclick="setActive(document.getElementById('nav-inicio'));mostrarPanel('cfg-inicio')"
+                    style="display:inline-flex;align-items:center;gap:6px;background:none;border:1.5px solid rgba(4,34,67,.22);border-radius:10px;padding:8px 16px;cursor:pointer;font-size:.82rem;color:#042243;font-weight:600;transition:all .2s;white-space:nowrap;"
+                    onmouseover="this.style.background='rgba(4,34,67,.06)'" onmouseout="this.style.background='none'">
+                    &#8592; Volver a Inicio
+                </button>
+                <div style="width:1px;height:32px;background:rgba(4,34,67,.12);flex-shrink:0;"></div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#7b0d1e,#e53e3e);display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 4px 12px rgba(229,62,62,.3);flex-shrink:0;">🚨</div>
+                    <div>
+                        <div style="font-size:1.05rem;font-weight:800;color:#042243;line-height:1.2;">Botón de Pánico</div>
+                        <div style="font-size:.75rem;color:#8A9CC8;margin-top:2px;">Configuración y monitoreo del sistema de emergencias</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selector empresa -->
+            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                    <span style="font-size:1.4rem;">🏢</span>
+                    <div>
+                        <div style="font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;">Empresa / Propiedad</div>
+                        <div style="font-size:.72rem;color:#8A9CC8;margin-top:1px;">Selecciona para ver su configuración</div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:220px;">
+                    <select class="form-control" id="panico-empresa-sel" onchange="_panicoSeleccionarEmpresa(this.value)" style="width:100%;">
+                        <option value="">— Selecciona una empresa —</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Panel principal (oculto hasta seleccionar empresa) -->
+            <div id="panico-panel" style="display:none;">
+
+                <!-- Stats -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;" id="panico-stats-grid">
+                </div>
+
+                <!-- Contactos vinculados -->
+                <div style="margin-bottom:28px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                        <div style="font-size:.8rem;font-weight:700;color:#042243;letter-spacing:.5px;text-transform:uppercase;">
+                            📒 Contactos vinculados al botón de pánico
+                        </div>
+                        <span style="font-size:.72rem;color:#8A9CC8;">Del Directorio de Contactos</span>
+                    </div>
+                    <div id="panico-contactos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">
+                        <div style="padding:20px;text-align:center;color:#8A9CC8;font-size:.82rem;grid-column:1/-1;">Cargando…</div>
+                    </div>
+                </div>
+
+                <!-- Historial -->
+                <div>
+                    <div style="font-size:.8rem;font-weight:700;color:#042243;letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;">
+                        📋 Historial de activaciones
+                    </div>
+                    <div id="panico-eventos-tabla">
+                        <div style="padding:20px;text-align:center;color:#8A9CC8;font-size:.82rem;">Sin activaciones registradas</div>
+                    </div>
+                </div>
+
+            </div><!-- /panico-panel -->
+        </div><!-- /cfg-boton-panico -->
+
         <!-- Modal Directorio -->
         <div class="modal-overlay" id="modal-dir">
             <div style="width:clamp(360px,95vw,580px);max-height:92vh;border-radius:18px;background:#fff;box-shadow:0 24px 64px rgba(4,34,67,.22);display:flex;flex-direction:column;overflow:hidden;">
@@ -4640,7 +4711,8 @@ const SRV = {
             borde:'rgba(0,200,240,.4)', hsh:'rgba(4,34,67,.3)', desc:'rgba(255,255,255,.75)'
         };
         const _panelDestino = (codigo) => {
-            if (codigo === 'directorio') return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
+            if (codigo === 'directorio')   return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
+            if (codigo === 'boton_panico') return `mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()`;
             return `mostrarPanel('srv-panel-${codigo}')`;
         };
         grid.innerHTML = activos.map((s, i) => {
@@ -6034,6 +6106,7 @@ let _dirContactos  = [];
 
 async function _dirPoblarEmpresas() {
     const sel = document.getElementById('dir-empresa-sel');
+    _dirCargarPaises(); // carga prefijos en paralelo (no bloquea)
     if (sel.options.length > 1) return;
     try {
         const json = await apiFetch('/config/empresas');
@@ -6183,7 +6256,8 @@ async function _dirCargarCargos(bloque, valorActual = '') {
     }
 }
 
-function dirAbrirModal(contacto = null) {
+async function dirAbrirModal(contacto = null) {
+    await _dirCargarPaises();
     const bloque = contacto ? contacto.bloque : (_dirBloqueAct !== 'TODOS' ? _dirBloqueAct : 'EMERGENCIAS');
     document.getElementById('dir-id').value             = contacto ? contacto._id : '';
     document.getElementById('modal-dir-title').textContent = contacto ? '✏️ Editar Contacto' : '➕ Nuevo Contacto';
@@ -6205,7 +6279,9 @@ function dirAbrirModal(contacto = null) {
         prev.src = ''; prev.style.display = 'none'; ph.style.display = '';
     }
     document.getElementById('dir-foto').value = '';
-    const tels = contacto ? (contacto.telefonos||[]) : [''];
+    const tels = contacto && contacto.telefonos && contacto.telefonos.length
+        ? contacto.telefonos
+        : [{ numero: '', prefijo: '+57' }];
     _dirRenderTelefonos(tels);
     dirCambioBloque(_cargoVal);
     document.getElementById('modal-dir').classList.add('show');
@@ -6215,27 +6291,57 @@ function dirCerrarModal() {
     document.getElementById('modal-dir').classList.remove('show');
 }
 
+let _dirPaises = [];
+
+async function _dirCargarPaises() {
+    if (_dirPaises.length) return;
+    try {
+        const r = await fetch('/config/directorio/paises');
+        const j = await r.json();
+        if (j.ok) _dirPaises = j.data || [];
+    } catch(e) { /* usa lista vacía */ }
+}
+
+function _dirPaisesOptions(selectedPrefijo) {
+    const sel = selectedPrefijo || '+57';
+    const opts = _dirPaises.map(p =>
+        `<option value="${p.prefijo}" ${p.prefijo === sel ? 'selected' : ''}>${p.bandera || ''} ${p.prefijo}</option>`
+    ).join('');
+    return opts || `<option value="+57" selected>🇨🇴 +57</option>`;
+}
+
 function _dirRenderTelefonos(lista) {
     const wrap = document.getElementById('dir-telefonos-wrap');
-    wrap.innerHTML = lista.map((t, i) => `
-        <div style="display:flex;gap:6px;align-items:center;">
-            <input class="form-control dir-tel-input" type="tel" value="${t}" placeholder="Ej: 311 234 5678" style="flex:1;">
+    wrap.innerHTML = lista.map((t, i) => {
+        const num = typeof t === 'object' ? (t.numero || '') : t;
+        const pre = typeof t === 'object' ? (t.prefijo || '+57') : '+57';
+        return `
+        <div class="dir-tel-row" style="display:flex;gap:6px;align-items:center;">
+            <select class="form-control dir-pais-sel" style="width:100px;flex-shrink:0;font-size:.8rem;padding:6px 4px;">${_dirPaisesOptions(pre)}</select>
+            <input class="form-control dir-tel-input" type="tel" value="${_esc(num)}" placeholder="Ej: 3112345678" style="flex:1;">
             ${lista.length > 1 ? `<button type="button" onclick="dirQuitarTelefono(this)" style="background:none;border:none;cursor:pointer;color:#C0304A;font-size:1rem;padding:0 4px;">✕</button>` : ''}
-        </div>`).join('');
+        </div>`;
+    }).join('');
+}
+
+function _dirLeerTelefonos() {
+    return [...document.querySelectorAll('#dir-telefonos-wrap .dir-tel-row')].map(row => ({
+        numero:  row.querySelector('.dir-tel-input').value.trim(),
+        prefijo: row.querySelector('.dir-pais-sel').value,
+    }));
 }
 
 function dirAgregarTelefono() {
-    const inputs = document.querySelectorAll('.dir-tel-input');
-    const vals = [...inputs].map(i => i.value.trim());
-    _dirRenderTelefonos([...vals, '']);
+    const actual = _dirLeerTelefonos();
+    _dirRenderTelefonos([...actual, { numero: '', prefijo: '+57' }]);
 }
 
 function dirQuitarTelefono(btn) {
-    const inputs = document.querySelectorAll('.dir-tel-input');
-    const vals = [...inputs].map(i => i.value.trim());
-    const idx = [...btn.closest('#dir-telefonos-wrap').querySelectorAll('div')].indexOf(btn.parentElement);
-    vals.splice(idx, 1);
-    _dirRenderTelefonos(vals.length ? vals : ['']);
+    const rows = [...document.querySelectorAll('#dir-telefonos-wrap .dir-tel-row')];
+    const idx  = rows.indexOf(btn.closest('.dir-tel-row'));
+    const actual = _dirLeerTelefonos();
+    actual.splice(idx, 1);
+    _dirRenderTelefonos(actual.length ? actual : [{ numero: '', prefijo: '+57' }]);
 }
 
 function dirPreviewFoto(input) {
@@ -6257,7 +6363,7 @@ async function dirGuardar() {
     const bloque     = document.getElementById('dir-bloque').value;
     const nombre     = document.getElementById('dir-nombre').value.trim();
     const cargo      = document.getElementById('dir-cargo').value.trim();
-    const telefonos  = [...document.querySelectorAll('.dir-tel-input')].map(i => i.value.trim()).filter(Boolean);
+    const telefonos  = _dirLeerTelefonos().filter(t => t.numero);
     const meta = _DIR_META[bloque] || {};
     if (!nombre)  { showToast('❌ El nombre es obligatorio', true); return; }
     if (meta.cargo && !cargo) { showToast('❌ El cargo es obligatorio para este bloque', true); return; }
@@ -6272,7 +6378,7 @@ async function dirGuardar() {
     fd.append('es_visible_para_seguridad',      document.getElementById('dir-flag-auth').checked    ? 'true' : 'false');
     fd.append('es_visible_para_administracion', document.getElementById('dir-flag-llamada').checked  ? 'true' : 'false');
     fd.append('vinculado_al_boton_de_panico',document.getElementById('dir-flag-panico').checked   ? 'true' : 'false');
-    telefonos.forEach(t => fd.append('telefonos', t));
+    fd.append('telefonos', JSON.stringify(telefonos));
     const fotoFile = document.getElementById('dir-foto').files[0];
     if (fotoFile) fd.append('foto', fotoFile);
 
@@ -6316,6 +6422,169 @@ async function dirEliminarContacto(contactoId, nombre) {
 }
 
 // La carga de empresas se dispara desde el onclick del nav-item (mostrarPanel + _dirPoblarEmpresas)
+
+// ═══════════════════════════════════════════════════════════════════
+// BOTÓN DE PÁNICO — configuración admin
+// ═══════════════════════════════════════════════════════════════════
+let _panicoEmpresaId = null;
+
+async function _panicoPoblarEmpresas() {
+    const sel = document.getElementById('panico-empresa-sel');
+    if (!sel) return;
+    if (sel.options.length > 1) return; // ya cargado
+    try {
+        const r = await fetch('/config/empresas?solo_activas=1&_t=' + Date.now());
+        const d = await r.json();
+        if (d.ok) {
+            (d.data || []).forEach(e => {
+                const o = document.createElement('option');
+                o.value = e._id; o.textContent = e.razon_social || e.nombre || e._id;
+                sel.appendChild(o);
+            });
+        }
+    } catch {}
+}
+
+async function _panicoSeleccionarEmpresa(empresaId) {
+    _panicoEmpresaId = empresaId || null;
+    const panel = document.getElementById('panico-panel');
+    if (!panel) return;
+    if (!_panicoEmpresaId) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    await Promise.all([_panicoCargarStats(), _panicoCargarContactos(), _panicoCargarEventos()]);
+}
+
+async function _panicoCargarStats() {
+    if (!_panicoEmpresaId) return;
+    try {
+        const r = await fetch(`/config/boton_panico/stats?propiedad_id=${_panicoEmpresaId}&_t=${Date.now()}`);
+        const d = await r.json();
+        if (!d.ok) return;
+        const s = d.data;
+        const grid = document.getElementById('panico-stats-grid');
+        const ultimo = s.ultimo_evento
+            ? `<div style="font-size:.7rem;color:#8A9CC8;margin-top:4px;">${_panicoFmtFecha(s.ultimo_evento.activado_en)}</div>`
+            : `<div style="font-size:.7rem;color:#8A9CC8;margin-top:4px;">Sin activaciones</div>`;
+        grid.innerHTML = `
+            <div style="background:rgba(229,62,62,.06);border:1.5px solid rgba(229,62,62,.18);border-radius:14px;padding:18px 20px;">
+                <div style="font-size:2rem;font-weight:800;color:#e53e3e;">${s.total_contactos}</div>
+                <div style="font-size:.78rem;font-weight:600;color:#042243;margin-top:4px;">Contactos vinculados</div>
+                <div style="font-size:.7rem;color:#8A9CC8;margin-top:2px;">Del directorio</div>
+            </div>
+            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:18px 20px;">
+                <div style="font-size:2rem;font-weight:800;color:#042243;">${s.total_eventos}</div>
+                <div style="font-size:.78rem;font-weight:600;color:#042243;margin-top:4px;">Activaciones totales</div>
+                ${ultimo}
+            </div>`;
+    } catch {}
+}
+
+async function _panicoCargarContactos() {
+    if (!_panicoEmpresaId) return;
+    const grid = document.getElementById('panico-contactos-grid');
+    grid.innerHTML = '<div style="padding:16px;text-align:center;color:#8A9CC8;font-size:.82rem;grid-column:1/-1;">Cargando…</div>';
+    try {
+        const r = await fetch(`/config/boton_panico/contactos?propiedad_id=${_panicoEmpresaId}&_t=${Date.now()}`);
+        const d = await r.json();
+        if (!d.ok) { grid.innerHTML = `<div style="padding:16px;color:#e53e3e;font-size:.82rem;">${d.error}</div>`; return; }
+        const lista = d.data || [];
+        if (!lista.length) {
+            grid.innerHTML = `<div style="padding:24px;text-align:center;color:#8A9CC8;font-size:.82rem;grid-column:1/-1;">
+                Sin contactos vinculados. Actívalos en el módulo Directorio de Contactos.</div>`;
+            return;
+        }
+        const bloqueColor = { EMERGENCIAS:'#e53e3e', ADMIN:'#2b6cb0', PUBLICOS:'#276749', LOGISTICA:'#b7791f', LOCAL:'#6b46c1' };
+        grid.innerHTML = lista.map(c => {
+            const color = bloqueColor[c.bloque] || '#8A9CC8';
+            const tels  = (c.telefonos || []).slice(0,2).map(t => `<span style="font-size:.72rem;background:rgba(4,34,67,.06);padding:2px 8px;border-radius:6px;">${t.numero}</span>`).join('');
+            return `<div style="background:#fff;border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:16px;position:relative;overflow:hidden;">
+                <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:${color};border-radius:4px 0 0 4px;"></div>
+                <div style="padding-left:8px;">
+                    <div style="font-size:.88rem;font-weight:700;color:#042243;">${_esc(c.nombre)}</div>
+                    <div style="font-size:.72rem;color:#8A9CC8;margin-top:2px;">${_esc(c.cargo_titulo || c.bloque || '')}</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">${tels}</div>
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                        ${c.es_visible_para_seguridad    ? '<span style="font-size:.65rem;background:rgba(4,34,67,.08);padding:2px 8px;border-radius:6px;color:#042243;">🔒 Seguridad</span>' : ''}
+                        ${c.es_visible_para_administracion ? '<span style="font-size:.65rem;background:rgba(4,34,67,.08);padding:2px 8px;border-radius:6px;color:#042243;">🏢 Admin</span>' : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        grid.innerHTML = `<div style="padding:16px;color:#e53e3e;font-size:.82rem;">${e.message}</div>`;
+    }
+}
+
+async function _panicoCargarEventos() {
+    if (!_panicoEmpresaId) return;
+    const cont = document.getElementById('panico-eventos-tabla');
+    cont.innerHTML = '<div style="padding:16px;text-align:center;color:#8A9CC8;font-size:.82rem;">Cargando…</div>';
+    try {
+        const r = await fetch(`/config/boton_panico/eventos?propiedad_id=${_panicoEmpresaId}&limite=20&_t=${Date.now()}`);
+        const d = await r.json();
+        if (!d.ok) return;
+        const lista = d.data || [];
+        if (!lista.length) {
+            cont.innerHTML = '<div style="padding:20px;text-align:center;color:#8A9CC8;font-size:.82rem;">Sin activaciones registradas</div>';
+            return;
+        }
+        cont.innerHTML = `
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+            <thead>
+                <tr style="background:rgba(4,34,67,.05);">
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.1);">FECHA</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.1);">RESIDENTE</th>
+                    <th style="padding:10px 14px;text-align:center;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.1);">SMS</th>
+                    <th style="padding:10px 14px;text-align:center;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.1);">LLAMADAS</th>
+                    <th style="padding:10px 14px;text-align:center;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.1);">WHATSAPP</th>
+                    <th style="padding:10px 14px;text-align:center;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.1);">ERRORES</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${lista.map((e, i) => {
+                    const r   = e.resultado || {};
+                    const bg  = i % 2 === 0 ? '' : 'background:rgba(4,34,67,.02);';
+                    return `<tr style="${bg}border-bottom:1px solid rgba(4,34,67,.06);">
+                        <td style="padding:10px 14px;color:#042243;white-space:nowrap;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e53e3e;margin-right:6px;box-shadow:0 0 4px rgba(229,62,62,.5);"></span>
+                            ${_panicoFmtFecha(e.activado_en)}
+                        </td>
+                        <td style="padding:10px 14px;color:#042243;">${_esc(e.residente_id || '—')}</td>
+                        <td style="padding:10px 14px;text-align:center;">${_panicoStatBadge(r.sms)}</td>
+                        <td style="padding:10px 14px;text-align:center;">${_panicoStatBadge(r.llamadas)}</td>
+                        <td style="padding:10px 14px;text-align:center;">${_panicoStatBadge(r.whatsapp)}</td>
+                        <td style="padding:10px 14px;text-align:center;">${(r.errores||[]).length > 0
+                            ? `<span style="background:rgba(229,62,62,.1);color:#e53e3e;padding:2px 8px;border-radius:6px;font-size:.72rem;">${r.errores.length}</span>`
+                            : '<span style="color:#8A9CC8;">—</span>'
+                        }</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table></div>`;
+    } catch {}
+}
+
+function _panicoStatBadge(arr) {
+    const n = (arr || []).length;
+    if (!n) return '<span style="color:#8A9CC8;">—</span>';
+    const mock = (arr||[]).some(x => x.estado === 'mock');
+    const color = mock ? '#b7791f' : '#276749';
+    const bg    = mock ? 'rgba(183,121,31,.1)' : 'rgba(39,103,73,.1)';
+    return `<span style="background:${bg};color:${color};padding:2px 8px;border-radius:6px;font-size:.72rem;">${n}</span>`;
+}
+
+function _panicoFmtFecha(str) {
+    if (!str) return '—';
+    const d = new Date(str.includes('T') ? str : str.replace(' ','T'));
+    if (isNaN(d)) return str;
+    return d.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})
+        + ' ' + d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+}
+
+function _esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
 </script>
 </body>
 </html>

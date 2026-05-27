@@ -24,6 +24,8 @@ def panel_servicio(codigo):
         return render_template("servicios/contabilidad.html", servicio=srv)
     if codigo == "directorio":
         return render_template("servicios/directorio.html", servicio=srv)
+    if codigo == "boton_panico":
+        return render_template("servicios/boton_panico.html", servicio=srv)
     return render_template("servicios/panel_servicio.html", servicio=srv)
 
 

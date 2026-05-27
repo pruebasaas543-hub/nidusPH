@@ -219,48 +219,26 @@
         </div>
 
         <div class="section-title">Módulos disponibles</div>
+        {% if modulos %}
         <div class="modules-grid">
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">💰</span>
-                <div class="module-name">Pagos</div>
-                <div class="module-desc">Gestión de cuotas y recaudos</div>
+            {% for srv in modulos %}
+            <a href="/servicios/{{ srv.codigo }}/" class="module-card">
+                <span class="module-icon">{{ srv.icono or '📋' }}</span>
+                <div class="module-name">{{ srv.nombre }}</div>
+                <div class="module-desc">{{ srv.descripcion or '' }}</div>
             </a>
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">📋</span>
-                <div class="module-name">PQRS</div>
-                <div class="module-desc">Peticiones, quejas y reclamos</div>
-            </a>
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">📅</span>
-                <div class="module-name">Reservas</div>
-                <div class="module-desc">Zonas comunes y espacios</div>
-            </a>
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">🏛️</span>
-                <div class="module-name">Asambleas</div>
-                <div class="module-desc">Convocatorias y actas</div>
-            </a>
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">📊</span>
-                <div class="module-name">Cartera</div>
-                <div class="module-desc">Estado de cuenta y mora</div>
-            </a>
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">🔒</span>
-                <div class="module-name">Control Acceso</div>
-                <div class="module-desc">Visitantes y portería</div>
-            </a>
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">📢</span>
-                <div class="module-name">Comunicados</div>
-                <div class="module-desc">Avisos y circulares</div>
-            </a>
-            <a href="#" class="module-card disabled">
-                <span class="module-icon">📄</span>
-                <div class="module-name">Documentos</div>
-                <div class="module-desc">Reglamentos y actas</div>
-            </a>
+            {% endfor %}
         </div>
+        {% else %}
+        <div style="background:rgba(255,255,255,0.7);border:1.5px solid rgba(39,135,245,0.15);border-radius:14px;padding:40px;text-align:center;margin-bottom:36px;">
+            <div style="font-size:2.5rem;margin-bottom:12px;">📦</div>
+            <div style="font-size:.9rem;font-weight:600;color:#1E2756;margin-bottom:6px;">Sin módulos asignados</div>
+            <div style="font-size:.78rem;color:#8A9CC8;line-height:1.5;">
+                Tu rol no tiene módulos activos o la empresa no tiene un plan asignado.<br>
+                Contacta al administrador del sistema.
+            </div>
+        </div>
+        {% endif %}
 
         <div class="section-title">Información de sesión</div>
         <div class="session-info">

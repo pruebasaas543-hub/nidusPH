@@ -97,14 +97,19 @@ def create_app():
     # ── Índices para directorio ────────────────────────────────────────────
     db["directorio_contactos"].create_index([("empresa_id", 1), ("bloque", 1), ("orden", 1)])
 
+    # ── Índices para botón de pánico ───────────────────────────────────────
+    db["panic_configurations"].create_index([("empresa_id", 1), ("residente_id", 1)], unique=True)
+    db["panic_events"].create_index([("empresa_id", 1), ("residente_id", 1), ("activado_en", -1)])
+
     # ── Blueprints ─────────────────────────────────────────────────────────
     from app.auth.routes            import auth_bp
     from app.recuperacion.routes    import recuperacion_bp
     from app.slug.routes            import slug_bp
     from app.configuracion          import register_config_blueprints
-    from app.servicios.routes            import servicios_bp, servicios_admin_bp
-    from app.servicios.directorio.routes import directorio_bp
-    from app.contabilidad                import register_contabilidad_blueprints
+    from app.servicios.routes               import servicios_bp, servicios_admin_bp
+    from app.servicios.directorio.routes    import directorio_bp
+    from app.servicios.boton_panico.routes  import panico_bp
+    from app.contabilidad                   import register_contabilidad_blueprints
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(recuperacion_bp)
@@ -113,9 +118,10 @@ def create_app():
     app.register_blueprint(servicios_bp)
     app.register_blueprint(servicios_admin_bp)
     app.register_blueprint(directorio_bp)
+    app.register_blueprint(panico_bp)
     register_contabilidad_blueprints(app)
 
-    app.logger.info("Blueprints registrados: auth, recuperacion, slug, configuracion(x8), contabilidad(x8), directorio")
+    app.logger.info("Blueprints registrados: auth, recuperacion, slug, configuracion(x8), contabilidad(x8), directorio, boton_panico")
 
     # ── Migraciones idempotentes de BD (se ejecutan en cada arranque, son seguras) ──
     try:
