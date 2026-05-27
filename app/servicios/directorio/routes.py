@@ -34,7 +34,7 @@ def _parse_contacto_payload():
             try:   datos["telefonos"] = _json.loads(tel_raw)
             except: datos["telefonos"] = []
         for flag in ("es_visible_para_residentes", "es_visible_para_seguridad",
-                     "es_visible_para_administracion", "vinculado_al_boton_de_panico", "activo"):
+                     "es_visible_para_administracion", "vinculado_al_boton_de_panico"):
             datos[flag] = datos.get(flag, "").lower() in ("true", "1", "on")
         foto = request.files.get("foto")
     return datos, foto

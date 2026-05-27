@@ -69,7 +69,7 @@ def _parse_payload():
     datos["telefonos"] = tels_norm
 
     for flag in ("es_visible_para_residentes", "es_visible_para_seguridad",
-                 "es_visible_para_administracion", "vinculado_al_boton_de_panico", "activo"):
+                 "es_visible_para_administracion", "vinculado_al_boton_de_panico"):
         val = datos.get(flag, "")
         if isinstance(val, bool):
             continue

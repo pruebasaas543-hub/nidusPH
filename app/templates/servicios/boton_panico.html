@@ -59,7 +59,7 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
 
 /* ── Cards ── */
 .card {
-  background:var(--white); border:1.5px solid var(--border);
+  background:#eef5ff; border:1.5px solid rgba(39,135,245,.22);
   border-radius:16px; padding:20px 22px;
   box-shadow:var(--shadow);
 }
@@ -90,7 +90,7 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
 /* ── Contactos externos ── */
 .ext-list { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
 .ext-card {
-  background:#f8faff; border:1.5px solid var(--border);
+  background:#dde8f7; border:1.5px solid rgba(39,135,245,.25);
   border-radius:12px; padding:14px 16px;
   position:relative;
 }
@@ -102,12 +102,21 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
   font-size:.75rem; font-weight:700; flex-shrink:0;
 }
 .ext-nombre-input {
-  flex:1; background:#fff; border:1.5px solid var(--border);
+  flex:1; background:#fff; border:1.5px solid rgba(39,135,245,.2);
   border-radius:9px; color:var(--navy); padding:7px 12px;
   font-size:.83rem; outline:none; transition:border .2s;
 }
 .ext-nombre-input:focus { border-color:var(--blue); }
 .ext-nombre-input::placeholder { color:var(--muted); }
+.btn-card-actions { display:flex; gap:5px; flex-shrink:0; }
+.btn-edit-card {
+  width:30px; height:30px; border-radius:50%;
+  background:rgba(39,135,245,.1); border:1px solid rgba(39,135,245,.3);
+  color:var(--blue); cursor:pointer; font-size:.82rem;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s;
+}
+.btn-edit-card:hover { background:rgba(39,135,245,.22); }
 .btn-remove {
   width:30px; height:30px; border-radius:50%;
   background:rgba(229,62,62,.08); border:1px solid rgba(229,62,62,.25);
@@ -144,8 +153,8 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
 .dir-list { display:flex; flex-direction:column; gap:8px; }
 .dir-item {
   display:flex; align-items:center; gap:10px;
-  padding:10px 14px; background:#f8faff;
-  border:1.5px solid var(--border); border-radius:12px;
+  padding:10px 14px; background:#dde8f7;
+  border:1.5px solid rgba(39,135,245,.25); border-radius:12px;
 }
 .dir-avatar {
   width:36px; height:36px; border-radius:50%;
@@ -197,10 +206,10 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
 
 /* ── Panel del botón ── */
 .panic-panel {
-  background:var(--white); border:1.5px solid rgba(229,62,62,.2);
+  background:#fff0f0; border:1.5px solid rgba(229,62,62,.25);
   border-radius:16px; padding:28px 22px;
   display:flex; flex-direction:column; align-items:center; gap:22px;
-  box-shadow:0 4px 20px rgba(229,62,62,.08);
+  box-shadow:0 4px 20px rgba(229,62,62,.1);
   min-height:400px; justify-content:center;
 }
 
@@ -208,7 +217,7 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
   font-size:.72rem; font-weight:700; letter-spacing:2px;
   text-transform:uppercase; padding:5px 14px; border-radius:20px;
 }
-.panic-status.listo     { background:rgba(39,103,73,.1); color:#276749; border:1.5px solid rgba(39,103,73,.25); }
+.panic-status.listo     { background:#e53e3e; color:#fff; border:1.5px solid #c53030; }
 .panic-status.activando { background:rgba(229,62,62,.1); color:var(--red); border:1.5px solid rgba(229,62,62,.25); }
 .panic-status.enviando  { background:rgba(183,121,31,.1); color:var(--orange); border:1.5px solid rgba(183,121,31,.25); }
 
@@ -295,6 +304,32 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
 .ov-sub   { color:rgba(255,255,255,.75); font-size:.88rem; text-align:center; padding:0 20px; }
 .ov-close { margin-top:8px; padding:10px 28px; border-radius:12px; border:2px solid rgba(255,255,255,.4); background:transparent; color:#fff; font-size:.88rem; font-weight:700; cursor:pointer; }
 .ov-close:hover { background:rgba(255,255,255,.15); }
+
+/* ── Popup confirmación ── */
+.confirm-backdrop {
+  position:fixed; inset:0; z-index:600;
+  background:rgba(30,39,86,.45); display:none;
+  align-items:center; justify-content:center;
+}
+.confirm-backdrop.show { display:flex; }
+.confirm-box {
+  background:#fff; border-radius:16px; padding:28px 28px 22px;
+  max-width:340px; width:90%; box-shadow:0 8px 32px rgba(30,39,86,.2);
+  text-align:center;
+}
+.confirm-icon { font-size:2.2rem; margin-bottom:10px; }
+.confirm-title { font-size:1rem; font-weight:700; color:#1E2756; margin-bottom:6px; }
+.confirm-msg { font-size:.83rem; color:#8A9CC8; margin-bottom:20px; line-height:1.5; }
+.confirm-btns { display:flex; gap:10px; justify-content:center; }
+.confirm-btn {
+  padding:9px 24px; border-radius:10px; border:none;
+  font-size:.85rem; font-weight:700; cursor:pointer; transition:opacity .2s;
+  font-family:inherit;
+}
+.confirm-btn-cancel { background:#eef2ff; color:#1E2756; }
+.confirm-btn-cancel:hover { opacity:.8; }
+.confirm-btn-ok { background:#e53e3e; color:#fff; }
+.confirm-btn-ok:hover { opacity:.85; }
 
 /* ── Toast ── */
 #toast {
@@ -383,6 +418,19 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
   </div>
 </div>
 
+<!-- Popup confirmación eliminar -->
+<div class="confirm-backdrop" id="confirmBackdrop">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">Eliminar contacto</div>
+    <div class="confirm-msg" id="confirmMsg">¿Estás seguro de que deseas eliminar este contacto?</div>
+    <div class="confirm-btns">
+      <button class="confirm-btn confirm-btn-cancel" onclick="cerrarConfirm()">Cancelar</button>
+      <button class="confirm-btn confirm-btn-ok" id="confirmOkBtn">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Overlay -->
 <div class="panic-overlay" id="panicOverlay">
   <div class="ov-icon">🚨</div>
@@ -468,7 +516,10 @@ function renderExternos(){
         <div class="ext-num-badge">${i+1}</div>
         <input class="ext-nombre-input" type="text" placeholder="Nombre del contacto"
                value="${_esc(c.nombre)}" oninput="_externos[${i}].nombre=this.value">
-        <button class="btn-remove" onclick="quitarExterno(${i})" title="Eliminar">✕</button>
+        <div class="btn-card-actions">
+          <button class="btn-edit-card" onclick="this.closest('.ext-card').querySelector('.ext-nombre-input').focus()" title="Editar">✏️</button>
+          <button class="btn-remove" onclick="confirmarEliminar(${i})" title="Eliminar">🗑️</button>
+        </div>
       </div>
       <div class="pais-cel-wrap">
         <select class="pais-sel" onchange="_externos[${i}].prefijo=this.value">${_paisesOpts(c.prefijo||'+57')}</select>
@@ -514,6 +565,21 @@ function agregarExterno(){
     const inputs = document.querySelectorAll('.ext-nombre-input');
     if(inputs.length) inputs[inputs.length-1].focus();
   }, 50);
+}
+
+function confirmarEliminar(i){
+  const nombre = _externos[i]?.nombre?.trim() || `Contacto ${i+1}`;
+  document.getElementById('confirmMsg').textContent =
+    `¿Eliminar a "${nombre}" de tus contactos de emergencia?`;
+  document.getElementById('confirmOkBtn').onclick = () => {
+    cerrarConfirm();
+    quitarExterno(i);
+  };
+  document.getElementById('confirmBackdrop').classList.add('show');
+}
+
+function cerrarConfirm(){
+  document.getElementById('confirmBackdrop').classList.remove('show');
 }
 
 function quitarExterno(i){

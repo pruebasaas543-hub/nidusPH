@@ -73,7 +73,6 @@ def directorio_panico():
             db["directorio_contactos"].find(
                 {
                     "empresa_id":                   ObjectId(eid),
-                    "activo":                       True,
                     "vinculado_al_boton_de_panico": True,
                 },
                 {"nombre": 1, "cargo_titulo": 1, "bloque": 1, "telefonos": 1},
