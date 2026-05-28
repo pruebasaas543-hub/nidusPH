@@ -27,7 +27,8 @@ class PanicConfigModel:
 
     @staticmethod
     def guardar(empresa_id: str, residente_id: str,
-                contactos_externos: list, contactos_directorio: list):
+                contactos_externos: list, contactos_directorio: list,
+                mensaje_llamada: str = ""):
         ahora = datetime.utcnow()
         _configs().update_one(
             {"empresa_id": ObjectId(empresa_id), "residente_id": residente_id},
@@ -35,6 +36,7 @@ class PanicConfigModel:
                 "$set": {
                     "contactos_externos":    contactos_externos,
                     "contactos_directorio":  contactos_directorio,
+                    "mensaje_llamada":       mensaje_llamada.strip(),
                     "actualizado_en":        ahora,
                 },
                 "$setOnInsert": {"creado_en": ahora},

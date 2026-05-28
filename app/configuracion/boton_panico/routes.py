@@ -6,6 +6,7 @@ Prefijo: /config/boton_panico
 
 from flask import Blueprint, request
 from bson import ObjectId
+from datetime import datetime
 
 from app import db
 from app.configuracion.utils import requiere_superadmin, ok, err, serializar
@@ -16,6 +17,73 @@ panico_cfg_bp = Blueprint("panico_cfg", __name__, url_prefix="/config/boton_pani
 
 def _empresa_id():
     return request.args.get("propiedad_id", "").strip()
+
+
+from app.servicios.boton_panico.controller import MSG_DEFAULT_SMS, MSG_DEFAULT_WHATSAPP, MSG_DEFAULT_LLAMADA
+
+DEFAULTS = {
+    "llamada":  MSG_DEFAULT_LLAMADA,
+    "sms":      MSG_DEFAULT_SMS,
+    "whatsapp": MSG_DEFAULT_WHATSAPP,
+}
+CAMPOS = {"llamada": "mensaje_llamada", "sms": "mensaje_sms", "whatsapp": "mensaje_whatsapp"}
+
+
+@panico_cfg_bp.route("/mensajes", methods=["GET"])
+@requiere_superadmin
+def obtener_mensajes():
+    eid = _empresa_id()
+    if not eid:
+        return err("propiedad_id requerido", 400)
+    try:
+        doc = db["panic_empresa_config"].find_one({"empresa_id": ObjectId(eid)}) or {}
+        return ok({
+            "llamada":  doc.get("mensaje_llamada",  ""),
+            "sms":      doc.get("mensaje_sms",      ""),
+            "whatsapp": doc.get("mensaje_whatsapp", ""),
+        })
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_cfg_bp.route("/mensajes/<tipo>", methods=["PUT"])
+@requiere_superadmin
+def guardar_mensaje(tipo):
+    if tipo not in CAMPOS:
+        return err("Tipo inválido. Use: llamada, sms, whatsapp", 400)
+    eid = _empresa_id()
+    if not eid:
+        return err("propiedad_id requerido", 400)
+    datos = request.get_json(silent=True) or {}
+    mensaje = str(datos.get("mensaje", "")).strip()
+    try:
+        db["panic_empresa_config"].update_one(
+            {"empresa_id": ObjectId(eid)},
+            {"$set": {CAMPOS[tipo]: mensaje, "actualizado_en": datetime.utcnow()}},
+            upsert=True,
+        )
+        return ok(mensaje="Mensaje guardado")
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_cfg_bp.route("/mensajes/<tipo>", methods=["DELETE"])
+@requiere_superadmin
+def restablecer_mensaje(tipo):
+    if tipo not in CAMPOS:
+        return err("Tipo inválido", 400)
+    eid = _empresa_id()
+    if not eid:
+        return err("propiedad_id requerido", 400)
+    try:
+        db["panic_empresa_config"].update_one(
+            {"empresa_id": ObjectId(eid)},
+            {"$set": {CAMPOS[tipo]: "", "actualizado_en": datetime.utcnow()}},
+            upsert=True,
+        )
+        return ok({"default": DEFAULTS[tipo]}, mensaje="Restablecido al mensaje predeterminado")
+    except Exception as e:
+        return err(str(e))
 
 
 @panico_cfg_bp.route("/contactos", methods=["GET"])

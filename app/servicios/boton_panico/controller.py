@@ -6,6 +6,7 @@ Lógica de negocio para el módulo Botón de Pánico.
 import os
 import logging
 from datetime import datetime
+from xml.sax.saxutils import escape as xml_escape  # fallback si twilio.twiml no disponible
 from bson import ObjectId
 
 from app import db
@@ -16,6 +17,28 @@ log = logging.getLogger(__name__)
 TWILIO_FROM               = os.environ.get("TWILIO_PHONE_NUMBER", "")
 TWILIO_WA_FROM            = os.environ.get("TWILIO_WHATSAPP_FROM", "")
 TWILIO_PANIC_TEMPLATE_SID = os.environ.get("TWILIO_PANIC_TEMPLATE_SID", "")
+
+MSG_DEFAULT_SMS = (
+    "EMERGENCIA: {nombre_residente} activo el boton de panico en "
+    "{nombre_empresa}. Comuniquese de inmediato."
+)
+MSG_DEFAULT_WHATSAPP = (
+    "🚨 EMERGENCIA: {nombre_residente} ha activado el botón de pánico "
+    "en {nombre_empresa}. Comuníquese de inmediato."
+)
+MSG_DEFAULT_LLAMADA = (
+    "Atencion. Se ha activado una alerta de emergencia. "
+    "{nombre_residente} ha presionado el boton de panico "
+    "en {nombre_empresa}. "
+    "Por favor comuniquese de inmediato. "
+    "Repito. Se ha activado una alerta de emergencia en {nombre_empresa}."
+)
+
+
+def _aplicar_vars(texto: str, nombre_residente: str, nombre_empresa: str) -> str:
+    return (texto
+            .replace("{nombre_residente}", nombre_residente)
+            .replace("{nombre_empresa}", nombre_empresa))
 
 
 def _twilio_client():
@@ -28,6 +51,30 @@ def _twilio_client():
     except ImportError:
         log.warning("twilio no instalado — envíos en modo mock")
     return None
+
+
+def _construir_twiml(texto: str) -> str:
+    try:
+        from twilio.twiml.voice_response import VoiceResponse
+        r = VoiceResponse()
+        r.say(texto, voice="alice", language="es")
+        r.pause(length=1)
+        r.say(texto, voice="alice", language="es")
+        r.hangup()
+        twiml = str(r)
+        log.info("TwiML generado: %s", twiml)
+        return twiml
+    except ImportError:
+        texto_xml = xml_escape(texto)
+        twiml = (
+            '<Response>'
+            f'<Say voice="alice" language="es">{texto_xml}</Say>'
+            f'<Pause length="1"/>'
+            f'<Say voice="alice" language="es">{texto_xml}</Say>'
+            f'<Hangup/></Response>'
+        )
+        log.info("TwiML generado (fallback): %s", twiml)
+        return twiml
 
 
 def _numero_completo(prefijo: str, numero: str) -> str:
@@ -74,20 +121,17 @@ def _enviar_llamada(cliente, numero: str, twiml: str) -> dict:
         return {"numero": numero, "estado": "error", "detalle": str(e)}
 
 
-def _enviar_whatsapp(cliente, numero: str, nombre_residente: str, nombre_empresa: str) -> dict:
+def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
     if not cliente or not TWILIO_WA_FROM:
         log.info("[MOCK] WhatsApp → %s", numero)
         return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio"}
     try:
         kwargs = {"to": f"whatsapp:{numero}", "from_": TWILIO_WA_FROM}
         if TWILIO_PANIC_TEMPLATE_SID:
-            kwargs["content_sid"] = TWILIO_PANIC_TEMPLATE_SID
-            kwargs["content_variables"] = f'{{"1":"{nombre_residente}","2":"{nombre_empresa}"}}'
+            kwargs["content_sid"]       = TWILIO_PANIC_TEMPLATE_SID
+            kwargs["content_variables"] = f'{{"1":"{cuerpo}"}}'
         else:
-            kwargs["body"] = (
-                f"🚨 EMERGENCIA: {nombre_residente} ha activado el botón de pánico "
-                f"en {nombre_empresa}. Comuníquese de inmediato."
-            )
+            kwargs["body"] = cuerpo
         msg = cliente.messages.create(**kwargs)
         log.info("WhatsApp enviado → %s (SID=%s)", numero, msg.sid)
         return {"numero": numero, "estado": "enviado", "sid": msg.sid}
@@ -129,7 +173,8 @@ class PanicController:
             for c in datos.get("contactos_directorio", [])
         ]
 
-        PanicConfigModel.guardar(empresa_id, residente_id, externos, directorio)
+        mensaje_llamada = str(datos.get("mensaje_llamada", "")).strip()
+        PanicConfigModel.guardar(empresa_id, residente_id, externos, directorio, mensaje_llamada)
         return True, "Configuración guardada"
 
     @staticmethod
@@ -142,18 +187,17 @@ class PanicController:
 
         cliente     = _twilio_client()
         resultado   = {"externos": [], "directorio": [], "errores": []}
-        nombre_sala = f"panico_{empresa_id}_{int(datetime.utcnow().timestamp())}"
-        msg_sms     = (
-            f"EMERGENCIA: {nombre_residente} activo boton de panico en "
-            f"{nombre_empresa}. Comuniquese de inmediato."
-        )
-        twiml_conf  = (
-            '<?xml version="1.0" encoding="UTF-8"?><Response>'
-            f'<Say voice="Polly.Lucia" language="es-ES">'
-            f'Alerta de emergencia. {nombre_residente} ha activado el boton de panico '
-            f'en {nombre_empresa}. Sera conectado a la sala de emergencia.'
-            f'</Say><Dial><Conference>{nombre_sala}</Conference></Dial></Response>'
-        )
+
+        cfg_empresa  = db["panic_empresa_config"].find_one({"empresa_id": ObjectId(empresa_id)}) or {}
+        tpl_sms      = cfg_empresa.get("mensaje_sms",      "").strip() or MSG_DEFAULT_SMS
+        tpl_whatsapp = cfg_empresa.get("mensaje_whatsapp", "").strip() or MSG_DEFAULT_WHATSAPP
+        tpl_llamada  = cfg_empresa.get("mensaje_llamada",  "").strip() or MSG_DEFAULT_LLAMADA
+
+        msg_sms      = _aplicar_vars(tpl_sms,      nombre_residente, nombre_empresa)
+        msg_whatsapp = _aplicar_vars(tpl_whatsapp, nombre_residente, nombre_empresa)
+        texto_llamada = _aplicar_vars(tpl_llamada, nombre_residente, nombre_empresa)
+
+        twiml_conf = _construir_twiml(texto_llamada)
 
         # ── Contactos externos ────────────────────────────────────────────
         for c in cfg.get("contactos_externos", []):
@@ -168,9 +212,7 @@ class PanicController:
             if "llamada" in tipos:
                 entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
             if "whatsapp" in tipos:
-                entry["canales"]["whatsapp"] = _enviar_whatsapp(
-                    cliente, numero, nombre_residente, nombre_empresa
-                )
+                entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
 
             resultado["externos"].append(entry)
 
@@ -195,9 +237,7 @@ class PanicController:
             if necesita_llamar:
                 entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
             if necesita_whatsapp:
-                entry["canales"]["whatsapp"] = _enviar_whatsapp(
-                    cliente, numero, nombre_residente, nombre_empresa
-                )
+                entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
 
             resultado["directorio"].append(entry)
 

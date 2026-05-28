@@ -1758,6 +1758,63 @@
                     </div>
                 </div>
 
+                <!-- Mensajes personalizados -->
+                <div style="margin-bottom:28px;">
+                    <div style="font-size:.8rem;font-weight:700;color:#042243;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">
+                        ✉️ Mensajes personalizados
+                    </div>
+                    <p style="font-size:.76rem;color:#8A9CC8;margin-bottom:16px;line-height:1.5;">
+                        Personaliza el texto de cada canal. Usa las variables disponibles para incluir datos dinámicos. Si dejas el campo vacío se usa el mensaje predeterminado del sistema.
+                    </p>
+
+                    <!-- Variables chip -->
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;padding:12px 14px;background:#f0f6ff;border-radius:10px;border:1.5px solid rgba(39,135,245,.15);">
+                        <span style="font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;text-transform:uppercase;width:100%;margin-bottom:4px;">Variables disponibles — haz clic para copiar</span>
+                        <button onclick="_panicoVarCopiar('{nombre_residente}')" style="background:#2787F5;color:#fff;border:none;border-radius:7px;padding:5px 13px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;" title="Copia la variable">👤 {nombre_residente}</button>
+                        <button onclick="_panicoVarCopiar('{nombre_empresa}')" style="background:#1E2756;color:#fff;border:none;border-radius:7px;padding:5px 13px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;" title="Copia la variable">🏢 {nombre_empresa}</button>
+                        <span style="font-size:.7rem;color:#8A9CC8;align-self:center;">— Al activar el pánico, se reemplazarán por los datos reales.</span>
+                    </div>
+
+                    <!-- Card SMS -->
+                    <div style="background:#fafbfc;border:1.5px solid rgba(4,34,67,.1);border-radius:12px;padding:16px 18px;margin-bottom:14px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div style="font-size:.82rem;font-weight:700;color:#042243;">📱 Mensaje SMS</div>
+                            <button onclick="_panicoRestablecerMensaje('sms')" style="background:none;border:1px solid rgba(4,34,67,.2);border-radius:7px;padding:4px 11px;font-size:.72rem;color:#8A9CC8;cursor:pointer;font-family:inherit;" title="Restablecer al predeterminado">🔄 Restablecer</button>
+                        </div>
+                        <textarea id="panico-msg-sms" rows="2" placeholder="Predeterminado: EMERGENCIA: {nombre_residente} activó el botón de pánico en {nombre_empresa}. Comuníquese de inmediato." style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#fff;line-height:1.5;" onfocus="this.style.borderColor='#2787F5'" onblur="this.style.borderColor='rgba(4,34,67,.12)'"></textarea>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                            <span id="panico-msg-sms-hint" style="font-size:.7rem;color:#8A9CC8;font-style:italic;"></span>
+                            <button onclick="_panicoGuardarMensaje('sms')" class="btn btn-primary" style="padding:6px 18px;font-size:.78rem;">💾 Guardar</button>
+                        </div>
+                    </div>
+
+                    <!-- Card WhatsApp -->
+                    <div style="background:#fafbfc;border:1.5px solid rgba(4,34,67,.1);border-radius:12px;padding:16px 18px;margin-bottom:14px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div style="font-size:.82rem;font-weight:700;color:#042243;">💬 Mensaje WhatsApp</div>
+                            <button onclick="_panicoRestablecerMensaje('whatsapp')" style="background:none;border:1px solid rgba(4,34,67,.2);border-radius:7px;padding:4px 11px;font-size:.72rem;color:#8A9CC8;cursor:pointer;font-family:inherit;">🔄 Restablecer</button>
+                        </div>
+                        <textarea id="panico-msg-whatsapp" rows="2" placeholder="Predeterminado: 🚨 EMERGENCIA: {nombre_residente} ha activado el botón de pánico en {nombre_empresa}. Comuníquese de inmediato." style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#fff;line-height:1.5;" onfocus="this.style.borderColor='#2787F5'" onblur="this.style.borderColor='rgba(4,34,67,.12)'"></textarea>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                            <span id="panico-msg-whatsapp-hint" style="font-size:.7rem;color:#8A9CC8;font-style:italic;"></span>
+                            <button onclick="_panicoGuardarMensaje('whatsapp')" class="btn btn-primary" style="padding:6px 18px;font-size:.78rem;">💾 Guardar</button>
+                        </div>
+                    </div>
+
+                    <!-- Card Llamada -->
+                    <div style="background:#fafbfc;border:1.5px solid rgba(4,34,67,.1);border-radius:12px;padding:16px 18px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div style="font-size:.82rem;font-weight:700;color:#042243;">☎️ Mensaje de llamada</div>
+                            <button onclick="_panicoRestablecerMensaje('llamada')" style="background:none;border:1px solid rgba(4,34,67,.2);border-radius:7px;padding:4px 11px;font-size:.72rem;color:#8A9CC8;cursor:pointer;font-family:inherit;">🔄 Restablecer</button>
+                        </div>
+                        <textarea id="panico-msg-llamada" rows="3" placeholder="Predeterminado: Atención. Se ha activado una alerta de emergencia. {nombre_residente} ha presionado el botón de pánico en {nombre_empresa}. Por favor comuníquese de inmediato. Repito. Se ha activado una alerta de emergencia en {nombre_empresa}." style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#fff;line-height:1.5;" onfocus="this.style.borderColor='#2787F5'" onblur="this.style.borderColor='rgba(4,34,67,.12)'"></textarea>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                            <span id="panico-msg-llamada-hint" style="font-size:.7rem;color:#8A9CC8;font-style:italic;"></span>
+                            <button onclick="_panicoGuardarMensaje('llamada')" class="btn btn-primary" style="padding:6px 18px;font-size:.78rem;">💾 Guardar</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Historial -->
                 <div>
                     <div style="font-size:.8rem;font-weight:700;color:#042243;letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;">
@@ -6455,7 +6512,79 @@ async function _panicoSeleccionarEmpresa(empresaId) {
     if (!panel) return;
     if (!_panicoEmpresaId) { panel.style.display = 'none'; return; }
     panel.style.display = 'block';
-    await Promise.all([_panicoCargarStats(), _panicoCargarContactos(), _panicoCargarEventos()]);
+    await Promise.all([_panicoCargarStats(), _panicoCargarContactos(), _panicoCargarEventos(), _panicoCargarMensaje()]);
+}
+
+const _PANICO_MSG_DEFAULTS = {
+    sms:      'EMERGENCIA: {nombre_residente} activó el botón de pánico en {nombre_empresa}. Comuníquese de inmediato.',
+    whatsapp: '🚨 EMERGENCIA: {nombre_residente} ha activado el botón de pánico en {nombre_empresa}. Comuníquese de inmediato.',
+    llamada:  'Atención. Se ha activado una alerta de emergencia. {nombre_residente} ha presionado el botón de pánico en {nombre_empresa}. Por favor comuníquese de inmediato.',
+};
+const _PANICO_MSG_IDS = { sms: 'panico-msg-sms', whatsapp: 'panico-msg-whatsapp', llamada: 'panico-msg-llamada' };
+const _PANICO_HINT_IDS = { sms: 'panico-msg-sms-hint', whatsapp: 'panico-msg-whatsapp-hint', llamada: 'panico-msg-llamada-hint' };
+
+async function _panicoCargarMensaje() {
+    if (!_panicoEmpresaId) return;
+    try {
+        const r = await fetch(`/config/boton_panico/mensajes?propiedad_id=${_panicoEmpresaId}&_t=${Date.now()}`);
+        const j = await r.json();
+        if (!j.ok) return;
+        for (const tipo of ['sms', 'whatsapp', 'llamada']) {
+            const val = j.data?.[tipo] || '';
+            document.getElementById(_PANICO_MSG_IDS[tipo]).value = val;
+            _panicoActualizarHint(tipo, val);
+        }
+    } catch {}
+}
+
+function _panicoActualizarHint(tipo, val) {
+    const hint = document.getElementById(_PANICO_HINT_IDS[tipo]);
+    if (!hint) return;
+    hint.textContent = val ? '' : '📋 Usando mensaje predeterminado del sistema';
+}
+
+async function _panicoGuardarMensaje(tipo) {
+    if (!_panicoEmpresaId) return;
+    const msg = document.getElementById(_PANICO_MSG_IDS[tipo]).value.trim();
+    try {
+        const r = await fetch(`/config/boton_panico/mensajes/${tipo}?propiedad_id=${_panicoEmpresaId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ mensaje: msg }),
+        });
+        const j = await r.json();
+        if (j.ok) {
+            _panicoActualizarHint(tipo, msg);
+            showToast('✅ Mensaje guardado');
+        } else {
+            showToast('❌ ' + (j.error || 'Error'), true);
+        }
+    } catch { showToast('❌ Error de conexión', true); }
+}
+
+async function _panicoRestablecerMensaje(tipo) {
+    if (!_panicoEmpresaId) return;
+    try {
+        const r = await fetch(`/config/boton_panico/mensajes/${tipo}?propiedad_id=${_panicoEmpresaId}`, {
+            method: 'DELETE',
+        });
+        const j = await r.json();
+        if (j.ok) {
+            document.getElementById(_PANICO_MSG_IDS[tipo]).value = '';
+            _panicoActualizarHint(tipo, '');
+            showToast('🔄 Restablecido al mensaje predeterminado');
+        } else {
+            showToast('❌ ' + (j.error || 'Error'), true);
+        }
+    } catch { showToast('❌ Error de conexión', true); }
+}
+
+function _panicoVarCopiar(variable) {
+    navigator.clipboard?.writeText(variable).then(() => {
+        showToast(`📋 Copiado: ${variable}`);
+    }).catch(() => {
+        showToast(`Variable: ${variable}  (Ctrl+C para copiar)`, false);
+    });
 }
 
 async function _panicoCargarStats() {
