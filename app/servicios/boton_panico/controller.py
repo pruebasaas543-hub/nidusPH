@@ -6,7 +6,7 @@ Lógica de negocio para el módulo Botón de Pánico.
 import os
 import logging
 from datetime import datetime
-from xml.sax.saxutils import escape as xml_escape  # fallback si twilio.twiml no disponible
+from xml.sax.saxutils import escape as xml_escape
 from bson import ObjectId
 
 from app import db
@@ -57,9 +57,9 @@ def _construir_twiml(texto: str) -> str:
     try:
         from twilio.twiml.voice_response import VoiceResponse
         r = VoiceResponse()
-        r.say(texto, voice="alice", language="es")
+        r.say(texto, voice="Polly.Lupe", language="es-US")
         r.pause(length=1)
-        r.say(texto, voice="alice", language="es")
+        r.say(texto, voice="Polly.Lupe", language="es-US")
         r.hangup()
         twiml = str(r)
         log.info("TwiML generado: %s", twiml)
@@ -68,9 +68,9 @@ def _construir_twiml(texto: str) -> str:
         texto_xml = xml_escape(texto)
         twiml = (
             '<Response>'
-            f'<Say voice="alice" language="es">{texto_xml}</Say>'
+            f'<Say voice="Polly.Lupe" language="es-US">{texto_xml}</Say>'
             f'<Pause length="1"/>'
-            f'<Say voice="alice" language="es">{texto_xml}</Say>'
+            f'<Say voice="Polly.Lupe" language="es-US">{texto_xml}</Say>'
             f'<Hangup/></Response>'
         )
         log.info("TwiML generado (fallback): %s", twiml)
@@ -78,7 +78,6 @@ def _construir_twiml(texto: str) -> str:
 
 
 def _numero_completo(prefijo: str, numero: str) -> str:
-    """Construye número E.164: prefijo + número (sin espacios ni guiones)."""
     p = (prefijo or "+57").strip()
     n = "".join(c for c in (numero or "") if c.isdigit())
     return f"{p}{n}"
@@ -143,14 +142,12 @@ def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
 class PanicController:
 
     @staticmethod
-    def obtener_config(empresa_id: str, residente_id: str):
-        cfg = PanicConfigModel.obtener(empresa_id, residente_id)
-        if not cfg:
-            return True, {"contactos_externos": [], "contactos_directorio": []}
-        return True, cfg
+    def obtener_config(empresa_id: str):
+        cfg = PanicConfigModel.obtener(empresa_id)
+        return True, cfg or {"contactos_externos": [], "contactos_directorio": []}
 
     @staticmethod
-    def guardar_config(empresa_id: str, residente_id: str, datos: dict):
+    def guardar_config(empresa_id: str, datos: dict):
         externos = datos.get("contactos_externos", [])
         if len(externos) > 2:
             return False, "Máximo 2 contactos externos permitidos"
@@ -173,31 +170,33 @@ class PanicController:
             for c in datos.get("contactos_directorio", [])
         ]
 
-        mensaje_llamada = str(datos.get("mensaje_llamada", "")).strip()
-        PanicConfigModel.guardar(empresa_id, residente_id, externos, directorio, mensaje_llamada)
+        PanicConfigModel.guardar_contactos(empresa_id, externos, directorio)
         return True, "Configuración guardada"
 
     @staticmethod
     def trigger(empresa_id: str, residente_id: str,
                 nombre_residente: str, nombre_empresa: str, ip: str = ""):
 
-        cfg = PanicConfigModel.obtener(empresa_id, residente_id)
-        if not cfg:
-            return False, "Sin configuración de pánico. Configura tus contactos primero."
+        cfg = PanicConfigModel.obtener(empresa_id)
+        if not cfg or (not cfg.get("contactos_externos") and not cfg.get("contactos_directorio")):
+            return False, "Sin configuración de pánico. Configura los contactos primero."
 
-        cliente     = _twilio_client()
-        resultado   = {"externos": [], "directorio": [], "errores": []}
+        cliente    = _twilio_client()
+        resultado  = {"externos": [], "directorio": [], "errores": []}
 
-        cfg_empresa  = db["panic_empresa_config"].find_one({"empresa_id": ObjectId(empresa_id)}) or {}
-        tpl_sms      = cfg_empresa.get("mensaje_sms",      "").strip() or MSG_DEFAULT_SMS
-        tpl_whatsapp = cfg_empresa.get("mensaje_whatsapp", "").strip() or MSG_DEFAULT_WHATSAPP
-        tpl_llamada  = cfg_empresa.get("mensaje_llamada",  "").strip() or MSG_DEFAULT_LLAMADA
+        canal_sms_on  = cfg.get("activo_sms",      True)
+        canal_wa_on   = cfg.get("activo_whatsapp",  True)
+        canal_call_on = cfg.get("activo_llamada",   True)
 
-        msg_sms      = _aplicar_vars(tpl_sms,      nombre_residente, nombre_empresa)
-        msg_whatsapp = _aplicar_vars(tpl_whatsapp, nombre_residente, nombre_empresa)
-        texto_llamada = _aplicar_vars(tpl_llamada, nombre_residente, nombre_empresa)
+        tpl_sms      = cfg.get("mensaje_sms",      "") or MSG_DEFAULT_SMS
+        tpl_whatsapp = cfg.get("mensaje_whatsapp", "") or MSG_DEFAULT_WHATSAPP
+        tpl_llamada  = cfg.get("mensaje_llamada",  "") or MSG_DEFAULT_LLAMADA
 
-        twiml_conf = _construir_twiml(texto_llamada)
+        msg_sms       = _aplicar_vars(tpl_sms,      nombre_residente, nombre_empresa)
+        msg_whatsapp  = _aplicar_vars(tpl_whatsapp, nombre_residente, nombre_empresa)
+        texto_llamada = _aplicar_vars(tpl_llamada,  nombre_residente, nombre_empresa)
+
+        twiml_conf = _construir_twiml(texto_llamada) if canal_call_on else None
 
         # ── Contactos externos ────────────────────────────────────────────
         for c in cfg.get("contactos_externos", []):
@@ -207,20 +206,20 @@ class PanicController:
             tipos  = c.get("tipo_notificacion", [])
             entry  = {"nombre": c.get("nombre", ""), "numero": numero, "canales": {}}
 
-            if "sms" in tipos:
+            if "sms" in tipos and canal_sms_on:
                 entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms)
-            if "llamada" in tipos:
+            if "llamada" in tipos and canal_call_on and twiml_conf:
                 entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
-            if "whatsapp" in tipos:
+            if "whatsapp" in tipos and canal_wa_on:
                 entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
 
             resultado["externos"].append(entry)
 
         # ── Contactos del directorio ──────────────────────────────────────
         for c in cfg.get("contactos_directorio", []):
-            necesita_sms      = bool(c.get("habilitado_para_sms"))
-            necesita_llamar   = bool(c.get("habilitado_para_llamar"))
-            necesita_whatsapp = bool(c.get("habilitado_para_whatsapp"))
+            necesita_sms      = bool(c.get("habilitado_para_sms"))      and canal_sms_on
+            necesita_llamar   = bool(c.get("habilitado_para_llamar"))   and canal_call_on
+            necesita_whatsapp = bool(c.get("habilitado_para_whatsapp")) and canal_wa_on
             if not any([necesita_sms, necesita_llamar, necesita_whatsapp]):
                 continue
 
@@ -234,12 +233,15 @@ class PanicController:
 
             if necesita_sms:
                 entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms)
-            if necesita_llamar:
+            if necesita_llamar and twiml_conf:
                 entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
             if necesita_whatsapp:
                 entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
 
             resultado["directorio"].append(entry)
 
-        event_id = PanicEventModel.registrar(empresa_id, residente_id, resultado, ip)
+        event_id = PanicEventModel.registrar(
+            empresa_id, residente_id, resultado, ip,
+            nombre_residente=nombre_residente, nombre_empresa=nombre_empresa,
+        )
         return True, {"event_id": event_id, "resultado": resultado}

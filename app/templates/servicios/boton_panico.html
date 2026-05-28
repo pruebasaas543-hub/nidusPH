@@ -388,20 +388,469 @@ body { background:var(--bg); color:var(--navy); min-height:100vh; }
 #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 #toast.error { background:var(--red); }
 </style>
+
+{% if es_sistema %}
+<style>
+/* ── Admin: tema oscuro igual que Directorio ── */
+:root {
+  --abg:  #060c26; --abg2: #0b1235; --abg3: #0f1a4a;
+  --acc:  #00d4ff; --acc2: #0a7fff;
+  --ared: #ff4d6d; --agrn: #00e676; --ayel: #ffd600;
+  --atxt: #e8eaf6; --amut: rgba(232,234,246,.42);
+  --abor: rgba(0,212,255,.14); --arad: 14px;
+}
+html,body{height:100%;overflow:hidden;background:var(--abg);color:var(--atxt);}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(0,212,255,.07) 1px,transparent 1px);
+  background-size:28px 28px;}
+.a-page{display:flex;flex-direction:column;height:100%;overflow:hidden;position:relative;z-index:1;}
+/* topbar */
+.a-topbar{display:flex;align-items:center;gap:16px;padding:0 28px;height:62px;flex-shrink:0;
+  background:linear-gradient(90deg,#060c26 0%,#0b1a4a 60%,#0a1a3a 100%);
+  border-bottom:1px solid var(--abor);box-shadow:0 2px 20px rgba(0,0,0,.4);}
+.a-back{display:flex;align-items:center;gap:6px;color:var(--amut);text-decoration:none;
+  font-size:.8rem;font-weight:500;padding:5px 10px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.08);transition:all .2s;}
+.a-back:hover{color:var(--acc);border-color:var(--abor);background:rgba(0,212,255,.06);}
+.a-tdiv{width:1px;height:22px;background:rgba(255,255,255,.1);}
+.a-ticon{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#7b0d1e,#ff4d6d);
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem;
+  box-shadow:0 0 16px rgba(255,77,109,.35);}
+.a-tname{font-size:1rem;font-weight:700;letter-spacing:.2px;}
+.a-tsub{font-size:.72rem;color:var(--amut);margin-top:1px;}
+/* empresa toolbar */
+.a-toolbar{display:flex;align-items:center;gap:12px;padding:10px 28px;
+  border-bottom:1px solid var(--abor);background:rgba(11,18,53,.8);
+  backdrop-filter:blur(8px);flex-shrink:0;flex-wrap:wrap;}
+.a-sel{background:rgba(255,255,255,.05);color:var(--atxt);
+  border:1px solid rgba(255,255,255,.12);border-radius:10px;
+  padding:8px 14px;font-family:inherit;font-size:.84rem;outline:none;
+  min-width:280px;cursor:pointer;transition:border-color .2s;}
+.a-sel:focus{border-color:var(--acc);}
+.a-sel option{background:#0b1235;color:#e8eaf6;}
+/* tabs */
+.a-tabs-wrap{padding:14px 28px 0;border-bottom:1px solid var(--abor);
+  background:rgba(6,12,38,.6);flex-shrink:0;overflow-x:auto;}
+.a-tabs{display:flex;gap:6px;}
+.a-tab{display:flex;align-items:center;gap:7px;padding:8px 18px 10px;
+  border-radius:10px 10px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;
+  white-space:nowrap;border:1px solid transparent;border-bottom:none;
+  color:var(--amut);background:transparent;transition:all .2s;font-family:inherit;
+  position:relative;}
+.a-tab:hover{color:var(--atxt);background:rgba(255,255,255,.04);}
+.a-tab.active{background:var(--abg3);color:#fff;border-color:var(--abor);}
+.a-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;
+  background:var(--tab-color,var(--acc));border-radius:2px 2px 0 0;}
+/* content */
+.a-content{flex:1;overflow-y:auto;padding:24px 28px;}
+.a-pane{display:none;} .a-pane.active{display:block;}
+.a-sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.a-sec-hdr h2{font-size:.8rem;font-weight:700;color:var(--amut);letter-spacing:.8px;text-transform:uppercase;}
+.a-sec-line{flex:1;height:1px;background:var(--abor);}
+/* cards */
+.a-card{background:var(--abg2);border:1px solid var(--abor);border-radius:var(--arad);
+  padding:20px 22px;margin-bottom:18px;}
+.a-card-title{font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--acc);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+/* forms */
+.a-ta{width:100%;padding:9px 12px;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);border-radius:9px;
+  font-size:.82rem;color:var(--atxt);font-family:inherit;resize:vertical;outline:none;line-height:1.5;}
+.a-ta:focus{border-color:var(--acc);background:rgba(0,212,255,.04);}
+.a-hint{font-size:.7rem;font-style:italic;margin-top:4px;}
+.a-hint.default{color:var(--amut);} .a-hint.custom{color:var(--agrn);}
+/* btns */
+.a-btn{padding:7px 18px;border:none;border-radius:8px;font-size:.8rem;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .2s;}
+.a-btn-pri{background:linear-gradient(135deg,var(--acc2),var(--acc));color:#000;}
+.a-btn-pri:hover{filter:brightness(1.12);transform:translateY(-1px);}
+.a-btn-del{background:rgba(255,77,109,.12);color:var(--ared);
+  border:1px solid rgba(255,77,109,.25);}
+.a-btn-del:hover{background:rgba(255,77,109,.22);}
+/* var chips */
+.a-var{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);
+  color:var(--acc);border-radius:7px;padding:4px 12px;font-size:.76rem;
+  font-weight:700;cursor:pointer;font-family:monospace;transition:background .15s;}
+.a-var:hover{background:rgba(0,212,255,.18);}
+/* contacts grid */
+.a-cnt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+.a-cnt-card{background:var(--abg3);border:1px solid var(--abor);border-radius:12px;
+  padding:14px 16px;display:flex;gap:12px;align-items:flex-start;}
+.a-cnt-foto{width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;
+  background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;border:2px solid rgba(0,212,255,.2);}
+.a-cnt-foto img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.a-cnt-info{flex:1;min-width:0;}
+.a-cnt-nom{font-size:.88rem;font-weight:700;color:var(--atxt);}
+.a-cnt-car{font-size:.74rem;color:var(--amut);margin-bottom:5px;}
+.a-cnt-tel{font-size:.76rem;color:var(--acc);margin-bottom:6px;}
+.a-badge{display:inline-flex;align-items:center;gap:3px;font-size:.64rem;font-weight:700;
+  padding:2px 8px;border-radius:99px;margin:2px 2px 0 0;}
+.a-badge-seg{background:rgba(255,77,109,.15);color:var(--ared);border:1px solid rgba(255,77,109,.25);}
+.a-badge-adm{background:rgba(0,168,255,.12);color:#00a8ff;border:1px solid rgba(0,168,255,.25);}
+.a-badge-pan{background:rgba(255,214,0,.1);color:var(--ayel);border:1px solid rgba(255,214,0,.2);}
+/* log */
+.a-log-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px;}
+.a-log-filters label{font-size:.75rem;font-weight:700;color:var(--amut);display:flex;flex-direction:column;gap:4px;}
+.a-log-filters input[type=date]{padding:7px 10px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:.82rem;
+  font-family:inherit;outline:none;color:var(--atxt);color-scheme:dark;}
+.a-log-filters input:focus{border-color:var(--acc);}
+.a-log-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.a-log-table th{background:rgba(255,255,255,.05);color:var(--amut);font-weight:700;
+  padding:9px 12px;text-align:left;white-space:nowrap;font-size:.72rem;letter-spacing:.5px;text-transform:uppercase;}
+.a-log-table td{padding:9px 12px;border-bottom:1px solid var(--abor);vertical-align:top;color:var(--atxt);}
+.a-log-table tr:hover td{background:rgba(255,255,255,.03);}
+.a-chip{display:inline-block;padding:2px 9px;border-radius:6px;font-size:.7rem;font-weight:700;}
+.a-chip-ok{background:rgba(0,230,118,.12);color:var(--agrn);}
+.a-chip-err{background:rgba(255,77,109,.12);color:var(--ared);}
+.a-chip-mock{background:rgba(255,214,0,.1);color:var(--ayel);}
+/* toast */
+#a-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--abg3);color:var(--atxt);padding:10px 22px;border-radius:10px;
+  font-size:.82rem;font-weight:600;opacity:0;transition:all .3s;z-index:9999;
+  pointer-events:none;white-space:nowrap;border:1px solid var(--abor);
+  box-shadow:0 4px 20px rgba(0,0,0,.5);}
+#a-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#a-toast.err{border-color:rgba(255,77,109,.4);background:#1a0a10;}
+</style>
+{% endif %}
+
 </head>
 <body>
 
-<!-- Topbar -->
-<div class="topbar">
-  <a href="javascript:history.back()">← Volver</a>
-  <div class="topbar-divider"></div>
-  <div class="topbar-icon">🚨</div>
-  <div>
-    <div class="topbar-name">Botón de Pánico</div>
-    <div class="topbar-sub">Sistema de emergencia multi-canal</div>
-  </div>
-</div>
+{% if es_sistema %}
+<!-- ══════════════ VISTA ADMIN (tema oscuro) ══════════════ -->
+<div class="a-page">
 
+  <!-- Topbar -->
+  <div class="a-topbar">
+    <a class="a-back" href="javascript:history.back()">← Volver</a>
+    <div class="a-tdiv"></div>
+    <div class="a-ticon">🚨</div>
+    <div>
+      <div class="a-tname">Botón de Pánico</div>
+      <div class="a-tsub">Configuración y monitoreo</div>
+    </div>
+  </div>
+
+  <!-- Toolbar empresa -->
+  <div class="a-toolbar">
+    <span style="font-size:.8rem;font-weight:700;color:var(--amut);white-space:nowrap;">🏢 Empresa</span>
+    <select class="a-sel" id="adm-empresa" onchange="admSelEmpresa(this.value)">
+      <option value="">— Selecciona una empresa —</option>
+    </select>
+  </div>
+
+  <!-- Tabs -->
+  <div class="a-tabs-wrap">
+    <div class="a-tabs">
+      <button class="a-tab active" style="--tab-color:var(--acc)" onclick="admTab('config',this)">⚙️ Configuraciones</button>
+      <button class="a-tab" style="--tab-color:var(--ared)" onclick="admTab('log',this)">📋 Log de activaciones</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="a-content">
+
+    <!-- ── Tab Configuraciones ── -->
+    <div id="adm-pane-config" class="a-pane active">
+
+      <div id="adm-config-panel" style="display:none;">
+
+        <!-- Variables -->
+        <div class="a-sec-hdr"><h2>✉️ Mensajes por canal</h2><div class="a-sec-line"></div></div>
+        <div class="a-card" style="margin-bottom:10px;">
+          <p style="font-size:.76rem;color:var(--amut);margin-bottom:10px;">Variables disponibles — haz clic para copiar:</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="a-var" onclick="admCopiarVar('{nombre_residente}')">👤 {nombre_residente}</button>
+            <button class="a-var" onclick="admCopiarVar('{nombre_empresa}')">🏢 {nombre_empresa}</button>
+          </div>
+        </div>
+
+        <!-- SMS -->
+        <div class="a-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="a-card-title" style="margin:0;">📱 Mensaje SMS</div>
+            <button class="a-btn a-btn-del" onclick="admRestablecer('sms')">🔄 Restablecer</button>
+          </div>
+          <textarea class="a-ta" id="adm-msg-sms" rows="2"></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <span class="a-hint default" id="adm-hint-sms"></span>
+            <button class="a-btn a-btn-pri" onclick="admGuardar('sms')">💾 Guardar</button>
+          </div>
+        </div>
+
+        <!-- WhatsApp -->
+        <div class="a-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="a-card-title" style="margin:0;">💬 Mensaje WhatsApp</div>
+            <button class="a-btn a-btn-del" onclick="admRestablecer('whatsapp')">🔄 Restablecer</button>
+          </div>
+          <textarea class="a-ta" id="adm-msg-whatsapp" rows="2"></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <span class="a-hint default" id="adm-hint-whatsapp"></span>
+            <button class="a-btn a-btn-pri" onclick="admGuardar('whatsapp')">💾 Guardar</button>
+          </div>
+        </div>
+
+        <!-- Llamada -->
+        <div class="a-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="a-card-title" style="margin:0;">☎️ Mensaje de llamada</div>
+            <button class="a-btn a-btn-del" onclick="admRestablecer('llamada')">🔄 Restablecer</button>
+          </div>
+          <textarea class="a-ta" id="adm-msg-llamada" rows="3"></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <span class="a-hint default" id="adm-hint-llamada"></span>
+            <button class="a-btn a-btn-pri" onclick="admGuardar('llamada')">💾 Guardar</button>
+          </div>
+        </div>
+
+        <!-- Contactos -->
+        <div class="a-sec-hdr" style="margin-top:8px;"><h2>📒 Contactos vinculados</h2><div class="a-sec-line"></div></div>
+        <div id="adm-contactos-grid" class="a-cnt-grid">
+          <p style="color:var(--amut);font-size:.82rem;">Cargando...</p>
+        </div>
+
+      </div><!-- /adm-config-panel -->
+
+      <div id="adm-empty-sel" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:80px 0;color:var(--amut);">
+        <div style="font-size:3rem;opacity:.3;">🏢</div>
+        <p style="font-size:.9rem;">Selecciona una empresa para ver su configuración</p>
+      </div>
+
+    </div><!-- /Tab Config -->
+
+    <!-- ── Tab Log ── -->
+    <div id="adm-pane-log" class="a-pane">
+      <div class="a-card">
+        <div class="a-card-title">📋 Historial de activaciones</div>
+        <div class="a-log-filters">
+          <label>🏢 Empresa
+            <select class="a-sel" id="log-empresa" style="min-width:240px;">
+              <option value="">— Selecciona —</option>
+            </select>
+          </label>
+          <label>📅 Desde
+            <input type="date" id="log-desde">
+          </label>
+          <label>📅 Hasta
+            <input type="date" id="log-hasta">
+          </label>
+          <button class="a-btn a-btn-pri" onclick="admBuscarLog()" style="align-self:flex-end;">🔍 Buscar</button>
+        </div>
+        <div id="adm-log-contenedor">
+          <div style="padding:40px;text-align:center;color:var(--amut);font-size:.85rem;">Selecciona una empresa y haz clic en Buscar.</div>
+        </div>
+      </div>
+    </div><!-- /Tab Log -->
+
+  </div><!-- /a-content -->
+</div><!-- /a-page -->
+
+<div id="a-toast"></div>
+
+<script>
+let _admEmpresas = [], _admEmpresaId = '';
+
+function admTab(id, btn) {
+  document.querySelectorAll('.a-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.a-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('adm-pane-' + id).classList.add('active');
+}
+
+function admToast(msg, isErr=false) {
+  const t = document.getElementById('a-toast');
+  t.textContent = msg;
+  t.className = isErr ? 'show err' : 'show';
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.className = '', 3000);
+}
+
+async function admCargarEmpresas() {
+  try {
+    const r = await fetch('/servicios/boton_panico/admin/empresas');
+    const j = await r.json();
+    if (!j.ok) return;
+    _admEmpresas = j.data || [];
+    const opts = _admEmpresas.map(e => `<option value="${e._id}">${e.razon_social||e.nombre||e._id}</option>`).join('');
+    document.getElementById('adm-empresa').innerHTML = '<option value="">— Selecciona una empresa —</option>' + opts;
+    document.getElementById('log-empresa').innerHTML  = '<option value="">— Selecciona —</option>' + opts;
+  } catch {}
+}
+
+async function admSelEmpresa(eid) {
+  _admEmpresaId = eid;
+  const panel = document.getElementById('adm-config-panel');
+  const empty = document.getElementById('adm-empty-sel');
+  if (!eid) { panel.style.display='none'; empty.style.display='flex'; return; }
+  panel.style.display='block'; empty.style.display='none';
+  await Promise.all([admCargarMensajes(), admCargarContactos()]);
+}
+
+async function admCargarMensajes() {
+  if (!_admEmpresaId) return;
+  try {
+    const r = await fetch(`/servicios/boton_panico/admin/mensajes?empresa_id=${_admEmpresaId}`);
+    const j = await r.json();
+    if (!j.ok) return;
+    const esDef = j.data.es_default || {};
+    for (const tipo of ['sms','whatsapp','llamada']) {
+      document.getElementById('adm-msg-' + tipo).value = j.data[tipo] || '';
+      admActualizarHint(tipo, !esDef[tipo]);
+    }
+  } catch {}
+}
+
+function admActualizarHint(tipo, esPersonalizado) {
+  const h = document.getElementById('adm-hint-' + tipo);
+  const ta = document.getElementById('adm-msg-' + tipo);
+  if (!h) return;
+  if (esPersonalizado) {
+    h.textContent = '✏️ Mensaje personalizado guardado';
+    h.className = 'a-hint custom';
+    if (ta) ta.style.borderColor = 'rgba(0,230,118,.4)';
+  } else {
+    h.textContent = '📋 Predeterminado — edita y guarda para personalizar';
+    h.className = 'a-hint default';
+    if (ta) ta.style.borderColor = 'rgba(255,255,255,.1)';
+  }
+}
+
+async function admGuardar(tipo) {
+  if (!_admEmpresaId) return;
+  const msg = document.getElementById('adm-msg-' + tipo).value.trim();
+  if (!msg) { admToast('El mensaje no puede estar vacío', true); return; }
+  try {
+    const r = await fetch(`/servicios/boton_panico/admin/mensajes/${tipo}?empresa_id=${_admEmpresaId}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mensaje: msg}),
+    });
+    const j = await r.json();
+    if (j.ok) { admActualizarHint(tipo, true); admToast('✅ Mensaje guardado'); }
+    else admToast('❌ ' + (j.error||'Error'), true);
+  } catch { admToast('❌ Error de conexión', true); }
+}
+
+async function admRestablecer(tipo) {
+  if (!_admEmpresaId) return;
+  if (!confirm('¿Restablecer al mensaje predeterminado?')) return;
+  try {
+    const r = await fetch(`/servicios/boton_panico/admin/mensajes/${tipo}?empresa_id=${_admEmpresaId}`, {method:'DELETE'});
+    const j = await r.json();
+    if (j.ok) {
+      document.getElementById('adm-msg-' + tipo).value = j.data?.default || '';
+      admActualizarHint(tipo, false);
+      admToast('🔄 Restablecido al predeterminado');
+    } else admToast('❌ ' + (j.error||'Error'), true);
+  } catch { admToast('❌ Error de conexión', true); }
+}
+
+function admCopiarVar(v) {
+  navigator.clipboard?.writeText(v).then(() => admToast('📋 Copiado: ' + v));
+}
+
+async function admCargarContactos() {
+  if (!_admEmpresaId) return;
+  const grid = document.getElementById('adm-contactos-grid');
+  grid.innerHTML = '<p style="color:var(--amut);font-size:.82rem;">Cargando...</p>';
+  try {
+    const r = await fetch(`/servicios/boton_panico/admin/contactos?empresa_id=${_admEmpresaId}`);
+    const j = await r.json();
+    if (!j.ok || !j.data?.length) {
+      grid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--amut);grid-column:1/-1;"><div style="font-size:2.5rem;opacity:.3;margin-bottom:10px;">📒</div><p style="font-size:.85rem;">Sin contactos vinculados al botón de pánico</p></div>';
+      return;
+    }
+    grid.innerHTML = j.data.map(c => {
+      const tels = (c.telefonos||[]).map(t => {
+        const pre = typeof t==='object'?(t.prefijo||'+57'):'+57';
+        const num = typeof t==='object'?(t.numero||''):String(t);
+        return `${pre} ${num}`;
+      }).join(' · ');
+      const foto = c.foto
+        ? `<div class="a-cnt-foto"><img src="${c.foto}" alt=""></div>`
+        : `<div class="a-cnt-foto">👤</div>`;
+      const badges = [
+        c.es_visible_para_seguridad   ? '<span class="a-badge a-badge-seg">🔒 Seguridad</span>' : '',
+        c.es_visible_para_administracion ? '<span class="a-badge a-badge-adm">🏢 Admin</span>' : '',
+        c.vinculado_al_boton_de_panico   ? '<span class="a-badge a-badge-pan">🆘 Pánico</span>' : '',
+      ].join('');
+      return `<div class="a-cnt-card">
+        ${foto}
+        <div class="a-cnt-info">
+          <div class="a-cnt-nom">${c.nombre||''}</div>
+          <div class="a-cnt-car">${c.cargo_titulo||c.bloque||''}</div>
+          <div class="a-cnt-tel">${tels||'Sin teléfono'}</div>
+          <div>${badges}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch { grid.innerHTML = '<p style="color:var(--ared);font-size:.82rem;">Error al cargar contactos.</p>'; }
+}
+
+async function admBuscarLog() {
+  const eid   = document.getElementById('log-empresa').value;
+  const desde = document.getElementById('log-desde').value;
+  const hasta = document.getElementById('log-hasta').value;
+  const cont  = document.getElementById('adm-log-contenedor');
+  if (!eid) { admToast('Selecciona una empresa', true); return; }
+  cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--amut);font-size:.85rem;">Buscando...</div>';
+  let url = `/servicios/boton_panico/admin/log?empresa_id=${eid}`;
+  if (desde) url += `&fecha_ini=${desde}`;
+  if (hasta) url += `&fecha_fin=${hasta}T23:59:59`;
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    if (!j.ok) { cont.innerHTML = `<p style="color:var(--ared);">Error: ${j.error}</p>`; return; }
+    const eventos = j.data || [];
+    if (!eventos.length) {
+      cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--amut);"><div style="font-size:2.5rem;opacity:.3;margin-bottom:10px;">📋</div><p style="font-size:.85rem;">Sin activaciones en ese período.</p></div>';
+      return;
+    }
+    const filas = eventos.flatMap(ev => {
+      const fecha = ev.activado_en ? new Date(ev.activado_en).toLocaleString('es-CO') : '—';
+      const res   = ev.resultado || {};
+      const canales = [...(res.externos||[]), ...(res.directorio||[])];
+      if (!canales.length) return [`<tr><td>${fecha}</td><td><b>${ev.nombre_residente||ev.residente_id||'—'}</b></td><td colspan="4" style="color:var(--amut);">Sin destinatarios</td></tr>`];
+      return canales.flatMap(c =>
+        Object.entries(c.canales||{}).map(([tipo, info]) => {
+          const icon   = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
+          const estado = info.estado||'—';
+          const cls    = (estado==='enviado'||estado==='iniciado'||estado==='delivered')?'a-chip-ok':estado==='mock'?'a-chip-mock':'a-chip-err';
+          const sid    = info.sid ? `<br><span style="font-size:.62rem;color:var(--amut);">…${info.sid.slice(-8)}</span>` : '';
+          const det    = info.detalle ? `<br><span style="font-size:.65rem;color:var(--ared);">${info.detalle}</span>` : '';
+          return `<tr>
+            <td style="white-space:nowrap;">${fecha}</td>
+            <td><b>${ev.nombre_residente||ev.residente_id||'—'}</b></td>
+            <td>${icon} ${tipo.toUpperCase()}</td>
+            <td>${c.nombre||'—'}</td>
+            <td style="color:var(--acc);">${c.numero||'—'}</td>
+            <td><span class="a-chip ${cls}">${estado}</span>${sid}${det}</td>
+          </tr>`;
+        })
+      );
+    }).join('');
+
+    cont.innerHTML = `<div style="overflow-x:auto;">
+      <table class="a-log-table">
+        <thead><tr>
+          <th>Fecha / Hora</th><th>Residente</th><th>Canal</th>
+          <th>Receptor</th><th>Número</th><th>Estado</th>
+        </tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>`;
+  } catch { cont.innerHTML = '<p style="color:var(--ared);">Error de conexión.</p>'; }
+}
+
+admCargarEmpresas();
+</script>
+
+{% else %}
+<!-- ══════════════ VISTA RESIDENTE ══════════════ -->
 <div class="main">
 
   <!-- ── Col izquierda: Botón + historial ── -->
@@ -929,5 +1378,7 @@ function setStatus(tipo, txt){
 
 init();
 </script>
+
+{% endif %}
 </body>
 </html>

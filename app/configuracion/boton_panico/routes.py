@@ -6,20 +6,13 @@ Prefijo: /config/boton_panico
 
 from flask import Blueprint, request
 from bson import ObjectId
-from datetime import datetime
 
 from app import db
 from app.configuracion.utils import requiere_superadmin, ok, err, serializar
-from app.servicios.boton_panico.model import PanicEventModel
+from app.servicios.boton_panico.model import PanicConfigModel, PanicEventModel
+from app.servicios.boton_panico.controller import MSG_DEFAULT_SMS, MSG_DEFAULT_WHATSAPP, MSG_DEFAULT_LLAMADA
 
 panico_cfg_bp = Blueprint("panico_cfg", __name__, url_prefix="/config/boton_panico")
-
-
-def _empresa_id():
-    return request.args.get("propiedad_id", "").strip()
-
-
-from app.servicios.boton_panico.controller import MSG_DEFAULT_SMS, MSG_DEFAULT_WHATSAPP, MSG_DEFAULT_LLAMADA
 
 DEFAULTS = {
     "llamada":  MSG_DEFAULT_LLAMADA,
@@ -29,6 +22,10 @@ DEFAULTS = {
 CAMPOS = {"llamada": "mensaje_llamada", "sms": "mensaje_sms", "whatsapp": "mensaje_whatsapp"}
 
 
+def _empresa_id():
+    return request.args.get("propiedad_id", "").strip()
+
+
 @panico_cfg_bp.route("/mensajes", methods=["GET"])
 @requiere_superadmin
 def obtener_mensajes():
@@ -36,11 +33,26 @@ def obtener_mensajes():
     if not eid:
         return err("propiedad_id requerido", 400)
     try:
-        doc = db["panic_empresa_config"].find_one({"empresa_id": ObjectId(eid)}) or {}
+        msgs = PanicConfigModel.obtener_mensajes_empresa(eid)
+        sms      = msgs["mensaje_sms"]
+        whatsapp = msgs["mensaje_whatsapp"]
+        llamada  = msgs["mensaje_llamada"]
         return ok({
-            "llamada":  doc.get("mensaje_llamada",  ""),
-            "sms":      doc.get("mensaje_sms",      ""),
-            "whatsapp": doc.get("mensaje_whatsapp", ""),
+            "sms":        sms      or MSG_DEFAULT_SMS,
+            "whatsapp":   whatsapp or MSG_DEFAULT_WHATSAPP,
+            "llamada":    llamada  or MSG_DEFAULT_LLAMADA,
+            "es_default": {
+                "sms":      not sms,
+                "whatsapp": not whatsapp,
+                "llamada":  not llamada,
+            },
+            "activo": {
+                "sms":      msgs.get("activo_sms",      True),
+                "whatsapp": msgs.get("activo_whatsapp", True),
+                "llamada":  msgs.get("activo_llamada",  True),
+            },
+            "creado_en":      msgs.get("creado_en"),
+            "actualizado_en": msgs.get("actualizado_en"),
         })
     except Exception as e:
         return err(str(e))
@@ -56,12 +68,10 @@ def guardar_mensaje(tipo):
         return err("propiedad_id requerido", 400)
     datos = request.get_json(silent=True) or {}
     mensaje = str(datos.get("mensaje", "")).strip()
+    if not mensaje:
+        return err("El mensaje no puede estar vacío", 400)
     try:
-        db["panic_empresa_config"].update_one(
-            {"empresa_id": ObjectId(eid)},
-            {"$set": {CAMPOS[tipo]: mensaje, "actualizado_en": datetime.utcnow()}},
-            upsert=True,
-        )
+        PanicConfigModel.guardar_mensaje_empresa(eid, CAMPOS[tipo], mensaje)
         return ok(mensaje="Mensaje guardado")
     except Exception as e:
         return err(str(e))
@@ -76,12 +86,42 @@ def restablecer_mensaje(tipo):
     if not eid:
         return err("propiedad_id requerido", 400)
     try:
-        db["panic_empresa_config"].update_one(
-            {"empresa_id": ObjectId(eid)},
-            {"$set": {CAMPOS[tipo]: "", "actualizado_en": datetime.utcnow()}},
-            upsert=True,
-        )
+        PanicConfigModel.limpiar_mensaje_empresa(eid, CAMPOS[tipo])
         return ok({"default": DEFAULTS[tipo]}, mensaje="Restablecido al mensaje predeterminado")
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_cfg_bp.route("/mensajes/<tipo>/activo", methods=["PATCH"])
+@requiere_superadmin
+def cambiar_activo_canal(tipo):
+    if tipo not in CAMPOS:
+        return err("Tipo inválido. Use: llamada, sms, whatsapp", 400)
+    eid = _empresa_id()
+    if not eid:
+        return err("propiedad_id requerido", 400)
+    datos  = request.get_json(silent=True) or {}
+    activo = bool(datos.get("activo", True))
+    try:
+        PanicConfigModel.guardar_activo_canal(eid, tipo, activo)
+        estado = "activado" if activo else "desactivado"
+        return ok(mensaje=f"Canal {tipo} {estado}")
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_cfg_bp.route("/canales", methods=["PUT"])
+@requiere_superadmin
+def guardar_canales():
+    eid = _empresa_id()
+    if not eid:
+        return err("propiedad_id requerido", 400)
+    datos = request.get_json(silent=True) or {}
+    try:
+        for tipo in ("sms", "whatsapp", "llamada"):
+            if tipo in datos:
+                PanicConfigModel.guardar_activo_canal(eid, tipo, bool(datos[tipo]))
+        return ok(mensaje="Canales guardados")
     except Exception as e:
         return err(str(e))
 
@@ -112,13 +152,23 @@ def listar_contactos_vinculados():
 @panico_cfg_bp.route("/eventos", methods=["GET"])
 @requiere_superadmin
 def listar_eventos():
+    from datetime import datetime, timezone
     eid = _empresa_id()
     if not eid:
         return err("propiedad_id requerido", 400)
     try:
-        limite = int(request.args.get("limite", 20))
-        eventos = PanicEventModel.listar_por_empresa(eid, limite=limite)
+        limite    = min(int(request.args.get("limite", 20)), 200)
+        fecha_ini = request.args.get("fecha_ini", "").strip()
+        fecha_fin = request.args.get("fecha_fin", "").strip()
+        filtro_fechas = {}
+        if fecha_ini:
+            filtro_fechas["$gte"] = datetime.fromisoformat(fecha_ini).replace(tzinfo=timezone.utc)
+        if fecha_fin:
+            filtro_fechas["$lte"] = datetime.fromisoformat(fecha_fin).replace(tzinfo=timezone.utc)
+        eventos = PanicEventModel.listar_por_empresa(eid, limite=limite, filtro_fechas=filtro_fechas or None)
         return ok(serializar(eventos))
+    except ValueError:
+        return err("Formato de fecha inválido. Use YYYY-MM-DD", 400)
     except Exception as e:
         return err(str(e))
 

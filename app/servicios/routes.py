@@ -25,7 +25,13 @@ def panel_servicio(codigo):
     if codigo == "directorio":
         return render_template("servicios/directorio.html", servicio=srv)
     if codigo == "boton_panico":
-        return render_template("servicios/boton_panico.html", servicio=srv)
+        import logging
+        from app.configuracion.roles.model import RolModel
+        rol = session.get("rol", "")
+        nombres = RolModel.nombres_sistema()
+        es_sistema = rol in nombres
+        logging.getLogger(__name__).info("boton_panico → rol=%r es_sistema=%s nombres=%s", rol, es_sistema, nombres)
+        return render_template("servicios/boton_panico.html", servicio=srv, es_sistema=es_sistema)
     return render_template("servicios/panel_servicio.html", servicio=srv)
 
 

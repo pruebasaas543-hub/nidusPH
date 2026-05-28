@@ -218,6 +218,16 @@
         .theme-card { border-radius:14px; border:2px solid rgba(4,34,67,0.15); overflow:hidden; cursor:pointer; transition:all .25s; box-shadow:0 2px 12px rgba(4,34,67,0.08); }
         /* ── Directorio ── */
         .dir-tab-btn { padding:6px 14px;border-radius:20px;border:1.5px solid rgba(4,34,67,.25);background:transparent;color:#042243;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s; }
+        /* Toggle canal pánico */
+        .canal-toggle-wrap{display:flex;align-items:center;gap:8px;}
+        .canal-toggle{position:relative;width:42px;height:22px;flex-shrink:0;}
+        .canal-toggle input{opacity:0;width:0;height:0;position:absolute;}
+        .canal-toggle-slider{position:absolute;inset:0;background:#d1d5db;border-radius:99px;cursor:pointer;transition:background .2s;}
+        .canal-toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+        .canal-toggle input:checked + .canal-toggle-slider{background:#2787F5;}
+        .canal-toggle input:checked + .canal-toggle-slider::before{transform:translateX(20px);}
+        .canal-toggle-label{font-size:.75rem;font-weight:700;transition:color .2s;}
+        .canal-toggle-label.on{color:#276749;} .canal-toggle-label.off{color:#c53030;}
         .dir-tab-btn:hover { background:rgba(4,34,67,.08); }
         .dir-tab-btn.active { background:#042243;color:#fff;border-color:#042243; }
         /* ── Directorio – tarjetas ── */
@@ -1723,7 +1733,7 @@
             </div>
 
             <!-- Selector empresa -->
-            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
                 <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
                     <span style="font-size:1.4rem;">🏢</span>
                     <div>
@@ -1741,92 +1751,151 @@
             <!-- Panel principal (oculto hasta seleccionar empresa) -->
             <div id="panico-panel" style="display:none;">
 
-                <!-- Stats -->
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;" id="panico-stats-grid">
+                <!-- Tabs -->
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
+                    <button class="dir-tab-btn active" data-ptab="config" onclick="_panicoTab(this)">⚙️ Configuraciones</button>
+                    <button class="dir-tab-btn" data-ptab="log" onclick="_panicoTab(this)">📋 Log de activaciones</button>
                 </div>
 
-                <!-- Contactos vinculados -->
-                <div style="margin-bottom:28px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                        <div style="font-size:.8rem;font-weight:700;color:#042243;letter-spacing:.5px;text-transform:uppercase;">
-                            📒 Contactos vinculados al botón de pánico
-                        </div>
-                        <span style="font-size:.72rem;color:#8A9CC8;">Del Directorio de Contactos</span>
-                    </div>
-                    <div id="panico-contactos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">
-                        <div style="padding:20px;text-align:center;color:#8A9CC8;font-size:.82rem;grid-column:1/-1;">Cargando…</div>
-                    </div>
-                </div>
+                <!-- ── Pane Configuraciones ── -->
+                <div id="panico-pane-config">
 
-                <!-- Mensajes personalizados -->
-                <div style="margin-bottom:28px;">
-                    <div style="font-size:.8rem;font-weight:700;color:#042243;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">
-                        ✉️ Mensajes personalizados
-                    </div>
-                    <p style="font-size:.76rem;color:#8A9CC8;margin-bottom:16px;line-height:1.5;">
-                        Personaliza el texto de cada canal. Usa las variables disponibles para incluir datos dinámicos. Si dejas el campo vacío se usa el mensaje predeterminado del sistema.
-                    </p>
+                    <!-- Stats -->
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px;" id="panico-stats-grid"></div>
 
-                    <!-- Variables chip -->
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;padding:12px 14px;background:#f0f6ff;border-radius:10px;border:1.5px solid rgba(39,135,245,.15);">
-                        <span style="font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;text-transform:uppercase;width:100%;margin-bottom:4px;">Variables disponibles — haz clic para copiar</span>
-                        <button onclick="_panicoVarCopiar('{nombre_residente}')" style="background:#2787F5;color:#fff;border:none;border-radius:7px;padding:5px 13px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;" title="Copia la variable">👤 {nombre_residente}</button>
-                        <button onclick="_panicoVarCopiar('{nombre_empresa}')" style="background:#1E2756;color:#fff;border:none;border-radius:7px;padding:5px 13px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;" title="Copia la variable">🏢 {nombre_empresa}</button>
-                        <span style="font-size:.7rem;color:#8A9CC8;align-self:center;">— Al activar el pánico, se reemplazarán por los datos reales.</span>
+                    <!-- Variables -->
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;padding:14px 18px;background:#dde8f8;border-radius:10px;border:1.5px solid #93b8e8;align-items:center;">
+                        <span style="font-size:.72rem;font-weight:700;color:#2563a8;letter-spacing:.5px;text-transform:uppercase;width:100%;margin-bottom:6px;">Variables disponibles — haz clic para copiar</span>
+                        <button onclick="_panicoVarCopiar('{nombre_residente}')" style="background:#2787F5;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;">👤 {nombre_residente}</button>
+                        <button onclick="_panicoVarCopiar('{nombre_empresa}')" style="background:#042243;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;">🏢 {nombre_empresa}</button>
+                        <span style="font-size:.7rem;color:#2563a8;">Se reemplazan automáticamente al activar el pánico.</span>
                     </div>
 
                     <!-- Card SMS -->
-                    <div style="background:#fafbfc;border:1.5px solid rgba(4,34,67,.1);border-radius:12px;padding:16px 18px;margin-bottom:14px;">
+                    <div style="background:#dde8f8;border:1.5px solid #93b8e8;border-radius:12px;padding:16px 18px;margin-bottom:14px;" id="panico-card-sms">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                            <div style="font-size:.82rem;font-weight:700;color:#042243;">📱 Mensaje SMS</div>
-                            <button onclick="_panicoRestablecerMensaje('sms')" style="background:none;border:1px solid rgba(4,34,67,.2);border-radius:7px;padding:4px 11px;font-size:.72rem;color:#8A9CC8;cursor:pointer;font-family:inherit;" title="Restablecer al predeterminado">🔄 Restablecer</button>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="font-size:.84rem;font-weight:700;color:#042243;">📱 SMS</div>
+                                <div class="canal-toggle-wrap">
+                                    <label class="canal-toggle">
+                                        <input type="checkbox" id="panico-activo-sms" onchange="_panicoToggleCanal('sms',this)">
+                                        <span class="canal-toggle-slider"></span>
+                                    </label>
+                                    <span class="canal-toggle-label off" id="panico-activo-sms-label">Inactivo</span>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:6px;">
+                                <button onclick="_panicoEditarMsg('sms',this)" style="background:#eef3fb;border:1.5px solid #93b8e8;border-radius:7px;padding:5px 14px;font-size:.75rem;color:#1d4ed8;cursor:pointer;font-family:inherit;font-weight:700;transition:background .15s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eef3fb'">✏️ Editar</button>
+                                <button onclick="_panicoEliminarMsg('sms')" style="background:#fff0f0;border:1.5px solid #f87171;border-radius:7px;padding:5px 14px;font-size:.75rem;color:#b91c1c;cursor:pointer;font-family:inherit;font-weight:700;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fff0f0'">✕ Eliminar</button>
+                            </div>
                         </div>
-                        <textarea id="panico-msg-sms" rows="2" placeholder="Predeterminado: EMERGENCIA: {nombre_residente} activó el botón de pánico en {nombre_empresa}. Comuníquese de inmediato." style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#fff;line-height:1.5;" onfocus="this.style.borderColor='#2787F5'" onblur="this.style.borderColor='rgba(4,34,67,.12)'"></textarea>
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-                            <span id="panico-msg-sms-hint" style="font-size:.7rem;color:#8A9CC8;font-style:italic;"></span>
-                            <button onclick="_panicoGuardarMensaje('sms')" class="btn btn-primary" style="padding:6px 18px;font-size:.78rem;">💾 Guardar</button>
-                        </div>
+                        <textarea id="panico-msg-sms" rows="2" readonly style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#f5f7fa;line-height:1.5;cursor:default;"></textarea>
+                        <span id="panico-msg-sms-hint" style="font-size:.7rem;font-style:italic;margin-top:4px;display:block;"></span>
                     </div>
 
                     <!-- Card WhatsApp -->
-                    <div style="background:#fafbfc;border:1.5px solid rgba(4,34,67,.1);border-radius:12px;padding:16px 18px;margin-bottom:14px;">
+                    <div style="background:#dde8f8;border:1.5px solid #93b8e8;border-radius:12px;padding:16px 18px;margin-bottom:14px;" id="panico-card-whatsapp">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                            <div style="font-size:.82rem;font-weight:700;color:#042243;">💬 Mensaje WhatsApp</div>
-                            <button onclick="_panicoRestablecerMensaje('whatsapp')" style="background:none;border:1px solid rgba(4,34,67,.2);border-radius:7px;padding:4px 11px;font-size:.72rem;color:#8A9CC8;cursor:pointer;font-family:inherit;">🔄 Restablecer</button>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="font-size:.84rem;font-weight:700;color:#042243;">💬 WhatsApp</div>
+                                <div class="canal-toggle-wrap">
+                                    <label class="canal-toggle">
+                                        <input type="checkbox" id="panico-activo-whatsapp" onchange="_panicoToggleCanal('whatsapp',this)">
+                                        <span class="canal-toggle-slider"></span>
+                                    </label>
+                                    <span class="canal-toggle-label off" id="panico-activo-whatsapp-label">Inactivo</span>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:6px;">
+                                <button onclick="_panicoEditarMsg('whatsapp',this)" style="background:#eef3fb;border:1.5px solid #93b8e8;border-radius:7px;padding:5px 14px;font-size:.75rem;color:#1d4ed8;cursor:pointer;font-family:inherit;font-weight:700;transition:background .15s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eef3fb'">✏️ Editar</button>
+                                <button onclick="_panicoEliminarMsg('whatsapp')" style="background:#fff0f0;border:1.5px solid #f87171;border-radius:7px;padding:5px 14px;font-size:.75rem;color:#b91c1c;cursor:pointer;font-family:inherit;font-weight:700;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fff0f0'">✕ Eliminar</button>
+                            </div>
                         </div>
-                        <textarea id="panico-msg-whatsapp" rows="2" placeholder="Predeterminado: 🚨 EMERGENCIA: {nombre_residente} ha activado el botón de pánico en {nombre_empresa}. Comuníquese de inmediato." style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#fff;line-height:1.5;" onfocus="this.style.borderColor='#2787F5'" onblur="this.style.borderColor='rgba(4,34,67,.12)'"></textarea>
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-                            <span id="panico-msg-whatsapp-hint" style="font-size:.7rem;color:#8A9CC8;font-style:italic;"></span>
-                            <button onclick="_panicoGuardarMensaje('whatsapp')" class="btn btn-primary" style="padding:6px 18px;font-size:.78rem;">💾 Guardar</button>
-                        </div>
+                        <textarea id="panico-msg-whatsapp" rows="2" readonly style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#f5f7fa;line-height:1.5;cursor:default;"></textarea>
+                        <span id="panico-msg-whatsapp-hint" style="font-size:.7rem;font-style:italic;margin-top:4px;display:block;"></span>
                     </div>
 
                     <!-- Card Llamada -->
-                    <div style="background:#fafbfc;border:1.5px solid rgba(4,34,67,.1);border-radius:12px;padding:16px 18px;">
+                    <div style="background:#dde8f8;border:1.5px solid #93b8e8;border-radius:12px;padding:16px 18px;margin-bottom:20px;" id="panico-card-llamada">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                            <div style="font-size:.82rem;font-weight:700;color:#042243;">☎️ Mensaje de llamada</div>
-                            <button onclick="_panicoRestablecerMensaje('llamada')" style="background:none;border:1px solid rgba(4,34,67,.2);border-radius:7px;padding:4px 11px;font-size:.72rem;color:#8A9CC8;cursor:pointer;font-family:inherit;">🔄 Restablecer</button>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="font-size:.84rem;font-weight:700;color:#042243;">☎️ Llamada</div>
+                                <div class="canal-toggle-wrap">
+                                    <label class="canal-toggle">
+                                        <input type="checkbox" id="panico-activo-llamada" onchange="_panicoToggleCanal('llamada',this)">
+                                        <span class="canal-toggle-slider"></span>
+                                    </label>
+                                    <span class="canal-toggle-label off" id="panico-activo-llamada-label">Inactivo</span>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:6px;">
+                                <button onclick="_panicoEditarMsg('llamada',this)" style="background:#eef3fb;border:1.5px solid #93b8e8;border-radius:7px;padding:5px 14px;font-size:.75rem;color:#1d4ed8;cursor:pointer;font-family:inherit;font-weight:700;transition:background .15s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eef3fb'">✏️ Editar</button>
+                                <button onclick="_panicoEliminarMsg('llamada')" style="background:#fff0f0;border:1.5px solid #f87171;border-radius:7px;padding:5px 14px;font-size:.75rem;color:#b91c1c;cursor:pointer;font-family:inherit;font-weight:700;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fff0f0'">✕ Eliminar</button>
+                            </div>
                         </div>
-                        <textarea id="panico-msg-llamada" rows="3" placeholder="Predeterminado: Atención. Se ha activado una alerta de emergencia. {nombre_residente} ha presionado el botón de pánico en {nombre_empresa}. Por favor comuníquese de inmediato. Repito. Se ha activado una alerta de emergencia en {nombre_empresa}." style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#fff;line-height:1.5;" onfocus="this.style.borderColor='#2787F5'" onblur="this.style.borderColor='rgba(4,34,67,.12)'"></textarea>
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-                            <span id="panico-msg-llamada-hint" style="font-size:.7rem;color:#8A9CC8;font-style:italic;"></span>
-                            <button onclick="_panicoGuardarMensaje('llamada')" class="btn btn-primary" style="padding:6px 18px;font-size:.78rem;">💾 Guardar</button>
-                        </div>
+                        <textarea id="panico-msg-llamada" rows="3" readonly style="width:100%;border:1.5px solid rgba(4,34,67,.12);border-radius:9px;padding:9px 12px;font-size:.82rem;color:#042243;font-family:inherit;resize:vertical;outline:none;background:#f5f7fa;line-height:1.5;cursor:default;"></textarea>
+                        <span id="panico-msg-llamada-hint" style="font-size:.7rem;font-style:italic;margin-top:4px;display:block;"></span>
                     </div>
-                </div>
 
-                <!-- Historial -->
-                <div>
-                    <div style="font-size:.8rem;font-weight:700;color:#042243;letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;">
-                        📋 Historial de activaciones
+                    <!-- Guardar global -->
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:28px;">
+                        <button onclick="_panicoConfirmarGuardar()" class="btn btn-primary" style="padding:10px 32px;font-size:.88rem;font-weight:700;">💾 Guardar configuración</button>
                     </div>
+
+                </div><!-- /panico-pane-config -->
+
+                <!-- ── Pane Log ── -->
+                <div id="panico-pane-log" style="display:none;">
+
+                    <!-- Filtros -->
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;padding:16px 20px;background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:12px;">
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">
+                            📅 Desde
+                            <input type="date" id="panico-log-desde" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                        </label>
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">
+                            📅 Hasta
+                            <input type="date" id="panico-log-hasta" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                        </label>
+                        <button onclick="_panicoBuscarLog()" class="btn btn-primary" style="align-self:flex-end;padding:8px 22px;font-size:.82rem;">🔍 Buscar</button>
+                    </div>
+
                     <div id="panico-eventos-tabla">
-                        <div style="padding:20px;text-align:center;color:#8A9CC8;font-size:.82rem;">Sin activaciones registradas</div>
+                        <div style="padding:40px;text-align:center;color:#8A9CC8;font-size:.85rem;">Selecciona fechas y haz clic en Buscar.</div>
                     </div>
-                </div>
+
+                </div><!-- /panico-pane-log -->
 
             </div><!-- /panico-panel -->
         </div><!-- /cfg-boton-panico -->
+
+        <!-- Modal Confirmación Botón de Pánico -->
+        <div id="modal-panico-confirm" style="display:none;position:fixed;inset:0;background:rgba(4,34,67,.55);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);">
+            <div style="background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(4,34,67,.22);width:clamp(300px,90vw,440px);overflow:hidden;">
+                <div style="padding:24px 24px 8px;">
+                    <p style="font-size:.9rem;font-weight:700;color:#042243;margin-bottom:10px;">¿Guardar cambios en <span id="modal-panico-empresa-nombre" style="color:#042243;"></span>?</p>
+                    <div id="modal-panico-resumen" style="background:#f8faff;border:1.5px solid rgba(4,34,67,.1);border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.9;color:#042243;"></div>
+                </div>
+                <div style="padding:16px 24px 20px;display:flex;justify-content:flex-end;gap:10px;">
+                    <button onclick="_panicoCerrarConfirm()" style="background:none;border:1.5px solid rgba(4,34,67,.2);border-radius:9px;padding:8px 20px;font-size:.84rem;font-weight:600;color:#042243;cursor:pointer;font-family:inherit;">Cancelar</button>
+                    <button onclick="_panicoGuardarTodo()" class="btn btn-primary" style="padding:8px 24px;font-size:.84rem;font-weight:700;">✅ Guardar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Eliminar mensaje pánico -->
+        <div id="modal-panico-elim" style="display:none;position:fixed;inset:0;background:rgba(4,34,67,.55);z-index:9999;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);">
+            <div style="background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(4,34,67,.22);width:clamp(300px,90vw,420px);overflow:hidden;">
+                <div style="padding:24px 24px 8px;">
+                    <p style="font-size:.9rem;font-weight:700;color:#042243;margin-bottom:6px;">¿Eliminar el mensaje de <span id="modal-panico-elim-canal" style="color:#042243;"></span>?</p>
+                    <p style="font-size:.82rem;color:#042243;margin:0;">El canal volverá al texto predeterminado.</p>
+                </div>
+                <div style="padding:16px 24px 20px;display:flex;justify-content:flex-end;gap:10px;">
+                    <button onclick="_panicoElimCerrar()" style="background:none;border:1.5px solid rgba(4,34,67,.2);border-radius:9px;padding:8px 20px;font-size:.84rem;font-weight:600;color:#042243;cursor:pointer;font-family:inherit;">Cancelar</button>
+                    <button onclick="_panicoElimConfirmar()" style="background:#b91c1c;border:none;border-radius:9px;padding:8px 22px;font-size:.84rem;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">✕ Eliminar</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Modal Directorio -->
         <div class="modal-overlay" id="modal-dir">
@@ -6506,22 +6575,82 @@ async function _panicoPoblarEmpresas() {
     } catch {}
 }
 
+function _panicoTab(btn) {
+    const tab = btn.dataset.ptab;
+    document.querySelectorAll('[data-ptab]').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('panico-pane-config').style.display = tab === 'config' ? 'block' : 'none';
+    document.getElementById('panico-pane-log').style.display    = tab === 'log'    ? 'block' : 'none';
+}
+
 async function _panicoSeleccionarEmpresa(empresaId) {
     _panicoEmpresaId = empresaId || null;
     const panel = document.getElementById('panico-panel');
     if (!panel) return;
     if (!_panicoEmpresaId) { panel.style.display = 'none'; return; }
     panel.style.display = 'block';
-    await Promise.all([_panicoCargarStats(), _panicoCargarContactos(), _panicoCargarEventos(), _panicoCargarMensaje()]);
+    await Promise.all([_panicoCargarStats(), _panicoCargarMensaje()]);
 }
 
-const _PANICO_MSG_DEFAULTS = {
-    sms:      'EMERGENCIA: {nombre_residente} activó el botón de pánico en {nombre_empresa}. Comuníquese de inmediato.',
-    whatsapp: '🚨 EMERGENCIA: {nombre_residente} ha activado el botón de pánico en {nombre_empresa}. Comuníquese de inmediato.',
-    llamada:  'Atención. Se ha activado una alerta de emergencia. {nombre_residente} ha presionado el botón de pánico en {nombre_empresa}. Por favor comuníquese de inmediato.',
-};
-const _PANICO_MSG_IDS = { sms: 'panico-msg-sms', whatsapp: 'panico-msg-whatsapp', llamada: 'panico-msg-llamada' };
-const _PANICO_HINT_IDS = { sms: 'panico-msg-sms-hint', whatsapp: 'panico-msg-whatsapp-hint', llamada: 'panico-msg-llamada-hint' };
+async function _panicoBuscarLog() {
+    if (!_panicoEmpresaId) { showToast('Selecciona una empresa', true); return; }
+    const desde = document.getElementById('panico-log-desde').value;
+    const hasta = document.getElementById('panico-log-hasta').value;
+    const cont  = document.getElementById('panico-eventos-tabla');
+    cont.innerHTML = '<div style="padding:20px;text-align:center;color:#8A9CC8;font-size:.85rem;">Buscando…</div>';
+    let url = `/config/boton_panico/eventos?propiedad_id=${_panicoEmpresaId}&limite=50`;
+    if (desde) url += `&fecha_ini=${desde}`;
+    if (hasta) url += `&fecha_fin=${hasta}T23:59:59`;
+    try {
+        const r = await fetch(url + `&_t=${Date.now()}`);
+        const d = await r.json();
+        if (!d.ok) { cont.innerHTML = `<div style="padding:20px;color:#e53e3e;">${d.error}</div>`; return; }
+        const lista = d.data || [];
+        if (!lista.length) {
+            cont.innerHTML = '<div style="padding:40px;text-align:center;color:#8A9CC8;font-size:.85rem;">Sin activaciones en ese período.</div>';
+            return;
+        }
+        const filas = lista.flatMap(ev => {
+            const fecha = ev.activado_en ? _panicoFmtFecha(ev.activado_en) : '—';
+            const res   = ev.resultado || {};
+            const todos = [...(res.externos||[]), ...(res.directorio||[])];
+            if (!todos.length) return [`<tr><td style="padding:9px 14px;color:#042243;white-space:nowrap;">${fecha}</td><td style="padding:9px 14px;font-weight:700;color:#042243;">${_esc(ev.nombre_residente||ev.residente_id||'—')}</td><td colspan="4" style="padding:9px 14px;color:#8A9CC8;">Sin destinatarios</td></tr>`];
+            return todos.flatMap(c => Object.entries(c.canales||{}).map(([tipo, info]) => {
+                const icon   = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
+                const estado = info.estado||'—';
+                const ok     = estado==='enviado'||estado==='iniciado'||estado==='delivered';
+                const color  = ok?'#276749':estado==='mock'?'#b7791f':'#c53030';
+                const bg     = ok?'rgba(39,103,73,.08)':estado==='mock'?'rgba(183,121,31,.08)':'rgba(229,62,62,.08)';
+                const det    = info.detalle ? `<br><span style="font-size:.65rem;color:#e53e3e;">${_esc(info.detalle)}</span>` : '';
+                return `<tr style="border-bottom:1px solid rgba(4,34,67,.06);">
+                    <td style="padding:9px 14px;color:#042243;white-space:nowrap;font-size:.8rem;">${fecha}</td>
+                    <td style="padding:9px 14px;font-weight:700;color:#042243;font-size:.8rem;">${_esc(ev.nombre_residente||ev.residente_id||'—')}</td>
+                    <td style="padding:9px 14px;font-size:.8rem;">${icon} ${tipo.toUpperCase()}</td>
+                    <td style="padding:9px 14px;font-size:.8rem;color:#042243;">${_esc(c.nombre||'—')}</td>
+                    <td style="padding:9px 14px;font-size:.8rem;color:#2787F5;">${_esc(c.numero||'—')}</td>
+                    <td style="padding:9px 14px;"><span style="font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:6px;background:${bg};color:${color};">${estado}</span>${det}</td>
+                </tr>`;
+            }));
+        }).join('');
+        cont.innerHTML = `<div style="overflow-x:auto;border-radius:10px;border:1.5px solid rgba(4,34,67,.08);">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead><tr style="background:rgba(4,34,67,.04);">
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">FECHA</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">RESIDENTE</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">CANAL</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">RECEPTOR</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">NÚMERO</th>
+                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">ESTADO</th>
+                </tr></thead>
+                <tbody>${filas}</tbody>
+            </table>
+        </div>`;
+    } catch(e) { cont.innerHTML = `<div style="padding:20px;color:#e53e3e;">Error: ${e.message}</div>`; }
+}
+
+const _PANICO_MSG_IDS   = { sms: 'panico-msg-sms', whatsapp: 'panico-msg-whatsapp', llamada: 'panico-msg-llamada' };
+const _PANICO_HINT_IDS  = { sms: 'panico-msg-sms-hint', whatsapp: 'panico-msg-whatsapp-hint', llamada: 'panico-msg-llamada-hint' };
+// marca qué campos fueron eliminados (se guardarán vacíos)
+const _panicoEliminados = { sms: false, whatsapp: false, llamada: false };
 
 async function _panicoCargarMensaje() {
     if (!_panicoEmpresaId) return;
@@ -6529,54 +6658,213 @@ async function _panicoCargarMensaje() {
         const r = await fetch(`/config/boton_panico/mensajes?propiedad_id=${_panicoEmpresaId}&_t=${Date.now()}`);
         const j = await r.json();
         if (!j.ok) return;
+        const esDefault = j.data?.es_default || {};
+        const activos   = j.data?.activo || {};
         for (const tipo of ['sms', 'whatsapp', 'llamada']) {
-            const val = j.data?.[tipo] || '';
-            document.getElementById(_PANICO_MSG_IDS[tipo]).value = val;
-            _panicoActualizarHint(tipo, val);
+            const ta   = document.getElementById(_PANICO_MSG_IDS[tipo]);
+            const val  = j.data?.[tipo] || '';
+            ta.value   = val;
+            ta.readOnly = true;
+            ta.style.background = '#f5f7fa';
+            ta.style.cursor     = 'default';
+            _panicoEliminados[tipo] = false;
+            _panicoActualizarHint(tipo, !esDefault[tipo]);
+            const activo = activos[tipo] !== false;
+            _panicoSetToggle(tipo, activo);
+        }
+        // fechas
+        const fmtDate = iso => iso ? new Date(iso).toLocaleString('es-CO', {dateStyle:'medium', timeStyle:'short'}) : null;
+        const fc = fmtDate(j.data?.configurado_en);
+        const fu = fmtDate(j.data?.actualizado_en);
+        const divFechas = document.getElementById('panico-fechas');
+        if (divFechas && (fc || fu)) {
+            divFechas.style.display = 'block';
+            if (fc) document.getElementById('panico-fecha-config').textContent = `📅 Configurado: ${fc}`;
+            if (fu) document.getElementById('panico-fecha-update').textContent = `🔄 Última actualización: ${fu}`;
         }
     } catch {}
 }
 
-function _panicoActualizarHint(tipo, val) {
+function _panicoSetToggle(tipo, activo) {
+    const chk   = document.getElementById(`panico-activo-${tipo}`);
+    const label = document.getElementById(`panico-activo-${tipo}-label`);
+    const card  = document.getElementById(`panico-card-${tipo}`);
+    if (!chk) return;
+    chk.checked = activo;
+    if (label) {
+        label.textContent = activo ? 'Activo' : 'Inactivo';
+        label.className   = activo ? 'canal-toggle-label on' : 'canal-toggle-label off';
+    }
+    if (card) card.style.opacity = activo ? '1' : '0.55';
+    const btnElim = card ? card.querySelector('button[onclick*="_panicoEliminarMsg"]') : null;
+    if (btnElim) {
+        btnElim.disabled      = !activo;
+        btnElim.style.opacity = activo ? '1' : '0.4';
+        btnElim.style.cursor  = activo ? 'pointer' : 'not-allowed';
+    }
+    const btnEdit = card ? card.querySelector('button[onclick*="_panicoEditarMsg"]') : null;
+    if (btnEdit) {
+        btnEdit.disabled      = !activo;
+        btnEdit.style.opacity = activo ? '1' : '0.4';
+        btnEdit.style.cursor  = activo ? 'pointer' : 'not-allowed';
+    }
+}
+
+async function _panicoToggleCanal(tipo, chk) {
+    const activo = chk.checked;
+    _panicoSetToggle(tipo, activo);
+    try {
+        await fetch(`/config/boton_panico/mensajes/${tipo}/activo?propiedad_id=${_panicoEmpresaId}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ activo }),
+        });
+        showToast(activo ? `✅ Canal ${tipo.toUpperCase()} activado` : `⏸️ Canal ${tipo.toUpperCase()} desactivado`);
+    } catch { showToast('❌ Error al cambiar estado', true); }
+}
+
+function _panicoActualizarHint(tipo, esPersonalizado) {
     const hint = document.getElementById(_PANICO_HINT_IDS[tipo]);
     if (!hint) return;
-    hint.textContent = val ? '' : '📋 Usando mensaje predeterminado del sistema';
+    if (esPersonalizado) {
+        hint.textContent = '✏️ Mensaje personalizado';
+        hint.style.color = '#276749';
+    } else {
+        hint.textContent = '📋 Mensaje predeterminado del sistema';
+        hint.style.color = '#8A9CC8';
+    }
 }
 
-async function _panicoGuardarMensaje(tipo) {
+function _panicoEditarMsg(tipo, btn) {
+    const ta = document.getElementById(_PANICO_MSG_IDS[tipo]);
+    if (ta.readOnly) {
+        ta.readOnly = false;
+        ta.style.background  = '#fff';
+        ta.style.cursor      = 'text';
+        ta.style.borderColor = '#2787F5';
+        ta.focus();
+        btn.innerHTML        = '✓ Listo';
+        btn.style.background = '#dcfce7';
+        btn.style.color      = '#15803d';
+        btn.style.borderColor = '#86efac';
+        btn.onmouseover = () => btn.style.background = '#bbf7d0';
+        btn.onmouseout  = () => btn.style.background = '#dcfce7';
+    } else {
+        ta.readOnly = true;
+        ta.style.background  = '#f5f7fa';
+        ta.style.cursor      = 'default';
+        ta.style.borderColor = 'rgba(4,34,67,.12)';
+        btn.innerHTML        = '✏️ Editar';
+        btn.style.background = '#eef3fb';
+        btn.style.color      = '#1d4ed8';
+        btn.style.borderColor = '#93b8e8';
+        btn.onmouseover = () => btn.style.background = '#dbeafe';
+        btn.onmouseout  = () => btn.style.background = '#eef3fb';
+        _panicoEliminados[tipo] = false;
+        _panicoActualizarHint(tipo, !!ta.value.trim());
+    }
+}
+
+let _panicoElimTipo = null;
+function _panicoEliminarMsg(tipo) {
+    _panicoElimTipo = tipo;
+    const etiquetas = { sms: '📱 SMS', whatsapp: '💬 WhatsApp', llamada: '☎️ Llamada' };
+    document.getElementById('modal-panico-elim-canal').textContent = etiquetas[tipo] || tipo;
+    const modal = document.getElementById('modal-panico-elim');
+    modal.style.display = 'flex';
+}
+function _panicoElimCerrar() {
+    document.getElementById('modal-panico-elim').style.display = 'none';
+    _panicoElimTipo = null;
+}
+function _panicoElimConfirmar() {
+    const tipo = _panicoElimTipo;
+    document.getElementById('modal-panico-elim').style.display = 'none';
+    _panicoElimTipo = null;
+    if (!tipo) return;
+    const ta = document.getElementById(_PANICO_MSG_IDS[tipo]);
+    ta.value    = '';
+    ta.readOnly = true;
+    ta.style.background  = '#f5f7fa';
+    ta.style.cursor      = 'default';
+    ta.style.borderColor = 'rgba(229,62,62,.3)';
+    _panicoEliminados[tipo] = true;
+    const hint = document.getElementById(_PANICO_HINT_IDS[tipo]);
+    if (hint) { hint.textContent = '✕ Se eliminará al guardar'; hint.style.color = '#c53030'; }
+}
+
+function _panicoConfirmarGuardar() {
     if (!_panicoEmpresaId) return;
-    const msg = document.getElementById(_PANICO_MSG_IDS[tipo]).value.trim();
+    const etiquetas = { sms: '📱 SMS', whatsapp: '💬 WhatsApp', llamada: '☎️ Llamada' };
+    const lineas = [];
+    for (const tipo of ['sms', 'whatsapp', 'llamada']) {
+        const activo = document.getElementById(`panico-activo-${tipo}`)?.checked !== false;
+        const estadoTag = activo
+            ? '<span style="background:rgba(39,103,73,.1);color:#276749;border-radius:5px;padding:1px 7px;font-size:.68rem;font-weight:700;">● Activo</span>'
+            : '<span style="background:rgba(229,62,62,.08);color:#c53030;border-radius:5px;padding:1px 7px;font-size:.68rem;font-weight:700;">● Inactivo</span>';
+        let msgTag = '';
+        if (_panicoEliminados[tipo]) {
+            msgTag = ' — <span style="color:#c53030;">mensaje se eliminará</span>';
+        } else {
+            const msg = document.getElementById(_PANICO_MSG_IDS[tipo]).value.trim();
+            if (msg) msgTag = ' — <span style="color:#276749;">texto personalizado</span>';
+        }
+        lineas.push(`${etiquetas[tipo]}: ${estadoTag}${msgTag}`);
+    }
+    // nombre empresa
+    const sel = document.getElementById('panico-empresa-sel');
+    const nombreEmp = sel?.options[sel.selectedIndex]?.text || 'la empresa seleccionada';
+    document.getElementById('modal-panico-empresa-nombre').textContent = nombreEmp;
+    document.getElementById('modal-panico-resumen').innerHTML = lineas.join('<br>');
+    document.getElementById('modal-panico-confirm').style.display = 'flex';
+}
+
+function _panicoCerrarConfirm() {
+    document.getElementById('modal-panico-confirm').style.display = 'none';
+}
+
+async function _panicoGuardarTodo() {
+    _panicoCerrarConfirm();
+    if (!_panicoEmpresaId) return;
+    const tipos = ['sms', 'whatsapp', 'llamada'];
+    let errores = 0;
+
+    // Guarda los tres estados activo/inactivo siempre al guardar
     try {
-        const r = await fetch(`/config/boton_panico/mensajes/${tipo}?propiedad_id=${_panicoEmpresaId}`, {
+        const canales = {};
+        for (const t of tipos) {
+            canales[t] = document.getElementById(`panico-activo-${t}`)?.checked !== false;
+        }
+        await fetch(`/config/boton_panico/canales?propiedad_id=${_panicoEmpresaId}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ mensaje: msg }),
+            body: JSON.stringify(canales),
         });
-        const j = await r.json();
-        if (j.ok) {
-            _panicoActualizarHint(tipo, msg);
-            showToast('✅ Mensaje guardado');
-        } else {
-            showToast('❌ ' + (j.error || 'Error'), true);
-        }
-    } catch { showToast('❌ Error de conexión', true); }
-}
+    } catch { errores++; }
 
-async function _panicoRestablecerMensaje(tipo) {
-    if (!_panicoEmpresaId) return;
-    try {
-        const r = await fetch(`/config/boton_panico/mensajes/${tipo}?propiedad_id=${_panicoEmpresaId}`, {
-            method: 'DELETE',
-        });
-        const j = await r.json();
-        if (j.ok) {
-            document.getElementById(_PANICO_MSG_IDS[tipo]).value = '';
-            _panicoActualizarHint(tipo, '');
-            showToast('🔄 Restablecido al mensaje predeterminado');
-        } else {
-            showToast('❌ ' + (j.error || 'Error'), true);
-        }
-    } catch { showToast('❌ Error de conexión', true); }
+    for (const tipo of tipos) {
+        try {
+            if (_panicoEliminados[tipo]) {
+                await fetch(`/config/boton_panico/mensajes/${tipo}?propiedad_id=${_panicoEmpresaId}`, { method: 'DELETE' });
+                _panicoEliminados[tipo] = false;
+                document.getElementById(_PANICO_MSG_IDS[tipo]).style.borderColor = 'rgba(4,34,67,.12)';
+                _panicoActualizarHint(tipo, false);
+            } else {
+                const msg = document.getElementById(_PANICO_MSG_IDS[tipo]).value.trim();
+                if (!msg) continue;
+                const r = await fetch(`/config/boton_panico/mensajes/${tipo}?propiedad_id=${_panicoEmpresaId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ mensaje: msg }),
+                });
+                const j = await r.json();
+                if (!j.ok) errores++;
+                else _panicoActualizarHint(tipo, true);
+            }
+        } catch { errores++; }
+    }
+    if (errores) showToast('⚠️ Algunos mensajes no se guardaron', true);
+    else showToast('✅ Configuración guardada');
 }
 
 function _panicoVarCopiar(variable) {
@@ -6599,11 +6887,6 @@ async function _panicoCargarStats() {
             ? `<div style="font-size:.7rem;color:#8A9CC8;margin-top:4px;">${_panicoFmtFecha(s.ultimo_evento.activado_en)}</div>`
             : `<div style="font-size:.7rem;color:#8A9CC8;margin-top:4px;">Sin activaciones</div>`;
         grid.innerHTML = `
-            <div style="background:rgba(229,62,62,.06);border:1.5px solid rgba(229,62,62,.18);border-radius:14px;padding:18px 20px;">
-                <div style="font-size:2rem;font-weight:800;color:#e53e3e;">${s.total_contactos}</div>
-                <div style="font-size:.78rem;font-weight:600;color:#042243;margin-top:4px;">Contactos vinculados</div>
-                <div style="font-size:.7rem;color:#8A9CC8;margin-top:2px;">Del directorio</div>
-            </div>
             <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:18px 20px;">
                 <div style="font-size:2rem;font-weight:800;color:#042243;">${s.total_eventos}</div>
                 <div style="font-size:.78rem;font-weight:600;color:#042243;margin-top:4px;">Activaciones totales</div>
