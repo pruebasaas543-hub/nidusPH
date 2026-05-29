@@ -4,7 +4,7 @@ Lógica de negocio para el Directorio de Contactos.
 """
 
 import base64
-from app.servicios.directorio.model import ContactoModel, BLOQUES_VALIDOS
+from app.servicios.directorio.model import ContactoModel, DirectorioConfigModel
 from app.configuracion.utils import email_ok
 
 MAX_FOTO_BYTES = 3 * 1024 * 1024
@@ -27,12 +27,16 @@ class ContactoController:
     CARGO_REQUERIDO = {"ADMIN", "LOGISTICA"}
 
     @staticmethod
-    def _validar(datos: dict):
+    def _validar(datos: dict, empresa_id: str = None):
         if not datos.get("nombre", "").strip():
             return False, "El nombre del contacto es obligatorio"
         bloque = datos.get("bloque", "").upper().strip()
-        if bloque not in BLOQUES_VALIDOS:
-            return False, f"Bloque inválido. Opciones: {', '.join(sorted(BLOQUES_VALIDOS))}"
+        codigos = DirectorioConfigModel.codigos_activos(empresa_id) if empresa_id else set()
+        if not codigos:
+            from app.servicios.directorio.model import BLOQUES_VALIDOS
+            codigos = BLOQUES_VALIDOS
+        if bloque not in codigos:
+            return False, f"Bloque inválido. Opciones: {', '.join(sorted(codigos))}"
         if bloque in ContactoController.CARGO_REQUERIDO and not datos.get("cargo_titulo", "").strip():
             return False, f"El cargo es obligatorio para el bloque {bloque}"
         correo = datos.get("correo", "").strip()
@@ -48,9 +52,15 @@ class ContactoController:
 
     @staticmethod
     def crear(datos: dict, empresa_id: str, creado_por: str, foto_file=None):
-        ok_val, err_val = ContactoController._validar(datos)
+        ok_val, err_val = ContactoController._validar(datos, empresa_id)
         if not ok_val:
             return False, err_val
+        bloque = datos.get("bloque", "").upper().strip()
+        limite = DirectorioConfigModel.obtener_limites(empresa_id).get(bloque)
+        if limite:
+            count = ContactoModel.contar_por_bloque(empresa_id, bloque)
+            if count >= limite:
+                return False, f"Límite de {limite} contacto(s) alcanzado para el bloque {bloque}"
         if foto_file:
             foto_data, foto_mime = _foto_desde_file(foto_file)
             if foto_data is False:
@@ -79,7 +89,7 @@ class ContactoController:
         doc = ContactoModel.obtener(contacto_id, empresa_id)
         if not doc:
             return False, "Contacto no encontrado"
-        ok_val, err_val = ContactoController._validar(datos)
+        ok_val, err_val = ContactoController._validar(datos, empresa_id)
         if not ok_val:
             return False, err_val
         if foto_file:

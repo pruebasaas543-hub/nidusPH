@@ -141,4 +141,10 @@ def create_app():
     except Exception as _e:
         app.logger.warning("Migración roles: %s", _e)
 
+    try:
+        from app.servicios.directorio.model import inicializar_plantillas_globales
+        inicializar_plantillas_globales()
+    except Exception as _e:
+        app.logger.warning("Inicialización directorio_bloques: %s", _e)
+
     return app

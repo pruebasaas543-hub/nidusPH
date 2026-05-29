@@ -1675,7 +1675,7 @@
             </div>
 
             <!-- Selector empresa -->
-            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:22px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
                 <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
                     <span style="font-size:1.4rem;">🏢</span>
                     <div>
@@ -1693,14 +1693,61 @@
             <!-- Panel principal (oculto hasta seleccionar empresa) -->
             <div id="dir-panel" style="display:none;">
 
-                <!-- Tabs de bloque -->
-                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
-                    <button class="dir-tab-btn active" data-bloque="TODOS"        onclick="dirCambiarBloque(this)">Todos</button>
-                    <button class="dir-tab-btn" data-bloque="EMERGENCIAS"         onclick="dirCambiarBloque(this)">🚨 Emergencias</button>
-                    <button class="dir-tab-btn" data-bloque="ADMIN"               onclick="dirCambiarBloque(this)">🏢 Administración</button>
-                    <button class="dir-tab-btn" data-bloque="PUBLICOS"            onclick="dirCambiarBloque(this)">💡 Servicios Públicos</button>
-                    <button class="dir-tab-btn" data-bloque="LOGISTICA"           onclick="dirCambiarBloque(this)">🔧 Logística</button>
-                    <button class="dir-tab-btn" data-bloque="LOCAL"               onclick="dirCambiarBloque(this)">📍 Locales</button>
+                <!-- ⚙️ Bloques del directorio (siempre visible) -->
+                <div style="background:#dde8f8;border:1.5px solid #93b8e8;border-radius:12px;padding:16px 18px;margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <span style="font-size:.82rem;font-weight:700;color:#042243;">⚙️ Bloques del directorio</span>
+                        <button onclick="_dirNuevoBloqueForm(true)" id="dir-nuevo-bloque-btn"
+                            style="background:#2787F5;color:#fff;border:none;border-radius:7px;padding:4px 14px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit;">
+                            + Nuevo bloque
+                        </button>
+                    </div>
+                    <div id="dir-bloques-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+                    <!-- Form nuevo bloque (oculto por defecto) -->
+                    <div id="dir-nuevo-bloque-form" style="display:none;border-top:1px solid rgba(4,34,67,.15);padding-top:12px;margin-top:12px;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                            <input id="dir-bloque-emoji" placeholder="Emoji" maxlength="4"
+                                style="width:58px;border:1.5px solid #93b8e8;border-radius:8px;padding:6px 8px;font-size:.85rem;text-align:center;font-family:inherit;background:#fff;outline:none;">
+                            <input id="dir-bloque-nombre" placeholder="Nombre del bloque"
+                                style="flex:1;min-width:140px;border:1.5px solid #93b8e8;border-radius:8px;padding:6px 10px;font-size:.85rem;font-family:inherit;background:#fff;outline:none;">
+                            <input id="dir-bloque-codigo" placeholder="CODIGO" maxlength="20"
+                                style="width:110px;border:1.5px solid #93b8e8;border-radius:8px;padding:6px 10px;font-size:.85rem;text-transform:uppercase;font-family:inherit;background:#fff;outline:none;">
+                            <input id="dir-bloque-orden" placeholder="Orden" type="text" inputmode="numeric" pattern="[0-9]*"
+                                style="width:72px;border:1.5px solid #93b8e8;border-radius:8px;padding:6px 8px;font-size:.85rem;text-align:center;font-family:inherit;background:#fff;outline:none;">
+                        </div>
+                        <div style="display:flex;gap:8px;justify-content:flex-end;">
+                            <button onclick="_dirNuevoBloqueForm(false)"
+                                style="background:none;border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:5px 16px;font-size:.78rem;font-weight:600;color:#042243;cursor:pointer;font-family:inherit;">
+                                Cancelar
+                            </button>
+                            <button onclick="_dirCrearBloque()"
+                                style="background:#2787F5;color:#fff;border:none;border-radius:8px;padding:6px 18px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;">
+                                ✓ Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📊 Límites de contactos por bloque (siempre visible) -->
+                <div style="background:#dde8f8;border:1.5px solid #93b8e8;border-radius:12px;padding:16px 18px;margin-bottom:22px;">
+                    <div style="font-size:.82rem;font-weight:700;color:#042243;margin-bottom:4px;">📊 Límite de contactos por bloque</div>
+                    <div style="font-size:.7rem;color:#2563a8;margin-bottom:12px;">Máximo de contactos activos por bloque. Dejar vacío equivale a 2 por defecto.</div>
+                    <div id="dir-limites-inputs" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;"></div>
+                    <div style="display:flex;justify-content:flex-end;gap:8px;">
+                        <button onclick="_dirEditarLimites()" id="dir-limites-btn-editar"
+                            style="display:none;background:#eef3fb;border:1.5px solid #93b8e8;border-radius:8px;padding:6px 18px;font-size:.8rem;font-weight:700;color:#1d4ed8;cursor:pointer;font-family:inherit;">
+                            🔧 Editar
+                        </button>
+                        <button onclick="_dirGuardarLimites()" id="dir-limites-btn-guardar"
+                            style="background:#2787F5;color:#fff;border:none;border-radius:8px;padding:7px 20px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;">
+                            💾 Guardar límites
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabs de bloque (generados dinámicamente) -->
+                <div id="dir-tabs-wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+                    <button class="dir-tab-btn active" data-bloque="TODOS" onclick="dirCambiarBloque(this)">Todos</button>
                     <button class="btn btn-primary" style="margin-left:auto;" onclick="dirAbrirModal()">+ Nuevo Contacto</button>
                 </div>
 
@@ -1768,6 +1815,8 @@
                         <span style="font-size:.72rem;font-weight:700;color:#2563a8;letter-spacing:.5px;text-transform:uppercase;width:100%;margin-bottom:6px;">Variables disponibles — haz clic para copiar</span>
                         <button onclick="_panicoVarCopiar('{nombre_residente}')" style="background:#2787F5;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;">👤 {nombre_residente}</button>
                         <button onclick="_panicoVarCopiar('{nombre_empresa}')" style="background:#042243;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;">🏢 {nombre_empresa}</button>
+                        <button onclick="_panicoVarCopiar('{torre}')" style="background:#6b7280;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;">🏗️ {torre}</button>
+                        <button onclick="_panicoVarCopiar('{apartamento}')" style="background:#6b7280;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;">🚪 {apartamento}</button>
                         <span style="font-size:.7rem;color:#2563a8;">Se reemplazan automáticamente al activar el pánico.</span>
                     </div>
 
@@ -1837,6 +1886,24 @@
                         <span id="panico-msg-llamada-hint" style="font-size:.7rem;font-style:italic;margin-top:4px;display:block;"></span>
                     </div>
 
+                    <!-- Cooldown -->
+                    <div style="background:#dde8f8;border:1.5px solid #93b8e8;border-radius:12px;padding:16px 18px;margin-bottom:20px;">
+                        <div style="font-size:.84rem;font-weight:700;color:#042243;margin-bottom:10px;">⏱️ Límite de activaciones por usuario</div>
+                        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+                            <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">
+                                Máx. activaciones
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="panico-cooldown-max" value="2"
+                                    style="width:90px;border:1.5px solid #93b8e8;border-radius:8px;padding:6px 10px;font-size:.85rem;font-family:inherit;text-align:center;background:#fff;outline:none;">
+                            </label>
+                            <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">
+                                Ventana de tiempo (min)
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" id="panico-cooldown-min" value="10"
+                                    style="width:90px;border:1.5px solid #93b8e8;border-radius:8px;padding:6px 10px;font-size:.85rem;font-family:inherit;text-align:center;background:#fff;outline:none;">
+                            </label>
+                            <span style="font-size:.7rem;color:#2563a8;padding-bottom:6px;flex:1;min-width:160px;">El usuario quedará bloqueado si supera el límite dentro de la ventana de tiempo.</span>
+                        </div>
+                    </div>
+
                     <!-- Guardar global -->
                     <div style="display:flex;justify-content:flex-end;margin-bottom:28px;">
                         <button onclick="_panicoConfirmarGuardar()" class="btn btn-primary" style="padding:10px 32px;font-size:.88rem;font-weight:700;">💾 Guardar configuración</button>
@@ -1897,6 +1964,56 @@
             </div>
         </div>
 
+        <!-- Modal Editar Bloque -->
+        <div id="modal-dir-bloque" style="display:none;position:fixed;inset:0;background:rgba(4,34,67,.55);z-index:9999;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);">
+            <div style="background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(4,34,67,.22);width:clamp(300px,90vw,440px);overflow:hidden;">
+                <div style="padding:22px 24px 8px;">
+                    <p style="font-size:.92rem;font-weight:700;color:#042243;margin-bottom:16px;">Editar bloque</p>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <div style="display:flex;gap:10px;">
+                            <div style="display:flex;flex-direction:column;gap:4px;width:70px;">
+                                <label style="font-size:.72rem;font-weight:600;color:#6b7280;">Emoji</label>
+                                <input id="mdb-emoji" maxlength="4" placeholder="🏢"
+                                    style="border:1.5px solid #93b8e8;border-radius:8px;padding:7px 8px;font-size:.9rem;text-align:center;font-family:inherit;background:#fff;width:100%;">
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:4px;flex:1;">
+                                <label style="font-size:.72rem;font-weight:600;color:#6b7280;">Nombre <span style="color:#e53e3e;">*</span></label>
+                                <input id="mdb-nombre" placeholder="Nombre del bloque"
+                                    style="border:1.5px solid #93b8e8;border-radius:8px;padding:7px 10px;font-size:.85rem;font-family:inherit;background:#fff;width:100%;">
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:4px;width:72px;">
+                                <label style="font-size:.72rem;font-weight:600;color:#6b7280;">Orden</label>
+                                <input id="mdb-orden" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="1"
+                                    style="border:1.5px solid #93b8e8;border-radius:8px;padding:7px 8px;font-size:.85rem;text-align:center;font-family:inherit;background:#fff;width:100%;outline:none;">
+                            </div>
+                        </div>
+                        <div id="mdb-preview" style="background:#f0f6ff;border:1.5px solid #93b8e8;border-radius:9px;padding:10px 14px;font-size:.83rem;color:#042243;display:none;">
+                            <span style="font-size:.7rem;font-weight:700;color:#2563a8;display:block;margin-bottom:4px;">Vista previa del cambio</span>
+                            <span id="mdb-preview-texto"></span>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:16px 24px 20px;display:flex;justify-content:flex-end;gap:10px;">
+                    <button onclick="_dirBloqueModalCerrar()" style="background:none;border:1.5px solid rgba(4,34,67,.2);border-radius:9px;padding:8px 20px;font-size:.84rem;font-weight:600;color:#042243;cursor:pointer;font-family:inherit;">Cancelar</button>
+                    <button onclick="_dirBloqueModalConfirmar()" style="background:#042243;border:none;border-radius:9px;padding:8px 24px;font-size:.84rem;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">Guardar cambios</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Confirmar eliminación de bloque -->
+        <div id="modal-dir-bloque-elim" style="display:none;position:fixed;inset:0;background:rgba(4,34,67,.55);z-index:9999;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);">
+            <div style="background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(4,34,67,.22);width:clamp(300px,90vw,420px);overflow:hidden;">
+                <div style="padding:24px 24px 8px;">
+                    <p style="font-size:.9rem;font-weight:700;color:#042243;margin-bottom:8px;">¿Eliminar bloque?</p>
+                    <p style="font-size:.82rem;color:#042243;">El bloque <strong id="modal-dir-bloque-elim-nombre"></strong> será eliminado permanentemente. Los contactos en este bloque no se eliminarán pero quedarán sin bloque.</p>
+                </div>
+                <div style="padding:16px 24px 20px;display:flex;justify-content:flex-end;gap:10px;">
+                    <button onclick="document.getElementById('modal-dir-bloque-elim').style.display='none'" style="background:none;border:1.5px solid rgba(4,34,67,.2);border-radius:9px;padding:8px 20px;font-size:.84rem;font-weight:600;color:#042243;cursor:pointer;font-family:inherit;">Cancelar</button>
+                    <button onclick="_dirConfirmarEliminarBloque()" style="background:#dc2626;border:none;border-radius:9px;padding:8px 24px;font-size:.84rem;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">✕ Eliminar</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal Directorio -->
         <div class="modal-overlay" id="modal-dir">
             <div style="width:clamp(360px,95vw,580px);max-height:92vh;border-radius:18px;background:#fff;box-shadow:0 24px 64px rgba(4,34,67,.22);display:flex;flex-direction:column;overflow:hidden;">
@@ -1918,13 +2035,7 @@
                     <!-- Bloque -->
                     <div class="form-row" style="margin-bottom:14px;">
                         <label>Bloque *</label>
-                        <select class="form-control" id="dir-bloque" onchange="dirCambioBloque()">
-                            <option value="EMERGENCIAS">🚨 Emergencias</option>
-                            <option value="ADMIN">🏢 Administración</option>
-                            <option value="PUBLICOS">💡 Servicios Públicos</option>
-                            <option value="LOGISTICA">🔧 Logística</option>
-                            <option value="LOCAL">📍 Locales</option>
-                        </select>
+                        <select class="form-control" id="dir-bloque" onchange="dirCambioBloque()"></select>
                     </div>
 
                     <!-- Nombre -->
@@ -1965,6 +2076,12 @@
                             </div>
                         </div>
                         <input type="file" id="dir-foto" accept="image/*" hidden onchange="dirPreviewFoto(this)">
+                    </div>
+
+                    <!-- Orden -->
+                    <div class="form-row" style="margin-bottom:14px;">
+                        <label>Orden <small style="color:#8A9CC8;">— posición dentro del bloque</small></label>
+                        <input class="form-control" id="dir-orden" type="text" inputmode="numeric" placeholder="0" style="width:100px;">
                     </div>
 
                     <!-- Visibilidad y acceso -->
@@ -6230,9 +6347,263 @@ let _dirContactos  = [];
 
 // ── Inicialización ──────────────────────────────────────────────────────
 
+// ── Bloques ────────────────────────────────────────────────────────────────
+let _dirBloques = [];
+
+async function _dirCargarBloques() {
+    const qs = _dirEmpresaId ? `?propiedad_id=${_dirEmpresaId}` : '';
+    try {
+        const json = await apiFetch(`/config/directorio/bloques${qs}`);
+        if (!json.ok || !Array.isArray(json.data)) return;
+        _dirBloques = json.data;
+        _dirRenderTabsBloques();
+        _dirRenderListaBloques();
+    } catch(e) {}
+}
+
+function _dirRenderTabsBloques() {
+    const wrap = document.getElementById('dir-tabs-wrap');
+    if (!wrap) return;
+    const btnTodos = wrap.querySelector('[data-bloque="TODOS"]');
+    const btnNuevo = wrap.querySelector('.btn-primary');
+    wrap.innerHTML = '';
+    if (btnTodos) wrap.appendChild(btnTodos);
+    _dirBloques.filter(b => b.activo).forEach(b => {
+        const btn = document.createElement('button');
+        btn.className = 'dir-tab-btn';
+        btn.dataset.bloque = b.codigo;
+        btn.onclick = () => dirCambiarBloque(btn);
+        btn.textContent = `${b.emoji || ''} ${b.nombre}`.trim();
+        wrap.appendChild(btn);
+    });
+    if (btnNuevo) wrap.appendChild(btnNuevo);
+}
+
+function _dirRenderListaBloques() {
+    const lista = document.getElementById('dir-bloques-lista');
+    if (!lista) return;
+    if (_dirBloques.length === 0) {
+        lista.innerHTML = '<span style="font-size:.78rem;color:#6b7280;">No hay bloques configurados.</span>';
+        return;
+    }
+    lista.innerHTML = _dirBloques.map(b => {
+        const esPred = b.es_predeterminado !== false;
+        const btnElim = esPred ? '' :
+            `<button onclick="_dirEliminarBloque('${b.codigo}','${_esc(b.nombre)}')"
+                style="background:#fff0f0;border:1.5px solid #f87171;border-radius:7px;padding:3px 8px;font-size:.72rem;font-weight:700;color:#b91c1c;cursor:pointer;font-family:inherit;">✕</button>`;
+        return `<div id="dir-bloque-row-${b.codigo}" style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #93b8e8;border-radius:9px;padding:8px 12px;">
+            <span style="font-size:1.1rem;width:26px;text-align:center;">${b.emoji||'📁'}</span>
+            <span style="flex:1;font-size:.83rem;font-weight:700;color:#042243;">${_esc(b.nombre)}</span>
+            <span style="font-size:.72rem;color:#6b7280;background:#f0f4ff;border-radius:5px;padding:2px 7px;">${b.codigo}</span>
+            <label class="canal-toggle" title="${b.activo?'Activo':'Inactivo'}">
+                <input type="checkbox" ${b.activo?'checked':''} onchange="_dirToggleBloque('${b.codigo}',this.checked)">
+                <span class="canal-toggle-slider"></span>
+            </label>
+            <button onclick="_dirEditarBloque('${b.codigo}')"
+                style="background:#eef3fb;border:1.5px solid #93b8e8;border-radius:7px;padding:3px 10px;font-size:.72rem;font-weight:700;color:#1d4ed8;cursor:pointer;font-family:inherit;">✏️</button>
+            ${btnElim}
+        </div>`;
+    }).join('');
+}
+
+function _dirNuevoBloqueForm(mostrar) {
+    const form = document.getElementById('dir-nuevo-bloque-form');
+    const btn  = document.getElementById('dir-nuevo-bloque-btn');
+    if (!form) return;
+    form.style.display = mostrar ? 'block' : 'none';
+    if (btn) btn.style.display = mostrar ? 'none' : '';
+    if (!mostrar) {
+        ['dir-bloque-emoji','dir-bloque-nombre','dir-bloque-codigo','dir-bloque-orden'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+        });
+    }
+}
+
+async function _dirToggleBloque(codigo, activo) {
+    const chk = document.querySelector(`#dir-bloque-row-${codigo} input[type=checkbox]`);
+    try {
+        const qs = _dirEmpresaId ? `?propiedad_id=${_dirEmpresaId}` : '';
+        const r = await apiFetch(`/config/directorio/bloques/${codigo}/activo${qs}`, 'PATCH', {activo});
+        if (!r.ok) {
+            if (chk) chk.checked = !activo;
+            showToast(r.error || 'No se pudo actualizar el bloque', true);
+            return;
+        }
+        await _dirCargarBloques();
+    } catch(e) {
+        if (chk) chk.checked = !activo;
+        showToast('Error de conexión al actualizar bloque', true);
+    }
+}
+
+// ── Eliminación de bloques ────────────────────────────────────────────────
+let _dirBloqueElimId = null;
+
+function _dirEliminarBloque(id, nombre) {
+    _dirBloqueElimId = id;
+    document.getElementById('modal-dir-bloque-elim-nombre').textContent = nombre;
+    const modal = document.getElementById('modal-dir-bloque-elim');
+    modal.style.display = 'flex';
+}
+
+async function _dirConfirmarEliminarBloque() {
+    document.getElementById('modal-dir-bloque-elim').style.display = 'none';
+    if (!_dirBloqueElimId || !_dirEmpresaId) return;
+    try {
+        const r = await apiFetch(`/config/directorio/bloques/${_dirBloqueElimId}?propiedad_id=${_dirEmpresaId}`, 'DELETE');
+        if (!r.ok) { showToast(r.error || 'No se pudo eliminar el bloque', true); return; }
+        showToast('Bloque eliminado');
+        await _dirCargarBloques();
+    } catch { showToast('Error al eliminar bloque', true); }
+    _dirBloqueElimId = null;
+}
+
+async function _dirCrearBloque() {
+    const emoji  = document.getElementById('dir-bloque-emoji').value.trim();
+    const nombre = document.getElementById('dir-bloque-nombre').value.trim();
+    const codigo = document.getElementById('dir-bloque-codigo').value.trim().toUpperCase();
+    const orden  = parseInt(document.getElementById('dir-bloque-orden').value) || 99;
+    if (!nombre) { showToast('El nombre es obligatorio', true); return; }
+    if (!codigo) { showToast('El código es obligatorio', true); return; }
+    const qs = _dirEmpresaId ? `?propiedad_id=${_dirEmpresaId}` : '';
+    try {
+        const r = await apiFetch(`/config/directorio/bloques${qs}`, 'POST', {emoji, nombre, codigo, orden});
+        if (!r.ok) { showToast(r.error || 'Error al crear bloque', true); return; }
+        _dirNuevoBloqueForm(false);
+        showToast('Bloque creado');
+        await _dirCargarBloques();
+    } catch { showToast('Error al crear bloque', true); }
+}
+
+// ── Modal editar bloque ────────────────────────────────────────────────────
+let _dirBloqueEditId = null;
+
+function _dirEditarBloque(codigo) {
+    const bloque = _dirBloques.find(b => b.codigo === codigo);
+    if (!bloque) return;
+    _dirBloqueEditId = codigo;
+    document.getElementById('mdb-emoji').value  = bloque.emoji  || '';
+    document.getElementById('mdb-nombre').value = bloque.nombre || '';
+    document.getElementById('mdb-orden').value  = bloque.orden  || 99;
+    document.getElementById('mdb-preview').style.display = 'none';
+    ['mdb-emoji','mdb-nombre','mdb-orden'].forEach(fid => {
+        document.getElementById(fid).oninput = _dirBloquePreview;
+    });
+    document.getElementById('modal-dir-bloque').style.display = 'flex';
+}
+
+function _dirBloquePreview() {
+    const emoji  = document.getElementById('mdb-emoji').value.trim();
+    const nombre = document.getElementById('mdb-nombre').value.trim();
+    const orden  = document.getElementById('mdb-orden').value;
+    const prev   = document.getElementById('mdb-preview');
+    const txt    = document.getElementById('mdb-preview-texto');
+    if (nombre) {
+        txt.textContent = `${emoji} ${nombre}  ·  Orden: ${orden||'—'}`.trim();
+        prev.style.display = 'block';
+    } else {
+        prev.style.display = 'none';
+    }
+}
+
+function _dirBloqueModalCerrar() {
+    document.getElementById('modal-dir-bloque').style.display = 'none';
+    _dirBloqueEditId = null;
+}
+
+async function _dirBloqueModalConfirmar() {
+    const nombre = document.getElementById('mdb-nombre').value.trim();
+    const emoji  = document.getElementById('mdb-emoji').value.trim();
+    const orden  = parseInt(document.getElementById('mdb-orden').value) || 99;
+    if (!nombre) { showToast('El nombre es obligatorio', true); return; }
+    try {
+        const qs2 = _dirEmpresaId ? `?propiedad_id=${_dirEmpresaId}` : '';
+        const r = await apiFetch(`/config/directorio/bloques/${_dirBloqueEditId}${qs2}`, 'PUT', {nombre, emoji, orden});
+        if (!r.ok) { showToast(r.error || 'Error al actualizar bloque', true); return; }
+        _dirBloqueModalCerrar();
+        showToast('Bloque actualizado');
+        await _dirCargarBloques();
+    } catch { showToast('Error al actualizar bloque', true); }
+}
+
+// ── Límites por bloque ────────────────────────────────────────────────────
+let _dirLimites = {};
+let _dirLimitesEditing = true;
+
+async function _dirCargarLimites() {
+    // Solo carga los datos. El render se hace desde dirSeleccionarEmpresa(),
+    // garantizando que _dirBloques ya está listo antes de pintar los inputs.
+    if (!_dirEmpresaId) return;
+    try {
+        const r = await fetch(`/config/directorio/limites?propiedad_id=${_dirEmpresaId}&_t=${Date.now()}`);
+        const j = await r.json();
+        _dirLimites = j.ok ? (j.data || {}) : {};
+    } catch { _dirLimites = {}; }
+    _dirLimitesEditing = false;
+}
+
+function _dirSetLimitesMode(editing) {
+    _dirLimitesEditing = editing;
+    document.getElementById('dir-limites-btn-editar').style.display  = editing ? 'none' : '';
+    document.getElementById('dir-limites-btn-guardar').style.display = editing ? '' : 'none';
+    document.getElementById('dir-limites-inputs').querySelectorAll('input[data-bloque]').forEach(inp => {
+        inp.disabled = !editing;
+        inp.style.background = editing ? '#fff' : '#f5f7fa';
+        inp.style.cursor     = editing ? '' : 'default';
+    });
+}
+
+function _dirEditarLimites() { _dirSetLimitesMode(true); }
+
+function _dirRenderLimites() {
+    const cont = document.getElementById('dir-limites-inputs');
+    if (!cont) return;
+    const bloques = _dirBloques.filter(b => b.activo);
+    if (!bloques.length) {
+        cont.innerHTML = '<span style="font-size:.78rem;color:#6b7280;">No hay bloques activos configurados.</span>';
+        return;
+    }
+    cont.innerHTML = bloques.map(b => {
+        const val = _dirLimites[b.codigo] ?? 2;
+        return `<label style="font-size:.73rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:5px;min-width:110px;">
+            <span>${b.emoji || ''} ${_esc(b.nombre)}</span>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" data-bloque="${b.codigo}" value="${val}"
+                style="border:1.5px solid #93b8e8;border-radius:7px;padding:5px 8px;font-size:.82rem;font-family:inherit;text-align:center;background:#fff;width:100%;outline:none;">
+        </label>`;
+    }).join('');
+}
+
+async function _dirGuardarLimites() {
+    if (!_dirEmpresaId) return;
+    const confirmado = await confirmar('Guardar límites', '¿Confirmar los límites de contactos por bloque?', 'Guardar');
+    if (!confirmado) return;
+    const cont = document.getElementById('dir-limites-inputs');
+    if (!cont) return;
+    const limites = {};
+    cont.querySelectorAll('input[data-bloque]').forEach(inp => {
+        const val = parseInt(inp.value) || 2;  // default 2 si vacío
+        limites[inp.dataset.bloque] = val;
+    });
+    try {
+        const r = await fetch(`/config/directorio/limites?propiedad_id=${_dirEmpresaId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ limites }),
+        });
+        const j = await r.json();
+        if (j.ok) {
+            _dirLimites = limites;
+            showToast('✅ Límites guardados');
+            _dirRenderLimites();
+            _dirSetLimitesMode(false);
+        } else { showToast('❌ ' + (j.error || 'Error'), true); }
+    } catch { showToast('Error al guardar límites', true); }
+}
+
+// ── Empresas ───────────────────────────────────────────────────────────────
 async function _dirPoblarEmpresas() {
     const sel = document.getElementById('dir-empresa-sel');
-    _dirCargarPaises(); // carga prefijos en paralelo (no bloquea)
+    _dirCargarPaises();    // carga prefijos en paralelo
     if (sel.options.length > 1) return;
     try {
         const json = await apiFetch('/config/empresas');
@@ -6254,8 +6625,16 @@ async function dirSeleccionarEmpresa(empresaId) {
     if (!_dirEmpresaId) { panel.style.display = 'none'; return; }
     panel.style.display = '';
     _dirBloqueAct = 'TODOS';
+    // Resetear estado de límites para que no quede sucio al cambiar empresa
+    _dirLimites = {};
+    _dirLimitesEditing = false;
     document.querySelectorAll('.dir-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.bloque === 'TODOS'));
-    await _dirCargar();
+    _dirNuevoBloqueForm(false);
+    // Esperar a que bloques Y límites carguen antes de renderizar,
+    // para evitar race condition donde límites se dibuja sin _dirBloques listo
+    await Promise.all([_dirCargar(), _dirCargarBloques(), _dirCargarLimites()]);
+    _dirRenderLimites();
+    _dirSetLimitesMode(_dirLimitesEditing);
 }
 
 async function _dirCargar() {
@@ -6359,9 +6738,28 @@ const _DIR_META = {
     LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false },
 };
 
+function _dirPoblarSelectBloques(codigoSeleccionado) {
+    const sel = document.getElementById('dir-bloque');
+    const activos = _dirBloques.filter(b => b.activo);
+    sel.innerHTML = activos.map(b =>
+        `<option value="${b.codigo}" ${b.codigo === codigoSeleccionado ? 'selected' : ''}>${b.emoji || ''} ${b.nombre}</option>`
+    ).join('');
+    if (!sel.value && activos.length) sel.value = activos[0].codigo;
+}
+
 function dirCambioBloque(cargoActual = '') {
     const bloque = document.getElementById('dir-bloque').value;
-    const m = _DIR_META[bloque] || _DIR_META.EMERGENCIAS;
+    // Primero busca en meta fija, si no usa datos del bloque dinámico
+    const meta  = _DIR_META[bloque];
+    const bData = _dirBloques.find(b => b.codigo === bloque) || {};
+    const m = meta || {
+        icon:   bData.emoji || '📁',
+        label:  bData.nombre || bloque,
+        color:  '#042243',
+        cargo:  false,
+        correo: false,
+        panico: false,
+    };
     document.getElementById('dir-modal-icon').textContent     = m.icon;
     document.getElementById('dir-modal-subtitle').textContent = m.label;
     document.querySelectorAll('.dir-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
@@ -6388,10 +6786,10 @@ async function _dirCargarCargos(bloque, valorActual = '') {
 
 async function dirAbrirModal(contacto = null) {
     await _dirCargarPaises();
-    const bloque = contacto ? contacto.bloque : (_dirBloqueAct !== 'TODOS' ? _dirBloqueAct : 'EMERGENCIAS');
+    const bloque = contacto ? contacto.bloque : (_dirBloqueAct !== 'TODOS' ? _dirBloqueAct : (_dirBloques.find(b => b.activo)?.codigo || 'EMERGENCIAS'));
     document.getElementById('dir-id').value             = contacto ? contacto._id : '';
     document.getElementById('modal-dir-title').textContent = contacto ? '✏️ Editar Contacto' : '➕ Nuevo Contacto';
-    document.getElementById('dir-bloque').value         = bloque;
+    _dirPoblarSelectBloques(bloque);
     document.getElementById('dir-nombre').value         = contacto ? (contacto.nombre||'') : '';
     const _cargoVal = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('dir-correo').value         = contacto ? (contacto.correo||'') : '';
@@ -6399,6 +6797,7 @@ async function dirAbrirModal(contacto = null) {
     document.getElementById('dir-flag-auth').checked    = contacto ? !!contacto.es_visible_para_seguridad : false;
     document.getElementById('dir-flag-llamada').checked = contacto ? !!contacto.es_visible_para_administracion : false;
     document.getElementById('dir-flag-panico').checked  = contacto ? !!contacto.vinculado_al_boton_de_panico : false;
+    document.getElementById('dir-orden').value          = contacto ? (contacto.orden ?? 0) : 0;
     // Foto preview
     const prev = document.getElementById('dir-foto-preview');
     const ph   = document.getElementById('dir-foto-placeholder');
@@ -6457,7 +6856,7 @@ function _dirRenderTelefonos(lista) {
 function _dirLeerTelefonos() {
     return [...document.querySelectorAll('#dir-telefonos-wrap .dir-tel-row')].map(row => ({
         numero:  row.querySelector('.dir-tel-input').value.trim(),
-        prefijo: row.querySelector('.dir-pais-sel').value,
+        prefijo: row.querySelector('.dir-pais-sel').value || '+57',
     }));
 }
 
@@ -6508,6 +6907,7 @@ async function dirGuardar() {
     fd.append('es_visible_para_seguridad',      document.getElementById('dir-flag-auth').checked    ? 'true' : 'false');
     fd.append('es_visible_para_administracion', document.getElementById('dir-flag-llamada').checked  ? 'true' : 'false');
     fd.append('vinculado_al_boton_de_panico',document.getElementById('dir-flag-panico').checked   ? 'true' : 'false');
+    fd.append('orden',                        parseInt(document.getElementById('dir-orden').value) || 0);
     fd.append('telefonos', JSON.stringify(telefonos));
     const fotoFile = document.getElementById('dir-foto').files[0];
     if (fotoFile) fd.append('foto', fotoFile);
@@ -6672,6 +7072,11 @@ async function _panicoCargarMensaje() {
             const activo = activos[tipo] !== false;
             _panicoSetToggle(tipo, activo);
         }
+        // cooldown
+        const inpMax = document.getElementById('panico-cooldown-max');
+        const inpMin = document.getElementById('panico-cooldown-min');
+        if (inpMax) inpMax.value = j.data?.cooldown_max     ?? 2;
+        if (inpMin) inpMin.value = j.data?.cooldown_minutos ?? 10;
         // fechas
         const fmtDate = iso => iso ? new Date(iso).toLocaleString('es-CO', {dateStyle:'medium', timeStyle:'short'}) : null;
         const fc = fmtDate(j.data?.configurado_en);
@@ -6839,6 +7244,17 @@ async function _panicoGuardarTodo() {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(canales),
+        });
+    } catch { errores++; }
+
+    // Guarda cooldown
+    try {
+        const cdMax = parseInt(document.getElementById('panico-cooldown-max')?.value) || 2;
+        const cdMin = parseInt(document.getElementById('panico-cooldown-min')?.value) || 10;
+        await fetch(`/config/boton_panico/cooldown?propiedad_id=${_panicoEmpresaId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ cooldown_max: cdMax, cooldown_minutos: cdMin }),
         });
     } catch { errores++; }
 

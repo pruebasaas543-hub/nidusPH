@@ -107,9 +107,27 @@ def trigger():
     eid = _empresa_id()
     if not eid:
         return err("No hay empresa en sesión", 400)
+
+    torre = ""
+    apartamento = ""
+    try:
+        uid = session.get("usuario_id")
+        if uid:
+            asoc = db["asociaciones"].find_one({
+                "user_id":    ObjectId(uid),
+                "empresa_id": ObjectId(eid),
+                "activo":     True,
+            })
+            if asoc:
+                torre       = asoc.get("torre", "") or ""
+                apartamento = asoc.get("apartamento", "") or ""
+    except Exception:
+        pass
+
     exito, resultado = PanicController.trigger(
         eid, _usuario(), _nombre_res(), _nombre_empresa(),
         request.remote_addr or "",
+        torre=torre, apartamento=apartamento,
     )
     if not exito:
         return err(resultado)

@@ -35,10 +35,13 @@ MSG_DEFAULT_LLAMADA = (
 )
 
 
-def _aplicar_vars(texto: str, nombre_residente: str, nombre_empresa: str) -> str:
+def _aplicar_vars(texto: str, nombre_residente: str, nombre_empresa: str,
+                  torre: str = "", apartamento: str = "") -> str:
     return (texto
             .replace("{nombre_residente}", nombre_residente)
-            .replace("{nombre_empresa}", nombre_empresa))
+            .replace("{nombre_empresa}",   nombre_empresa)
+            .replace("{torre}",            torre or "")
+            .replace("{apartamento}",      apartamento or ""))
 
 
 def _twilio_client():
@@ -175,11 +178,22 @@ class PanicController:
 
     @staticmethod
     def trigger(empresa_id: str, residente_id: str,
-                nombre_residente: str, nombre_empresa: str, ip: str = ""):
+                nombre_residente: str, nombre_empresa: str, ip: str = "",
+                torre: str = "", apartamento: str = ""):
 
         cfg = PanicConfigModel.obtener(empresa_id)
         if not cfg or (not cfg.get("contactos_externos") and not cfg.get("contactos_directorio")):
             return False, "Sin configuración de pánico. Configura los contactos primero."
+
+        # Cooldown: límite de activaciones por usuario dentro de una ventana de tiempo
+        cooldown_max = int(cfg.get("cooldown_max", 2))
+        cooldown_min = int(cfg.get("cooldown_minutos", 10))
+        recientes = PanicEventModel.contar_recientes(empresa_id, residente_id, cooldown_min)
+        if recientes >= cooldown_max:
+            return False, (
+                f"Límite de activaciones alcanzado. "
+                f"Máximo {cooldown_max} en {cooldown_min} minutos."
+            )
 
         cliente    = _twilio_client()
         resultado  = {"externos": [], "directorio": [], "errores": []}
@@ -192,9 +206,9 @@ class PanicController:
         tpl_whatsapp = cfg.get("mensaje_whatsapp", "") or MSG_DEFAULT_WHATSAPP
         tpl_llamada  = cfg.get("mensaje_llamada",  "") or MSG_DEFAULT_LLAMADA
 
-        msg_sms       = _aplicar_vars(tpl_sms,      nombre_residente, nombre_empresa)
-        msg_whatsapp  = _aplicar_vars(tpl_whatsapp, nombre_residente, nombre_empresa)
-        texto_llamada = _aplicar_vars(tpl_llamada,  nombre_residente, nombre_empresa)
+        msg_sms       = _aplicar_vars(tpl_sms,      nombre_residente, nombre_empresa, torre, apartamento)
+        msg_whatsapp  = _aplicar_vars(tpl_whatsapp, nombre_residente, nombre_empresa, torre, apartamento)
+        texto_llamada = _aplicar_vars(tpl_llamada,  nombre_residente, nombre_empresa, torre, apartamento)
 
         twiml_conf = _construir_twiml(texto_llamada) if canal_call_on else None
 

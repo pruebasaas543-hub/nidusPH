@@ -20,18 +20,9 @@ ADMINS = [
         "num_doc":  "1116613889",
         "password": "1116613889",          # se cambia en primer login
         "email":    "andres.plazas@est.iudigital.edu.co",
-        "telefono": "",
+        "telefono": "3213895559",
         "nombres":  "ANDRES",
         "apellidos":"PLAZAS",
-    },
-    {
-        "tipo_doc": "CC",
-        "num_doc":  "26012026-1",
-        "password": "Ariana26012026GA*",
-        "email":    "andresska20@hotmail.com",
-        "telefono": "33213895559",
-        "nombres":  "",
-        "apellidos":"",
     },
 ]
 

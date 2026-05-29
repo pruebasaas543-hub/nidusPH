@@ -51,6 +51,8 @@ def obtener_mensajes():
                 "whatsapp": msgs.get("activo_whatsapp", True),
                 "llamada":  msgs.get("activo_llamada",  True),
             },
+            "cooldown_max":     msgs.get("cooldown_max",     2),
+            "cooldown_minutos": msgs.get("cooldown_minutos", 10),
             "creado_en":      msgs.get("creado_en"),
             "actualizado_en": msgs.get("actualizado_en"),
         })
@@ -122,6 +124,45 @@ def guardar_canales():
             if tipo in datos:
                 PanicConfigModel.guardar_activo_canal(eid, tipo, bool(datos[tipo]))
         return ok(mensaje="Canales guardados")
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_cfg_bp.route("/cooldown", methods=["GET"])
+@requiere_superadmin
+def obtener_cooldown():
+    eid = _empresa_id()
+    if not eid:
+        return err("propiedad_id requerido", 400)
+    try:
+        doc = PanicConfigModel.obtener(eid)
+        return ok({
+            "cooldown_max":     doc.get("cooldown_max",     2),
+            "cooldown_minutos": doc.get("cooldown_minutos", 10),
+        })
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_cfg_bp.route("/cooldown", methods=["PUT"])
+@requiere_superadmin
+def guardar_cooldown():
+    eid = _empresa_id()
+    if not eid:
+        return err("propiedad_id requerido", 400)
+    datos = request.get_json(silent=True) or {}
+    try:
+        cooldown_max = int(datos.get("cooldown_max", 2))
+        cooldown_min = int(datos.get("cooldown_minutos", 10))
+    except (ValueError, TypeError):
+        return err("Valores inválidos. Se esperan enteros.", 400)
+    if not (1 <= cooldown_max <= 10):
+        return err("cooldown_max debe estar entre 1 y 10", 400)
+    if not (1 <= cooldown_min <= 60):
+        return err("cooldown_minutos debe estar entre 1 y 60", 400)
+    try:
+        PanicConfigModel.guardar_cooldown(eid, cooldown_max, cooldown_min)
+        return ok(mensaje="Configuración de cooldown guardada")
     except Exception as e:
         return err(str(e))
 

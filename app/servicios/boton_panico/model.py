@@ -41,6 +41,8 @@ class PanicConfigModel:
             "activo_sms":       doc.get("activo_sms",       True),
             "activo_whatsapp":  doc.get("activo_whatsapp",  True),
             "activo_llamada":   doc.get("activo_llamada",   True),
+            "cooldown_max":     doc.get("cooldown_max",     2),
+            "cooldown_minutos": doc.get("cooldown_minutos", 10),
             "creado_en":        doc.get("creado_en"),
             "actualizado_en":   doc.get("actualizado_en"),
         }
@@ -107,6 +109,22 @@ class PanicConfigModel:
             upsert=True,
         )
 
+    @staticmethod
+    def guardar_cooldown(empresa_id: str, cooldown_max: int, cooldown_minutos: int):
+        ahora = datetime.utcnow()
+        _configs().update_one(
+            PanicConfigModel._q(empresa_id),
+            {
+                "$set": {
+                    "cooldown_max":      cooldown_max,
+                    "cooldown_minutos":  cooldown_minutos,
+                    "actualizado_en":    ahora,
+                },
+                "$setOnInsert": {"creado_en": ahora},
+            },
+            upsert=True,
+        )
+
 
 class PanicEventModel:
 
@@ -144,3 +162,13 @@ class PanicEventModel:
             .sort("activado_en", -1)
             .limit(limite)
         )
+
+    @staticmethod
+    def contar_recientes(empresa_id: str, residente_id: str, minutos: int) -> int:
+        from datetime import timedelta
+        desde = datetime.utcnow() - timedelta(minutes=minutos)
+        return _eventos().count_documents({
+            "empresa_id":   ObjectId(empresa_id),
+            "residente_id": residente_id,
+            "activado_en":  {"$gte": desde},
+        })
