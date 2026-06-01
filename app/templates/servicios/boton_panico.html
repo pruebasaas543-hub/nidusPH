@@ -1380,5 +1380,17 @@ init();
 </script>
 
 {% endif %}
+
+<script>
+// Ocultar topbar propio cuando se carga dentro del dashboard (iframe)
+(function(){
+  if (window.self !== window.top) {
+    document.addEventListener('DOMContentLoaded', function(){
+      var tb = document.querySelector('.panic-topbar, .topbar, header, nav');
+      if (tb) tb.style.display = 'none';
+    });
+  }
+})();
+</script>
 </body>
 </html>

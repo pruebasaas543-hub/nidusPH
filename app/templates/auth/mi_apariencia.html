@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% if empresa_nombre %}{{ empresa_nombre }}{% else %}Nidus{% endif %} — Panel</title>
+  <title>Apariencia — {% if empresa_nombre %}{{ empresa_nombre }}{% else %}Nidus{% endif %}</title>
   <script>
     (function(){
       var eid     = '{{ empresa_id or "" }}';
@@ -58,13 +58,9 @@
       font-size: .76rem; font-weight: 700; cursor: pointer;
       transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
     }
-    .btn-cambiar {
-      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); color: #fff;
-    }
+    .btn-cambiar { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); color: #fff; }
     .btn-cambiar:hover { background: rgba(255,255,255,.24); }
-    .btn-salir {
-      background: rgba(255,255,255,.08); border: 1px solid rgba(255,80,80,.45); color: #ffcccc;
-    }
+    .btn-salir { background: rgba(255,255,255,.08); border: 1px solid rgba(255,80,80,.45); color: #ffcccc; }
     .btn-salir:hover { background: rgba(255,80,80,.2); color: #fff; }
 
     /* ══ LAYOUT ══ */
@@ -95,11 +91,7 @@
     .nav-item.active { color: white; background: rgba(255,255,255,.2); border-left-color: white; font-weight: 600; }
     .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
     .nav-item.disabled { opacity: .38; cursor: not-allowed; pointer-events: none; }
-    .nav-coming {
-      font-size: .6rem; margin-left: auto;
-      background: rgba(255,255,255,.12); color: rgba(255,255,255,.55);
-      padding: 2px 7px; border-radius: 20px; font-weight: 600; letter-spacing: .3px;
-    }
+    .nav-coming { font-size: .6rem; margin-left: auto; background: rgba(255,255,255,.12); color: rgba(255,255,255,.55); padding: 2px 7px; border-radius: 20px; font-weight: 600; }
     .sidebar-divider { height: 1px; background: rgba(255,255,255,.12); margin: 8px 16px; }
 
     /* ══ CONTENT ══ */
@@ -111,89 +103,76 @@
     .main-content::-webkit-scrollbar { width: 7px; }
     .main-content::-webkit-scrollbar-thumb { background: rgba(4,34,67,.18); border-radius: 4px; }
 
-    /* ══ BIENVENIDA ══ */
-    .welcome-card {
-      background: linear-gradient(135deg, #042243, #0a4a8c);
-      border-radius: 16px; padding: 28px 32px;
-      margin-bottom: 32px;
-      box-shadow: 0 4px 24px rgba(4,34,67,.22);
-      display: flex; align-items: center; gap: 20px;
+    /* ══ HEADER ══ */
+    .page-header {
+      margin-bottom: 28px;
     }
-    .welcome-icon {
-      width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
-      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
-      display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
-    }
-    .welcome-title { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
-    .welcome-title span { color: #a8d8ff; }
-    .welcome-sub { font-size: .83rem; color: rgba(255,255,255,.7); line-height: 1.5; }
-    .welcome-sub strong { color: #e0f0ff; }
-    .welcome-sub em { color: #5bcfff; font-style: normal; font-weight: 600; }
-
-    /* ══ MÓDULOS ══ */
+    .page-title { font-size: 1.35rem; font-weight: 800; color: #1E2756; margin-bottom: 4px; }
+    .page-subtitle { font-size: .83rem; color: #8A9CC8; line-height: 1.5; }
     .section-label {
       font-size: .68rem; font-weight: 700; letter-spacing: 2px;
       color: #8A9CC8; text-transform: uppercase; margin-bottom: 14px;
     }
-    .modules-grid {
+
+    /* ══ TEMAS GRID ══ */
+    .temas-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
       gap: 16px; margin-bottom: 36px;
     }
-    .module-card {
+    .tema-card {
       background: rgba(255,255,255,.92);
-      border: 1.5px solid rgba(4,34,67,.12);
-      border-radius: 14px; padding: 24px 20px 20px;
-      text-align: center; cursor: pointer;
-      transition: all .22s cubic-bezier(.4,0,.2,1);
-      text-decoration: none; color: inherit;
+      border: 2px solid rgba(4,34,67,.1);
+      border-radius: 16px; overflow: hidden;
+      cursor: pointer; transition: all .22s cubic-bezier(.4,0,.2,1);
       box-shadow: 0 2px 10px rgba(4,34,67,.06);
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      position: relative;
     }
-    .module-card:hover {
-      background: #fff; border-color: #2787F5;
+    .tema-card:hover {
       transform: translateY(-3px);
       box-shadow: 0 10px 28px rgba(4,34,67,.15);
+      border-color: #2787F5;
     }
-    .module-icon-wrap {
-      width: 54px; height: 54px; border-radius: 14px;
-      background: linear-gradient(135deg, #e8f0ff, #d0e4ff);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.55rem;
-      border: 1.5px solid rgba(4,34,67,.1);
+    .tema-card.activo {
+      border-color: #2787F5;
+      box-shadow: 0 0 0 3px rgba(39,135,245,.18), 0 8px 24px rgba(4,34,67,.12);
     }
-    .module-name { font-size: .84rem; font-weight: 700; color: #1E2756; }
-    .module-desc { font-size: .7rem; color: #8A9CC8; line-height: 1.4; }
+    .tema-preview {
+      height: 80px; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .tema-preview-nav {
+      height: 28px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 10px;
+    }
+    .tema-preview-dot { width: 7px; height: 7px; border-radius: 50%; opacity: .7; }
+    .tema-preview-body { flex: 1; display: flex; gap: 6px; padding: 6px; }
+    .tema-preview-sidebar { width: 28px; border-radius: 4px; opacity: .6; }
+    .tema-preview-main { flex: 1; border-radius: 4px; }
+    .tema-info { padding: 14px 16px; }
+    .tema-nombre { font-size: .88rem; font-weight: 700; color: #1E2756; margin-bottom: 2px; }
+    .tema-desc { font-size: .72rem; color: #8A9CC8; }
+    .tema-activo-badge {
+      position: absolute; top: 10px; right: 10px;
+      background: #2787F5; color: white;
+      font-size: .6rem; font-weight: 700; letter-spacing: .5px;
+      padding: 3px 8px; border-radius: 10px; text-transform: uppercase;
+    }
 
     /* ══ EMPTY ══ */
-    .empty-modules {
+    .empty-temas {
       background: rgba(255,255,255,.75); border: 1.5px solid rgba(4,34,67,.1);
-      border-radius: 14px; padding: 48px 32px; text-align: center; margin-bottom: 32px;
+      border-radius: 14px; padding: 48px 32px; text-align: center;
     }
-    .empty-modules .empty-icon { font-size: 2.8rem; margin-bottom: 12px; }
-    .empty-modules h3 { font-size: .92rem; font-weight: 700; color: #1E2756; margin-bottom: 6px; }
-    .empty-modules p  { font-size: .78rem; color: #8A9CC8; line-height: 1.6; }
-
-    /* ══ INFO SESIÓN ══ */
-    .session-card {
-      background: rgba(255,255,255,.82);
-      border: 1.5px solid rgba(4,34,67,.1);
-      border-radius: 12px; padding: 18px 24px;
-      display: flex; gap: 32px; flex-wrap: wrap;
-      box-shadow: 0 2px 10px rgba(4,34,67,.05);
-    }
-    .info-item { display: flex; flex-direction: column; gap: 4px; }
-    .info-label { font-size: .62rem; color: #8A9CC8; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 700; }
-    .info-value { font-size: .86rem; color: #1E2756; font-weight: 600; }
+    .empty-temas .empty-icon { font-size: 2.8rem; margin-bottom: 12px; }
+    .empty-temas h3 { font-size: .92rem; font-weight: 700; color: #1E2756; margin-bottom: 6px; }
+    .empty-temas p { font-size: .78rem; color: #8A9CC8; line-height: 1.6; }
 
     /* ══ RESPONSIVE ══ */
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main-content { padding: 20px 16px 28px; }
-      .welcome-card { padding: 20px; flex-direction: column; text-align: center; gap: 14px; }
-      .modules-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
       .topbar { padding: 0 16px; gap: 10px; }
       .empresa-badge { max-width: 150px; }
+      .temas-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
     }
   </style>
 </head>
@@ -235,7 +214,7 @@
   <aside class="sidebar">
     <div class="sidebar-section-title">Menú</div>
 
-    <a href="{{ url_for('auth.dashboard') }}" class="nav-item active">
+    <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
       <span class="nav-icon">🏠</span> Inicio
     </a>
 
@@ -243,7 +222,7 @@
 
     <div class="sidebar-section-title">Configuraciones</div>
 
-    <a href="{{ url_for('auth.mi_apariencia') }}" class="nav-item">
+    <a href="{{ url_for('auth.mi_apariencia') }}" class="nav-item active">
       <span class="nav-icon">🎨</span> Apariencia
     </a>
 
@@ -256,71 +235,69 @@
   <!-- ══ CONTENIDO ══ -->
   <main class="main-content">
 
-    <!-- Bienvenida -->
-    <div class="welcome-card">
-      <div class="welcome-icon">🏢</div>
-      <div>
-        <div class="welcome-title">
-          Bienvenido, <span>{{ nombres.split()[0] if nombres else 'Usuario' }}</span>
-        </div>
-        <div class="welcome-sub">
-          {% if empresa_nombre %}
-            Estás operando en <strong>{{ empresa_nombre }}</strong>
-            como <em>{{ rol }}</em>.
-            Selecciona un módulo para continuar.
-          {% else %}
-            Selecciona un módulo para comenzar.
-          {% endif %}
-        </div>
+    <div class="page-header">
+      <div class="page-title">🎨 Apariencia</div>
+      <div class="page-subtitle">
+        Selecciona el tema visual disponible para
+        {% if empresa_nombre %}<strong>{{ empresa_nombre }}</strong>{% else %}tu empresa{% endif %}.
+        El cambio se aplica solo en tu dispositivo.
       </div>
     </div>
 
-    <!-- Módulos -->
-    <div class="section-label">Módulos disponibles</div>
+    <div class="section-label">Temas disponibles</div>
 
-    {% if modulos %}
-    <div class="modules-grid">
-      {% for srv in modulos %}
-      <a href="{{ url_for('auth.modulo_usuario', codigo=srv.codigo) }}" class="module-card">
-        <div class="module-icon-wrap">{{ srv.icono or '📋' }}</div>
-        <div class="module-name">{{ srv.nombre }}</div>
-        {% if srv.descripcion %}
-        <div class="module-desc">{{ srv.descripcion }}</div>
+    {% if temas %}
+    <div class="temas-grid">
+      {% for tema in temas %}
+      {% set vp = tema.vista_previa or {} %}
+      {% set ct = tema.colores_tarjeta or {} %}
+      {% set es_activo = tema.clave == tema_clave %}
+      <div class="tema-card {% if es_activo %}activo{% endif %}"
+           onclick="aplicarTema(this,'{{ tema.clave }}')"
+           title="Aplicar tema {{ tema.nombre }}">
+
+        {% if es_activo %}
+        <span class="tema-activo-badge">Activo</span>
         {% endif %}
-      </a>
+
+        <!-- Vista previa de colores -->
+        <div class="tema-preview">
+          <div class="tema-preview-nav"
+               style="background:{{ vp.color_navegacion or '#042243' }};
+                      {{ vp.borde_topbar or '' }}">
+            <div class="tema-preview-dot"
+                 style="background:{{ vp.color_acento or '#00c8f0' }}"></div>
+            <div class="tema-preview-dot"
+                 style="background:rgba(255,255,255,.4)"></div>
+            <div class="tema-preview-dot"
+                 style="background:rgba(255,255,255,.25)"></div>
+          </div>
+          <div class="tema-preview-body"
+               style="background:{{ vp.color_fondo or '#EEF2FF' }}">
+            <div class="tema-preview-sidebar"
+                 style="background:{{ vp.color_navegacion or '#042243' }};
+                        {{ vp.borde_nav or '' }}"></div>
+            <div class="tema-preview-main"
+                 style="background:{{ vp.color_fondo or '#EEF2FF' }};
+                        {{ vp.borde_swatch_fondo or '' }}"></div>
+          </div>
+        </div>
+
+        <div class="tema-info">
+          <div class="tema-nombre">{{ tema.nombre }}</div>
+          <div class="tema-desc">{{ tema.descripcion or '' }}</div>
+        </div>
+      </div>
       {% endfor %}
     </div>
     {% else %}
-    <div class="empty-modules">
-      <div class="empty-icon">📦</div>
-      <h3>Sin módulos asignados</h3>
-      <p>Tu rol no tiene módulos activos o la empresa no cuenta con un plan activo.<br>
-         Contacta al administrador del sistema.</p>
+    <div class="empty-temas">
+      <div class="empty-icon">🎨</div>
+      <h3>Sin temas configurados</h3>
+      <p>Tu empresa aún no tiene temas de apariencia asignados.<br>
+         Contacta al administrador del sistema para configurarlos.</p>
     </div>
     {% endif %}
-
-    <!-- Info de sesión -->
-    <div class="section-label">Información de sesión</div>
-    <div class="session-card">
-      <div class="info-item">
-        <span class="info-label">Usuario</span>
-        <span class="info-value">{{ nombres or '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Rol activo</span>
-        <span class="info-value">{{ rol or '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Empresa</span>
-        <span class="info-value">{{ empresa_nombre or '—' }}</span>
-      </div>
-      {% if num_empresas > 1 %}
-      <div class="info-item">
-        <span class="info-label">Empresas asociadas</span>
-        <span class="info-value">{{ num_empresas }}</span>
-      </div>
-      {% endif %}
-    </div>
 
   </main>
 </div>
@@ -343,6 +320,42 @@
     }
   } catch(e) {}
 })();
+
+function aplicarTema(el, clave) {
+  // 1. Actualiza UI inmediatamente
+  document.documentElement.dataset.tema = clave;
+  document.querySelectorAll('.tema-card').forEach(c => {
+    c.classList.remove('activo');
+    const b = c.querySelector('.tema-activo-badge');
+    if (b) b.remove();
+  });
+  const card = el.closest ? el.closest('.tema-card') : el;
+  if (card) {
+    card.classList.add('activo');
+    const badge = document.createElement('span');
+    badge.className = 'tema-activo-badge';
+    badge.textContent = 'Activo';
+    card.appendChild(badge);
+  }
+
+  // 2. Aplica CSS del tema (para que se vea de inmediato)
+  fetch('/config/apariencias')
+    .then(r => r.json())
+    .then(j => {
+      if (j.ok && Array.isArray(j.data)) {
+        const mapa = {};
+        j.data.forEach(t => { if (t.css) mapa[t.clave] = t.css; });
+        document.getElementById('nidus-tema').textContent = mapa[clave] || '';
+      }
+    }).catch(() => {});
+
+  // 3. Guarda en el servidor (sesión) — persiste entre páginas
+  fetch('/mi-apariencia/aplicar', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({clave: clave})
+  }).catch(() => {});
+}
 </script>
 </body>
 </html>

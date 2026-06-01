@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="es" id="html-root" data-tema="{{ tema_clave }}">
+<html lang="es" data-tema="{{ tema_clave }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Directorio de Contactos</title>
   <script>
     (function(){
-      var saved   = localStorage.getItem('nidus-tema');
+      var eid     = '{{ empresa_id or "" }}';
+      var lsKey   = eid ? ('nidus-tema-' + eid) : 'nidus-tema';
+      var saved   = localStorage.getItem(lsKey);
       var empresa = '{{ tema_clave }}';
       var t = (saved && saved !== 'default') ? saved : (empresa || 'default');
       document.documentElement.setAttribute('data-tema', t);
@@ -35,12 +37,8 @@
       --muted:   rgba(232,234,246,.42);
       --border:  rgba(0,212,255,.14);
       --radius:  14px;
-      --c-emer:  #ff4d6d;
-      --c-admin: #00a8ff;
-      --c-pub:   #00e676;
-      --c-log:   #ffd600;
-      --c-loc:   #bf5af2;
     }
+    /* Nidus Azul (default) — fondo claro, topbar navy */
     html[data-tema="default"] {
       --bg:#EEF2FF;--bg2:#FFFFFF;--bg3:#D8E4F5;--bg4:#C0D2EE;
       --accent:#2787F5;--accent2:#1a6de0;
@@ -58,19 +56,25 @@
     html[data-tema="default"] .topbar-back:hover { color:#a8d8ff; background:rgba(255,255,255,.1); }
     html[data-tema="default"] .stat-pill { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.8); }
     html[data-tema="default"] .stat-pill strong { color:#fff; }
-    html[data-tema="default"] .tab:hover { background:rgba(4,34,67,.06); }
-    html[data-tema="default"] .tab.active { background:#EEF2FF; color:#1E2756; border-color:rgba(39,135,245,.25); }
-    html[data-tema="default"] .tab-badge { background:rgba(4,34,67,.1); color:#1E2756; }
-    html[data-tema="default"] .tab.active .tab-badge { background:var(--accent); color:#fff; }
+    /* Tabs */
+    html[data-tema="default"] .tab:hover { background:rgba(255,255,255,.08); color:#fff; }
+    html[data-tema="default"] .tab-badge { background:rgba(255,255,255,.12); color:rgba(255,255,255,.7); }
+    html[data-tema="default"] .tab.active .tab-badge { background:var(--tab-color, var(--accent)); color:#fff; }
+    /* Buscador */
     html[data-tema="default"] .search-wrap input { background:#fff; border-color:rgba(4,34,67,.18); color:#1E2756; }
     html[data-tema="default"] .search-wrap input::placeholder { color:rgba(30,39,86,.4); }
     html[data-tema="default"] .search-wrap input:focus { background:#fff; border-color:var(--accent); }
+    /* Sección header */
     html[data-tema="default"] .section-header-line { background:rgba(4,34,67,.12); }
+    /* Modal overlay */
     html[data-tema="default"] .modal-overlay { background:rgba(4,34,67,.55); }
     html[data-tema="default"] .modal-box { border-color:rgba(39,135,245,.2); }
     html[data-tema="default"] .modal-header { background:linear-gradient(135deg,#042243,#1a6de0); }
+    /* Formulario en modal */
     html[data-tema="default"] .form-group input,
     html[data-tema="default"] .form-group select { background:#fff; border-color:rgba(4,34,67,.2); color:#1E2756; }
+    html[data-tema="default"] .form-group input:focus,
+    html[data-tema="default"] .form-group select:focus { border-color:var(--accent); background:#fff; }
     html[data-tema="default"] .form-group label { color:#1E2756; }
     html[data-tema="oscuro-cyan"] {
       --bg:#0B0F17;--bg2:#111827;--bg3:#1F2937;--bg4:#273449;
@@ -109,7 +113,6 @@
 
     html, body { height:100%; overflow:hidden; font-family:'Outfit','Segoe UI',sans-serif; background:var(--bg); color:var(--text); }
 
-    /* ── Fondo con patrón de puntos ── */
     body::before {
       content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
       background-image: radial-gradient(color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px);
@@ -122,7 +125,7 @@
     .topbar {
       display:flex; align-items:center; gap:16px; padding:0 28px;
       height:62px; flex-shrink:0;
-      background:linear-gradient(90deg, var(--bg) 0%, var(--bg3) 60%, var(--bg2) 100%);
+      background:linear-gradient(90deg,var(--bg) 0%,var(--bg3) 60%,var(--bg2) 100%);
       border-bottom:1px solid var(--border);
       box-shadow:0 2px 20px rgba(0,0,0,.4);
     }
@@ -142,7 +145,7 @@
     }
     .topbar-name { font-size:1rem; font-weight:700; letter-spacing:.2px; }
     .topbar-sub  { font-size:.72rem; color:var(--muted); margin-top:1px; }
-    .topbar-stats { margin-left:auto; display:flex; gap:8px; }
+    .topbar-right { margin-left:auto; display:flex; gap:8px; align-items:center; }
     .stat-pill {
       display:flex; align-items:center; gap:5px;
       padding:4px 12px; border-radius:99px;
@@ -161,11 +164,11 @@
       display:inline-flex; align-items:center; gap:8px;
       padding:9px 20px; border:none; border-radius:10px; cursor:pointer;
       font-family:inherit; font-size:.85rem; font-weight:700;
-      background:linear-gradient(135deg,var(--accent2),var(--accent));
-      color:#000; transition:all .25s;
-      box-shadow:0 4px 14px rgba(0,212,255,.3);
+      background:linear-gradient(135deg,#0a7fff,#00d4ff);
+      color:#fff; transition:all .25s;
+      box-shadow:0 4px 14px rgba(0,212,255,.35);
     }
-    .btn-nuevo:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,212,255,.45); }
+    .btn-nuevo:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,212,255,.5); }
     .btn-nuevo:active { transform:translateY(0); }
     .search-wrap { margin-left:auto; position:relative; }
     .search-wrap input {
@@ -174,7 +177,7 @@
       padding:8px 14px 8px 36px; font-family:inherit; font-size:.83rem;
       width:220px; transition:all .2s;
     }
-    .search-wrap input:focus { outline:none; border-color:var(--accent); background:rgba(0,212,255,.06); width:260px; }
+    .search-wrap input:focus { outline:none; border-color:var(--accent); background:color-mix(in srgb, var(--accent) 6%, transparent); width:260px; }
     .search-wrap::before {
       content:'🔍'; position:absolute; left:11px; top:50%; transform:translateY(-50%);
       font-size:.8rem; pointer-events:none;
@@ -182,8 +185,8 @@
 
     /* ── Tabs ── */
     .tabs-wrap {
-      padding:14px 28px 0; border-bottom:1px solid var(--border);
-      background:color-mix(in srgb, var(--bg) 60%, transparent); flex-shrink:0; overflow-x:auto;
+      padding:14px 28px 0; border-bottom:1px solid rgba(255,255,255,.12);
+      background:#0a2d5a; flex-shrink:0; overflow-x:auto;
     }
     .tabs { display:flex; gap:6px; }
     .tab {
@@ -191,14 +194,19 @@
       padding:8px 18px 10px; border-radius:10px 10px 0 0;
       cursor:pointer; font-size:.8rem; font-weight:600; white-space:nowrap;
       border:1px solid transparent; border-bottom:none;
-      color:var(--muted); background:transparent; transition:all .2s;
+      color:rgba(255,255,255,.65); background:transparent; transition:all .2s;
       position:relative;
     }
-    .tab:hover { color:var(--text); background:rgba(255,255,255,.04); }
-    .tab.active { background:var(--bg3); color:#fff; border-color:var(--border); }
+    .tab:hover { color:#fff; background:rgba(255,255,255,.08); }
+    .tab.active {
+      background: color-mix(in srgb, var(--tab-color, var(--accent)) 18%, transparent);
+      color: var(--tab-color, var(--accent));
+      border-color: color-mix(in srgb, var(--tab-color, var(--accent)) 40%, transparent);
+      font-weight: 700;
+    }
     .tab.active::after {
-      content:''; position:absolute; bottom:-1px; left:0; right:0; height:2px;
-      background:var(--tab-color, var(--accent));
+      content:''; position:absolute; bottom:-1px; left:0; right:0; height:3px;
+      background: var(--tab-color, var(--accent));
       border-radius:2px 2px 0 0;
     }
     .tab-badge {
@@ -206,94 +214,117 @@
       background:rgba(255,255,255,.1); color:var(--muted);
       min-width:18px; text-align:center;
     }
-    .tab.active .tab-badge { background:var(--tab-color, var(--accent)); color:#000; }
-
-    /* ── Content area ── */
-    .content { flex:1; overflow-y:auto; padding:24px 28px; }
-    .section-header {
-      display:flex; align-items:center; gap:10px; margin-bottom:20px;
+    .tab.active .tab-badge {
+      background: var(--tab-color, var(--accent));
+      color: #fff;
     }
+
+    /* ── Content ── */
+    .content { flex:1; overflow-y:auto; padding:24px 28px; }
+    .section-header { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
     .section-header h2 { font-size:.85rem; font-weight:700; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; }
     .section-header-line { flex:1; height:1px; background:var(--border); }
 
-    /* ── Cards grid ── */
-    .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+    /* ── Grid (vista bloque específico) ── */
+    .cards-grid { display:flex; flex-wrap:wrap; gap:18px; }
 
-    /* ── Contact card ── */
-    .contact-card {
-      background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
-      display:flex; flex-direction:column; overflow:hidden;
-      transition:transform .2s, box-shadow .2s;
-      animation:fadeUp .3s ease both;
+    /* ── Organigrama (vista Todos) ── */
+    #cards-grid.org-view {
+      display:flex; flex-direction:column; align-items:center; gap:0;
     }
-    .contact-card:hover {
-      transform:translateY(-3px);
-      box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px var(--card-color, var(--accent));
+    .org-section {
+      width:100%; max-width:1100px;
+      display:flex; flex-direction:column; align-items:center;
+      margin-bottom:40px;
     }
+    .org-header {
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      margin-bottom:20px; padding-bottom:12px;
+      width:100%; border-bottom:2.5px solid var(--org-color, var(--border));
+    }
+    .org-icon  { font-size:1.5rem; }
+    .org-title { font-size:.92rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text); }
+    .org-count {
+      font-size:.7rem; font-weight:700; padding:3px 9px; border-radius:99px;
+      background:var(--bg3); color:var(--muted);
+    }
+    .org-row { display:flex; flex-wrap:wrap; gap:16px; justify-content:center; width:100%; }
+
+    /* ── Tarjeta ── */
     @keyframes fadeUp {
       from { opacity:0; transform:translateY(12px); }
       to   { opacity:1; transform:translateY(0); }
     }
-
-    /* Franja de color superior */
-    .card-stripe {
-      height:4px;
-      background:var(--card-color, var(--accent));
-      flex-shrink:0;
+    .contact-card {
+      background:var(--bg2); border:1.5px solid var(--border); border-radius:14px;
+      display:flex; flex-direction:column; overflow:hidden; width:290px;
+      transition:transform .18s, box-shadow .18s, border-color .18s;
+      box-shadow:0 2px 8px rgba(0,0,0,.06); animation:fadeUp .28s ease both;
     }
+    .contact-card:hover {
+      transform:translateY(-3px);
+      box-shadow:0 8px 24px rgba(0,0,0,.12);
+      border-color:var(--border);
+    }
+    .card-left-stripe { width:4px; background:var(--card-color, var(--accent)); flex-shrink:0; display:none; }
+    .card-inner { display:flex; flex:1; flex-direction:column; }
+    .card-body { padding:16px; display:flex; flex-direction:column; gap:10px; flex:1; }
+    .card-header { display:flex; align-items:center; gap:12px; }
 
-    .card-body { padding:16px; display:flex; flex-direction:column; gap:11px; flex:1; }
-
-    .card-header { display:flex; align-items:center; gap:13px; }
+    /* Avatar */
     .card-avatar {
-      width:52px; height:52px; border-radius:50%; flex-shrink:0;
+      width:56px; height:56px; border-radius:50%; flex-shrink:0;
       overflow:hidden; display:flex; align-items:center; justify-content:center;
-      font-size:1.5rem; background:var(--bg3);
-      border:2.5px solid var(--card-color, var(--border));
-      box-shadow:0 0 12px color-mix(in srgb, var(--card-color, var(--accent)) 30%, transparent);
+      border:2.5px solid var(--border);
+      background:var(--bg3);
     }
-    .card-avatar img { width:100%; height:100%; object-fit:cover; }
-    .card-info { min-width:0; flex:1; }
-    .card-name { font-weight:700; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .card-cargo { font-size:.75rem; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .card-bloque-badge {
-      display:inline-flex; align-items:center; gap:4px;
-      font-size:.67rem; padding:2px 8px; border-radius:99px; font-weight:700;
-      margin-top:4px;
+    .card-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+    .card-avatar-initials {
+      width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+      font-weight:900; font-size:1.4rem; color:var(--card-color, var(--accent));
+      background:color-mix(in srgb, var(--card-color, var(--accent)) 12%, transparent);
     }
 
-    .card-contacts { display:flex; flex-direction:column; gap:5px; }
-    .card-contact-row { display:flex; align-items:center; gap:7px; font-size:.8rem; color:var(--text); }
+    /* Info */
+    .card-info { min-width:0; flex:1; }
+    .card-name { font-weight:800; font-size:.94rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-cargo { font-size:.73rem; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-bloque {
+      display:inline-flex; align-items:center; gap:4px; margin-top:5px;
+      font-size:.66rem; padding:2px 8px; border-radius:99px; font-weight:700;
+    }
+
+    /* Contacto */
+    .card-contacts { display:flex; flex-direction:column; gap:4px; }
+    .card-contact-row { display:flex; align-items:center; gap:7px; font-size:.79rem; }
     .card-contact-icon { font-size:.85rem; width:18px; text-align:center; flex-shrink:0; }
-    .card-contact-val { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .card-contact-val { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
     .card-contact-val.email { color:var(--accent); }
 
-    .card-flags { display:flex; flex-wrap:wrap; gap:5px; }
-    .flag-chip {
-      font-size:.66rem; padding:2px 9px; border-radius:99px; font-weight:700;
-      display:inline-flex; align-items:center; gap:3px;
-    }
-    .flag-on  { background:rgba(0,230,118,.13); color:var(--green); border:1px solid rgba(0,230,118,.2); }
-    .flag-off { background:rgba(255,255,255,.05); color:var(--muted); border:1px solid rgba(255,255,255,.07); }
-    .flag-panic { background:rgba(255,77,109,.15); color:var(--red); border:1px solid rgba(255,77,109,.25); }
-
+/* Acciones */
     .card-actions {
       display:flex; gap:8px; padding:10px 16px;
-      border-top:1px solid var(--border); background:rgba(0,0,0,.15);
+      border-top:1px solid var(--border);
     }
     .card-actions button {
       flex:1; border:none; border-radius:8px; padding:7px;
       font-family:inherit; font-size:.77rem; font-weight:700; cursor:pointer; transition:all .2s;
     }
-    .btn-edit {
-      background:rgba(0,212,255,.08); color:var(--accent);
-      border:1px solid rgba(0,212,255,.2) !important;
-    }
-    .btn-edit:hover { background:rgba(0,212,255,.16); }
-    .btn-delete { background:rgba(255,77,109,.1); color:var(--red); }
-    .btn-delete:hover { background:rgba(255,77,109,.2); }
+    .btn-edit   { background:color-mix(in srgb, var(--accent) 10%, transparent); color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 22%, transparent) !important; }
+    .btn-edit:hover { background:color-mix(in srgb, var(--accent) 18%, transparent); }
+    .btn-delete { background:rgba(220,38,38,.08); color:var(--red); border:1px solid rgba(220,38,38,.2) !important; }
+    .btn-delete:hover { background:rgba(220,38,38,.15); }
 
-    /* ── Empty state ── */
+    /* ── Access denied ── */
+    .access-denied {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:16px; padding:100px 0; color:var(--muted);
+    }
+    .access-denied .icon { font-size:4rem; opacity:.5; }
+    .access-denied h2 { font-size:1.1rem; font-weight:700; color:var(--text); }
+    .access-denied p  { font-size:.88rem; }
+
+    /* ── Empty ── */
     .empty-state {
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:14px; padding:80px 0; color:var(--muted);
@@ -301,7 +332,7 @@
     .empty-state .empty-icon { font-size:3.5rem; opacity:.4; }
     .empty-state p { font-size:.9rem; }
 
-    /* ── Modal overlay ── */
+    /* ── Modal ── */
     .modal-overlay {
       position:fixed; inset:0; background:rgba(4,8,30,.9);
       display:flex; align-items:center; justify-content:center;
@@ -310,27 +341,25 @@
       backdrop-filter:blur(4px);
     }
     .modal-overlay.show { opacity:1; visibility:visible; }
-
     .modal-box {
       width:100%; max-width:560px; max-height:92vh; border-radius:20px;
-      background:var(--bg2); border:1px solid rgba(0,212,255,.2);
+      background:var(--bg2); border:1px solid color-mix(in srgb, var(--accent) 20%, transparent);
       display:flex; flex-direction:column; overflow:hidden;
-      box-shadow:0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(0,212,255,.08);
+      box-shadow:0 32px 80px rgba(0,0,0,.7), 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
       animation:modalIn .25s ease;
     }
     @keyframes modalIn {
       from { opacity:0; transform:scale(.96) translateY(10px); }
       to   { opacity:1; transform:scale(1)   translateY(0); }
     }
-
     .modal-header {
       padding:20px 24px 18px; display:flex; align-items:center; gap:14px; flex-shrink:0;
       background:linear-gradient(135deg, var(--bg3), var(--accent));
     }
     .modal-header-icon { font-size:2rem; line-height:1; }
     .modal-header-info { flex:1; min-width:0; }
-    .modal-header-title { font-size:1rem; font-weight:800; color:#fff; letter-spacing:.2px; }
-    .modal-header-sub { font-size:.76rem; color:#fff; margin-top:3px; opacity:.9; }
+    .modal-header-title { font-size:1rem; font-weight:800; color:#fff; }
+    .modal-header-sub   { font-size:.76rem; color:#fff; margin-top:3px; opacity:.9; }
     .modal-close {
       background:rgba(255,255,255,.18); border:none; border-radius:50%;
       width:34px; height:34px; cursor:pointer; color:#fff; font-size:1.1rem;
@@ -338,9 +367,7 @@
       transition:background .2s;
     }
     .modal-close:hover { background:rgba(255,255,255,.3); }
-
     .modal-body { padding:20px 24px; overflow-y:auto; flex:1; }
-
     .form-group { margin-bottom:15px; }
     .form-group label {
       display:block; font-size:.74rem; color:var(--muted); margin-bottom:6px;
@@ -352,51 +379,31 @@
       padding:10px 13px; font-family:inherit; font-size:.85rem; transition:all .2s;
     }
     .form-group input:focus, .form-group select:focus {
-      outline:none; border-color:var(--accent); background:rgba(0,212,255,.06);
-      box-shadow:0 0 0 3px rgba(0,212,255,.1);
+      outline:none; border-color:var(--accent); background:color-mix(in srgb, var(--accent) 6%, transparent);
+      box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
     }
     .form-group select option { background:var(--bg3); }
-
     .phone-row { display:flex; gap:7px; align-items:center; margin-bottom:7px; }
     .phone-row .pais-sel { width:96px; flex-shrink:0; font-size:.78rem; padding:8px 4px; }
     .phone-row input { flex:1; }
     .phone-row button {
       background:rgba(255,77,109,.14); color:var(--red); border:none;
-      border-radius:8px; padding:8px 11px; cursor:pointer; font-size:.85rem; transition:background .2s;
+      border-radius:8px; padding:8px 11px; cursor:pointer; font-size:.85rem;
     }
-    .phone-row button:hover { background:rgba(255,77,109,.25); }
     .add-phone-btn {
-      background:transparent; color:var(--accent); border:1.5px dashed rgba(0,212,255,.35);
+      background:transparent; color:var(--accent); border:1.5px dashed color-mix(in srgb, var(--accent) 35%, transparent);
       border-radius:9px; padding:7px 14px; font-family:inherit; font-size:.78rem;
       cursor:pointer; width:100%; transition:all .2s;
     }
-    .add-phone-btn:hover { background:rgba(0,212,255,.06); border-color:var(--accent); }
-
+    .add-phone-btn:hover { background:color-mix(in srgb, var(--accent) 6%, transparent); border-color:var(--accent); }
     .foto-area {
-      border:2px dashed rgba(0,212,255,.22); border-radius:13px; padding:18px;
+      border:2px dashed color-mix(in srgb, var(--accent) 22%, transparent); border-radius:13px; padding:18px;
       cursor:pointer; transition:all .2s; display:flex; align-items:center;
       justify-content:center; flex-direction:column; gap:7px; min-height:94px;
     }
-    .foto-area:hover { border-color:rgba(0,212,255,.55); background:rgba(0,212,255,.05); }
+    .foto-area:hover { border-color:color-mix(in srgb, var(--accent) 55%, transparent); background:color-mix(in srgb, var(--accent) 5%, transparent); }
     .foto-area img { width:74px; height:74px; border-radius:50%; object-fit:cover; border:2px solid var(--border); }
     .foto-hint { font-size:.75rem; color:var(--muted); }
-
-    .toggle-section { border:1px solid var(--border); border-radius:12px; padding:16px; background:rgba(0,0,0,.15); }
-    .toggle-section-title { font-size:.68rem; font-weight:800; letter-spacing:1px; color:var(--muted); margin-bottom:14px; text-transform:uppercase; }
-    .toggle-label { display:flex; align-items:center; gap:11px; cursor:pointer; user-select:none; font-size:.84rem; margin-bottom:12px; }
-    .toggle-label:last-child { margin-bottom:0; }
-    .toggle-label input { position:absolute; opacity:0; width:0; height:0; }
-    .toggle-track {
-      width:40px; height:23px; border-radius:12px; background:rgba(255,255,255,.1);
-      flex-shrink:0; position:relative; transition:background .2s; border:1px solid rgba(255,255,255,.1);
-    }
-    .toggle-track::after {
-      content:''; position:absolute; top:3px; left:3px; width:15px; height:15px;
-      border-radius:50%; background:var(--muted); transition:transform .2s,background .2s;
-    }
-    .toggle-label input:checked ~ .toggle-track { background:var(--accent); border-color:var(--accent); }
-    .toggle-label input:checked ~ .toggle-track::after { transform:translateX(17px); background:#fff; }
-
     .modal-footer {
       padding:14px 24px; border-top:1px solid var(--border);
       display:flex; justify-content:flex-end; gap:10px; flex-shrink:0;
@@ -407,15 +414,14 @@
       border:none; border-radius:10px; font-family:inherit; cursor:pointer; transition:all .2s;
     }
     .btn-footer:hover { transform:translateY(-1px); }
-
     .dynamic-field { transition:opacity .15s; }
 
     #toast {
       position:fixed; bottom:24px; right:24px; z-index:99999;
       background:var(--bg3); color:var(--text); border:1px solid var(--border);
       border-radius:12px; padding:12px 20px; font-size:.85rem;
-      opacity:0; transform:translateY(14px); transition:opacity .3s,transform .3s; pointer-events:none;
-      box-shadow:0 8px 24px rgba(0,0,0,.4);
+      opacity:0; transform:translateY(14px); transition:opacity .3s,transform .3s;
+      pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.4);
     }
     #toast.show { opacity:1; transform:translateY(0); }
     #toast.err  { border-color:var(--red); color:var(--red); }
@@ -428,21 +434,22 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <a class="topbar-back" href="{{ url_for('config_panel.panel') }}">&#8592; Volver</a>
+    <a class="topbar-back" href="{{ url_for('auth.dashboard') }}">&#8592; Volver</a>
     <div class="topbar-divider"></div>
     <div class="topbar-title">
       <div class="topbar-icon">📒</div>
       <div>
         <div class="topbar-name">Directorio de Contactos</div>
-        <div class="topbar-sub">Gestión de contactos por bloque</div>
+        <div class="topbar-sub">{{ servicio.descripcion or 'Consulta de contactos' }}</div>
       </div>
     </div>
-    <div class="topbar-stats">
+    <div class="topbar-right">
       <div class="stat-pill">Total: <strong id="stat-total">0</strong></div>
     </div>
   </div>
 
-  <!-- Toolbar -->
+  <!-- Toolbar: solo visible si tiene permisos de crear -->
+  {% if permisos.crear %}
   <div class="toolbar">
     <button class="btn-nuevo" onclick="DC.abrirModal()">
       <span style="font-size:1rem;line-height:1;">＋</span> Nuevo Contacto
@@ -451,72 +458,75 @@
       <input id="buscador" type="text" placeholder="Buscar contacto..." onInput="DC.filtrar(this.value)" />
     </div>
   </div>
+  {% elif permisos.ver %}
+  <div class="toolbar">
+    <div class="search-wrap" style="margin-left:0;">
+      <input id="buscador" type="text" placeholder="Buscar contacto..." onInput="DC.filtrar(this.value)" />
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Tabs -->
-  <div class="tabs-wrap">
+  <div class="tabs-wrap" id="tabs-wrap" {% if not permisos.ver %}style="display:none"{% endif %}>
     <div class="tabs" id="bloques-tabs"></div>
   </div>
 
   <!-- Content -->
   <div class="content">
+    {% if not permisos.ver %}
+    <div class="access-denied">
+      <div class="icon">🔒</div>
+      <h2>Acceso restringido</h2>
+      <p>No tienes permiso para ver el directorio de contactos.</p>
+      <p style="font-size:.8rem;margin-top:4px;">Consulta con el administrador de la copropiedad.</p>
+    </div>
+    {% else %}
     <div class="section-header">
       <h2 id="section-label">Todos los contactos</h2>
       <div class="section-header-line"></div>
     </div>
     <div class="cards-grid" id="cards-grid"></div>
+    {% endif %}
   </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal (solo si puede crear o editar) -->
+{% if permisos.crear or permisos.editar %}
 <div class="modal-overlay" id="modal-dc">
   <div class="modal-box">
-
     <div class="modal-header" id="dc-modal-header">
       <span class="modal-header-icon" id="dc-modal-icon">🚨</span>
       <div class="modal-header-info">
         <div class="modal-header-title" id="dc-modal-title">Nuevo Contacto</div>
-        <div class="modal-header-sub" id="dc-modal-sub">Emergencias</div>
+        <div class="modal-header-sub"   id="dc-modal-sub">Emergencias</div>
       </div>
       <button class="modal-close" onclick="DC.cerrarModal()">×</button>
     </div>
-
     <div class="modal-body">
       <input type="hidden" id="f-id" />
-
       <div class="form-group">
         <label>Bloque *</label>
-        <select id="f-bloque" onchange="DC.cambioBloque()">
-          <option value="EMERGENCIAS">🚨 Emergencias</option>
-          <option value="ADMIN">🏢 Administración</option>
-          <option value="PUBLICOS">💡 Servicios Públicos</option>
-          <option value="LOGISTICA">🔧 Logística</option>
-          <option value="LOCAL">📍 Locales</option>
-        </select>
+        <select id="f-bloque" onchange="DC.cambioBloque()"></select>
       </div>
-
       <div class="form-group">
         <label>Nombre *</label>
         <input id="f-nombre" type="text" placeholder="Nombre del contacto" />
       </div>
-
       <div class="form-group dynamic-field dc-field-cargo" style="display:none;">
         <label>Cargo *</label>
         <select id="f-cargo">
           <option value="">— Selecciona un cargo —</option>
         </select>
       </div>
-
       <div class="form-group dynamic-field dc-field-correo" style="display:none;">
         <label>Correo</label>
         <input id="f-correo" type="email" placeholder="correo@ejemplo.com" />
       </div>
-
       <div class="form-group">
         <label>Teléfonos * <span style="font-weight:400;font-size:.72rem;text-transform:none;">(mín. 1)</span></label>
         <div id="phone-list"></div>
         <button class="add-phone-btn" onclick="DC.agregarTelefono()">+ Agregar teléfono</button>
       </div>
-
       <div class="form-group">
         <label>Foto / Logo</label>
         <div class="foto-area" id="foto-area" onclick="document.getElementById('f-foto').click()">
@@ -528,60 +538,45 @@
         </div>
         <input type="file" id="f-foto" accept="image/*" hidden onchange="DC.previewFoto(this)" />
       </div>
-
-      <div class="toggle-section">
-        <div class="toggle-section-title">Visibilidad y acceso</div>
-        <label class="toggle-label">
-          <input type="checkbox" id="f-visible" checked />
-          <span class="toggle-track"></span>
-          <span>Visible para residentes</span>
-        </label>
-        <label class="toggle-label">
-          <input type="checkbox" id="f-seguridad" />
-          <span class="toggle-track"></span>
-          <span>Visible para seguridad</span>
-        </label>
-        <label class="toggle-label">
-          <input type="checkbox" id="f-administracion" />
-          <span class="toggle-track"></span>
-          <span>Visible para administración</span>
-        </label>
-        <label class="toggle-label dynamic-field dc-field-panico" style="display:none;">
-          <input type="checkbox" id="f-panico" />
-          <span class="toggle-track" style="background:rgba(255,77,109,.15);border-color:rgba(255,77,109,.3);"></span>
-          <span style="color:var(--red);font-weight:700;">🆘 Botón de pánico</span>
-        </label>
-      </div>
     </div>
-
     <div class="modal-footer">
       <button class="btn-footer" onclick="DC.cerrarModal()"
         style="background:linear-gradient(135deg,#7b0d1e,#e53e3e);color:#fff;">✕ Cancelar</button>
-      <button class="btn-footer" id="dc-btn-save" onclick="DC.guardar()"
+      <button class="btn-footer" onclick="DC.guardar()"
         style="background:linear-gradient(135deg,var(--accent2),var(--accent));color:#000;">💾 Guardar</button>
     </div>
   </div>
 </div>
+{% endif %}
 
 <div id="toast"></div>
 
 <script>
+// Permisos inyectados desde Flask
+const PERMISOS = {
+  ver:      {{ permisos.ver | tojson }},
+  crear:    {{ permisos.crear | tojson }},
+  editar:   {{ permisos.editar | tojson }},
+  eliminar: {{ permisos.eliminar | tojson }},
+};
+
 const DC = (() => {
   const BASE = '/servicios/directorio/contactos';
 
-  const META = {
-    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#ff4d6d', cargo:false, correo:false, panico:false },
-    ADMIN:       { icon:'🏢', label:'Administración',     color:'#00a8ff', cargo:true,  correo:true,  panico:true  },
-    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#00e676', cargo:false, correo:true,  panico:false },
-    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#ffd600', cargo:true,  correo:false, panico:true  },
-    LOCAL:       { icon:'📍', label:'Locales',            color:'#bf5af2', cargo:false, correo:false, panico:false },
+  // Meta por defecto para bloques conocidos
+  const META_DEFAULT = {
+    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#ff4d6d', cargo:false, correo:false },
+    ADMIN:       { icon:'🏢', label:'Administración',     color:'#00a8ff', cargo:true,  correo:true  },
+    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#00e676', cargo:false, correo:true  },
+    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#ffd600', cargo:true,  correo:false },
+    LOCAL:       { icon:'📍', label:'Locales',            color:'#bf5af2', cargo:false, correo:false },
   };
 
-  const TAB_COLOR = { TODOS:'#00d4ff', ...Object.fromEntries(Object.entries(META).map(([k,v])=>[k,v.color])) };
-
-  let _todos = [];
-  let _bloqueActual = 'TODOS';
-  let _busqueda = '';
+  let _todos         = [];
+  let _bloques       = [];
+  let _metaMap       = {};
+  let _bloqueActual  = 'TODOS';
+  let _busqueda      = '';
 
   function toast(msg, tipo = 'ok') {
     const el = document.getElementById('toast');
@@ -595,39 +590,102 @@ const DC = (() => {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  function _meta(bloque) {
+    return _metaMap[bloque] || META_DEFAULT[bloque] || { icon:'👤', label:bloque, color:'#00d4ff', cargo:false, correo:false };
+  }
+
   function contarBloque(b) {
     return b === 'TODOS' ? _todos.length : _todos.filter(c => c.bloque === b).length;
   }
 
   function renderTabs() {
+    if (!PERMISOS.ver) return;
+    const bloquesConContactos = _bloques.filter(b => contarBloque(b.codigo) > 0);
+    const tabs = ['TODOS', ...bloquesConContactos.map(b => b.codigo)];
     const cont = document.getElementById('bloques-tabs');
-    cont.innerHTML = ['TODOS', ...Object.keys(META)].map(b => {
-      const lbl  = b === 'TODOS' ? '🌐 Todos' : (META[b].icon + ' ' + META[b].label);
-      const col  = TAB_COLOR[b] || '#00d4ff';
-      const cnt  = contarBloque(b);
-      const act  = b === _bloqueActual ? 'active' : '';
-      return `<div class="tab ${act}" style="--tab-color:${col}" onclick="DC.setBloque('${b}')">
-        ${lbl} <span class="tab-badge">${cnt}</span>
+    cont.innerHTML = tabs.map(b => {
+      const m   = b === 'TODOS' ? { icon:'🌐', label:'Todos', color:'#00d4ff' } : _meta(b);
+      const cnt = contarBloque(b);
+      const act = b === _bloqueActual ? 'active' : '';
+      return `<div class="tab ${act}" style="--tab-color:${m.color}" onclick="DC.setBloque('${b}')">
+        ${m.icon} ${m.label} <span class="tab-badge">${cnt}</span>
       </div>`;
     }).join('');
     document.getElementById('stat-total').textContent = _todos.length;
   }
 
+  // ── Helpers de tarjetas ──────────────────────────────────────
+  function _tels(c) {
+    return (c.telefonos||[]).map(t => {
+      const num = typeof t==='string' ? t : (t.numero||'');
+      const pre = typeof t==='object' ? (t.prefijo||'+57') : '+57';
+      return num ? (pre+num) : '';
+    }).filter(Boolean);
+  }
+
+function _cardHTML(c, i) {
+    const m     = _meta(c.bloque);
+    const tels  = _tels(c);
+    const delay = (i % 12) * 0.04;
+    const avatar = c.tiene_foto
+      ? `<img src="/servicios/directorio/contactos/${c._id}/foto?_t=${c.actualizado_en||c.creado_en||0}" alt="${esc(c.nombre)}" />`
+      : `<div class="card-avatar-initials">${esc((c.nombre||'?')[0].toUpperCase())}</div>`;
+    const acciones = (PERMISOS.editar || PERMISOS.eliminar) ? `
+      <div class="card-actions">
+        ${PERMISOS.editar   ? `<button class="btn-edit"   onclick="DC.editar('${c._id}')">✏️ Editar</button>` : ''}
+        ${PERMISOS.eliminar ? `<button class="btn-delete" onclick="DC.eliminar('${c._id}','${esc(c.nombre)}')">🗑 Eliminar</button>` : ''}
+      </div>` : '';
+    return `
+      <div class="contact-card" style="--card-color:${m.color};animation-delay:${delay}s">
+        <div class="card-inner">
+          <div class="card-body">
+            <div class="card-header">
+              <div class="card-avatar">${avatar}</div>
+              <div class="card-info">
+                <div class="card-name">${esc(c.nombre)}</div>
+                ${c.cargo_titulo ? `<div class="card-cargo">${esc(c.cargo_titulo)}</div>` : ''}
+                <span class="card-bloque" style="background:${m.color}18;color:${m.color};">${m.icon} ${m.label}</span>
+              </div>
+            </div>
+            ${(tels.length || c.correo) ? `
+            <div class="card-contacts">
+              ${tels.slice(0,2).map(t => `
+                <div class="card-contact-row">
+                  <span class="card-contact-icon">📞</span>
+                  <span class="card-contact-val">${esc(t)}</span>
+                </div>`).join('')}
+              ${tels.length > 2 ? `<div class="card-contact-row" style="color:var(--muted);font-size:.74rem;">+${tels.length-2} más</div>` : ''}
+              ${c.correo ? `<div class="card-contact-row">
+                <span class="card-contact-icon">✉️</span>
+                <span class="card-contact-val email">${esc(c.correo)}</span>
+              </div>` : ''}
+            </div>` : ''}
+          </div>
+          ${acciones}
+        </div>
+      </div>`;
+  }
+
+  function _filtrar(lista) {
+    if (!_busqueda) return lista;
+    const q = _busqueda.toLowerCase();
+    return lista.filter(c =>
+      (c.nombre||'').toLowerCase().includes(q) ||
+      (c.cargo_titulo||'').toLowerCase().includes(q) ||
+      (c.correo||'').toLowerCase().includes(q)
+    );
+  }
+
   function renderCards() {
-    const grid = document.getElementById('cards-grid');
+    if (!PERMISOS.ver) return;
+    const grid  = document.getElementById('cards-grid');
     const label = document.getElementById('section-label');
-    let lista = _todos;
-    if (_bloqueActual !== 'TODOS') lista = lista.filter(c => c.bloque === _bloqueActual);
-    if (_busqueda) {
-      const q = _busqueda.toLowerCase();
-      lista = lista.filter(c =>
-        (c.nombre||'').toLowerCase().includes(q) ||
-        (c.cargo_titulo||'').toLowerCase().includes(q) ||
-        (c.correo||'').toLowerCase().includes(q));
-    }
+    let lista   = _filtrar(_bloqueActual === 'TODOS' ? _todos : _todos.filter(c => c.bloque === _bloqueActual));
+
+    const mActual = _bloqueActual === 'TODOS' ? null : _meta(_bloqueActual);
     label.textContent = _bloqueActual === 'TODOS'
       ? `Todos los contactos (${lista.length})`
-      : `${META[_bloqueActual]?.icon} ${META[_bloqueActual]?.label} (${lista.length})`;
+      : `${mActual?.icon || ''} ${mActual?.label || _bloqueActual} (${lista.length})`;
 
     if (!lista.length) {
       grid.innerHTML = `<div class="empty-state">
@@ -637,90 +695,90 @@ const DC = (() => {
       return;
     }
 
-    grid.innerHTML = lista.map((c, i) => {
-      const m = META[c.bloque] || { color:'#00d4ff', icon:'👤', label:c.bloque };
-      const tels = (c.telefonos||[]).map(t => {
-        const num = typeof t==='string' ? t : (t.numero||'');
-        const pre = typeof t==='object' ? (t.prefijo||'+57') : '+57';
-        return num ? (pre + num) : '';
-      }).filter(Boolean);
-      const avatar = c.tiene_foto
-        ? `<img src="/servicios/directorio/contactos/${c._id}/foto?_t=${c.actualizado_en||c.creado_en||0}" alt="" />`
-        : m.icon;
-      const delay = (i % 12) * 0.04;
-      return `
-        <div class="contact-card" style="--card-color:${m.color};animation-delay:${delay}s">
-          <div class="card-stripe"></div>
-          <div class="card-body">
-            <div class="card-header">
-              <div class="card-avatar">${avatar}</div>
-              <div class="card-info">
-                <div class="card-name">${esc(c.nombre)}</div>
-                ${c.cargo_titulo ? `<div class="card-cargo">${esc(c.cargo_titulo)}</div>` : ''}
-                <span class="card-bloque-badge" style="background:${m.color}18;color:${m.color};">
-                  ${m.icon} ${m.label}
-                </span>
-              </div>
-            </div>
+    if (_bloqueActual === 'TODOS') {
+      grid.classList.add('org-view');
+      // ── Organigrama: agrupar por bloque ──
+      const grupos = [];
+      _bloques.forEach(b => {
+        const contactos = lista.filter(c => c.bloque === b.codigo);
+        if (contactos.length) grupos.push({ meta: _meta(b.codigo), contactos });
+      });
+      // Contactos sin bloque configurado
+      const codigos = new Set(_bloques.map(b => b.codigo));
+      const sinBloque = lista.filter(c => !codigos.has(c.bloque));
+      if (sinBloque.length) {
+        grupos.push({ meta: { icon:'👤', label:'Otros', color:'#8A9CC8' }, contactos: sinBloque });
+      }
 
-            ${(tels.length || c.correo) ? `
-            <div class="card-contacts">
-              ${tels.slice(0,2).map(t => `
-                <div class="card-contact-row">
-                  <span class="card-contact-icon">📞</span>
-                  <span class="card-contact-val">${esc(t)}</span>
-                </div>`).join('')}
-              ${tels.length > 2 ? `<div class="card-contact-row" style="color:var(--muted);font-size:.74rem;">+${tels.length-2} más</div>` : ''}
-              ${c.correo ? `
-                <div class="card-contact-row">
-                  <span class="card-contact-icon">✉️</span>
-                  <span class="card-contact-val email">${esc(c.correo)}</span>
-                </div>` : ''}
-            </div>` : ''}
-
-            <div class="card-flags">
-              ${chipFlag(c.es_visible_para_residentes,    '👁 Residentes')}
-              ${chipFlag(c.es_visible_para_seguridad,     '🔐 Seguridad')}
-              ${chipFlag(c.es_visible_para_administracion,'🏢 Admin')}
-              ${c.vinculado_al_boton_de_panico
-                ? '<span class="flag-chip flag-panic">🆘 Pánico</span>' : ''}
-            </div>
+      let idx = 0;
+      grid.innerHTML = grupos.map(g => `
+        <div class="org-section">
+          <div class="org-header" style="--org-color:${g.meta.color}">
+            <span class="org-icon">${g.meta.icon}</span>
+            <span class="org-title" style="color:${g.meta.color}">${g.meta.label}</span>
+            <span class="org-count">${g.contactos.length}</span>
           </div>
-          <div class="card-actions">
-            <button class="btn-edit"   onclick="DC.editar('${c._id}')">✏️ Editar</button>
-            <button class="btn-delete" onclick="DC.eliminar('${c._id}','${esc(c.nombre)}')">🗑 Eliminar</button>
+          <div class="org-row">
+            ${g.contactos.map(c => _cardHTML(c, idx++)).join('')}
           </div>
-        </div>`;
-    }).join('');
-  }
-
-  function chipFlag(val, label) {
-    const on = val === true || val === 'true' || val === 1;
-    return `<span class="flag-chip ${on?'flag-on':'flag-off'}">${label}</span>`;
+        </div>`).join('');
+    } else {
+      // ── Grid normal: bloque específico ──
+      grid.classList.remove('org-view');
+      grid.innerHTML = lista.map((c, i) => _cardHTML(c, i)).join('');
+    }
   }
 
   async function cargar() {
+    if (!PERMISOS.ver) return;
     try {
-      const r = await fetch(BASE + '?solo_activos=0');
-      const j = await r.json();
-      if (j.ok) _todos = j.data || [];
-      else toast(j.error || 'Error al cargar', 'err');
-    } catch(e) { toast('Error de red', 'err'); }
+      const [rBloques, rContactos] = await Promise.all([
+        fetch('/servicios/directorio/bloques?_t=' + Date.now()),
+        fetch(BASE + '?solo_activos=1')
+      ]);
+      const jB = await rBloques.json();
+      const jC = await rContactos.json();
+      if (jB.ok) {
+        _bloques = jB.data || [];
+        _metaMap = {};
+        _bloques.forEach(b => {
+          _metaMap[b.codigo] = {
+            icon:  b.emoji || (META_DEFAULT[b.codigo]?.icon  || '📌'),
+            label: b.nombre || b.codigo,
+            color: META_DEFAULT[b.codigo]?.color || '#00d4ff',
+            cargo: META_DEFAULT[b.codigo]?.cargo || false,
+            correo:META_DEFAULT[b.codigo]?.correo || false,
+          };
+        });
+        _poblarSelectBloques();
+      }
+      if (jC.ok) _todos = jC.data || [];
+    } catch(e) { toast('Error al cargar el directorio', 'err'); }
     renderTabs();
     renderCards();
+  }
+
+  function _poblarSelectBloques(seleccionado) {
+    const sel = document.getElementById('f-bloque');
+    if (!sel) return;
+    const activos = _bloques.filter(b => b.activo !== false);
+    sel.innerHTML = activos.map(b =>
+      `<option value="${b.codigo}">${_meta(b.codigo).icon} ${b.nombre || b.codigo}</option>`
+    ).join('') || '<option value="EMERGENCIAS">🚨 Emergencias</option>';
+    if (seleccionado) sel.value = seleccionado;
   }
 
   function setBloque(b) { _bloqueActual = b; renderTabs(); renderCards(); }
   function filtrar(q)   { _busqueda = q; renderCards(); }
 
   function cambioBloque(cargoActual = '') {
-    const b = document.getElementById('f-bloque').value;
-    const m = META[b] || META.EMERGENCIAS;
+    const b = document.getElementById('f-bloque')?.value;
+    if (!b) return;
+    const m = _meta(b);
     document.getElementById('dc-modal-icon').textContent = m.icon;
     document.getElementById('dc-modal-sub').textContent  = m.label;
     document.querySelectorAll('.dc-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
     document.querySelectorAll('.dc-field-correo').forEach(el => el.style.display = m.correo ? '' : 'none');
-    document.querySelectorAll('.dc-field-panico').forEach(el => el.style.display = m.panico ? '' : 'none');
     if (m.cargo) _cargarCargos(b, cargoActual);
   }
 
@@ -736,7 +794,7 @@ const DC = (() => {
         if (valorActual) sel.value = valorActual;
       }
     } catch(e) {
-      sel.innerHTML = '<option value="">Error al cargar cargos</option>';
+      sel.innerHTML = '<option value="">Error al cargar</option>';
     }
   }
 
@@ -760,18 +818,17 @@ const DC = (() => {
   }
 
   async function abrirModal(contacto = null) {
+    if (!PERMISOS.crear && !PERMISOS.editar) return;
+    if (contacto && !PERMISOS.editar) return;
+    if (!contacto && !PERMISOS.crear) return;
     await _cargarPaises();
-    const bloque = contacto ? contacto.bloque : (_bloqueActual !== 'TODOS' ? _bloqueActual : 'EMERGENCIAS');
+    const bloque = contacto ? contacto.bloque : (_bloqueActual !== 'TODOS' ? _bloqueActual : (_bloques[0]?.codigo || 'EMERGENCIAS'));
     document.getElementById('f-id').value                 = contacto ? contacto._id : '';
     document.getElementById('dc-modal-title').textContent = contacto ? 'Editar Contacto' : 'Nuevo Contacto';
-    document.getElementById('f-bloque').value             = bloque;
+    _poblarSelectBloques(bloque);
     document.getElementById('f-nombre').value             = contacto ? (contacto.nombre||'') : '';
     const _cargoVal = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('f-correo').value             = contacto ? (contacto.correo||'') : '';
-    document.getElementById('f-visible').checked          = contacto ? !!contacto.es_visible_para_residentes : true;
-    document.getElementById('f-seguridad').checked        = contacto ? !!contacto.es_visible_para_seguridad : false;
-    document.getElementById('f-administracion').checked   = contacto ? !!contacto.es_visible_para_administracion : false;
-    document.getElementById('f-panico').checked           = contacto ? !!contacto.vinculado_al_boton_de_panico : false;
     const prev = document.getElementById('foto-preview');
     const hint = document.getElementById('foto-hint');
     if (contacto && contacto.tiene_foto) {
@@ -789,7 +846,7 @@ const DC = (() => {
     document.getElementById('modal-dc').classList.add('show');
   }
 
-  function cerrarModal() { document.getElementById('modal-dc').classList.remove('show'); }
+  function cerrarModal() { document.getElementById('modal-dc')?.classList.remove('show'); }
 
   function _leerTelefonos() {
     return [...document.querySelectorAll('#phone-list .phone-row')].map(row => ({
@@ -802,14 +859,14 @@ const DC = (() => {
     const list = document.getElementById('phone-list');
     list.innerHTML = '';
     const items = tels.length ? tels : [{ numero: '', prefijo: '+57' }];
-    items.forEach((t, i) => _addPhoneRow(t, items.length > 1));
+    items.forEach(t => _addPhoneRow(t, items.length > 1));
   }
 
   function _addPhoneRow(t, canDelete) {
-    const num = typeof t === 'object' ? (t.numero || '') : t;
-    const pre = typeof t === 'object' ? (t.prefijo || '+57') : '+57';
+    const num  = typeof t === 'object' ? (t.numero || '') : t;
+    const pre  = typeof t === 'object' ? (t.prefijo || '+57') : '+57';
     const list = document.getElementById('phone-list');
-    const row = document.createElement('div');
+    const row  = document.createElement('div');
     row.className = 'phone-row';
     row.innerHTML =
       `<select class="pais-sel">${_paisesOptions(pre)}</select>` +
@@ -842,28 +899,24 @@ const DC = (() => {
     const bloque = document.getElementById('f-bloque').value;
     const nombre = document.getElementById('f-nombre').value.trim();
     const cargo  = document.getElementById('f-cargo').value.trim();
-    const m = META[bloque] || {};
-    const tels = _leerTelefonos().filter(t => t.numero);
+    const m      = _meta(bloque);
+    const tels   = _leerTelefonos().filter(t => t.numero);
     if (!nombre)           { toast('El nombre es obligatorio', 'err'); return; }
     if (m.cargo && !cargo) { toast('El cargo es obligatorio para este bloque', 'err'); return; }
     if (!tels.length)      { toast('Ingresa al menos un teléfono', 'err'); return; }
 
     const fd = new FormData();
-    fd.append('bloque',  bloque);
-    fd.append('nombre',  nombre);
+    fd.append('bloque',       bloque);
+    fd.append('nombre',       nombre);
     fd.append('cargo_titulo', cargo);
-    fd.append('correo',  document.getElementById('f-correo').value.trim());
-    fd.append('es_visible_para_residentes',    document.getElementById('f-visible').checked);
-    fd.append('es_visible_para_seguridad',     document.getElementById('f-seguridad').checked);
-    fd.append('es_visible_para_administracion',document.getElementById('f-administracion').checked);
-    fd.append('vinculado_al_boton_de_panico',  document.getElementById('f-panico').checked);
-    fd.append('telefonos', JSON.stringify(tels));
+    fd.append('correo',       document.getElementById('f-correo').value.trim());
+    fd.append('telefonos',    JSON.stringify(tels));
     const fotoInput = document.getElementById('f-foto');
     if (fotoInput.files[0]) fd.append('foto', fotoInput.files[0]);
 
     const url = id ? `${BASE}/${id}` : BASE;
     try {
-      const r = await fetch(url, {method: id?'PUT':'POST', body:fd});
+      const r = await fetch(url, { method: id ? 'PUT' : 'POST', body: fd });
       const j = await r.json();
       if (j.ok) { toast(id ? '✅ Contacto actualizado' : '✅ Contacto creado'); cerrarModal(); cargar(); }
       else       { toast('❌ ' + (j.error || 'Error al guardar'), 'err'); }
@@ -871,29 +924,45 @@ const DC = (() => {
   }
 
   function editar(id) {
+    if (!PERMISOS.editar) return;
     const c = _todos.find(x => x._id === id);
     if (c) abrirModal(c);
   }
 
   async function eliminar(id, nombre) {
+    if (!PERMISOS.eliminar) return;
     if (!confirm(`¿Eliminar a "${nombre}"?`)) return;
     try {
-      const r = await fetch(`${BASE}/${id}`, {method:'DELETE'});
+      const r = await fetch(`${BASE}/${id}`, { method: 'DELETE' });
       const j = await r.json();
       if (j.ok) { toast('🗑 Contacto eliminado'); cargar(); }
       else       { toast('❌ ' + (j.error||'Error'), 'err'); }
     } catch(e) { toast('❌ Error de red', 'err'); }
   }
 
-  document.addEventListener('DOMContentLoaded', cargar);
+  if (PERMISOS.ver) {
+    document.addEventListener('DOMContentLoaded', cargar);
+  }
 
   return { abrirModal, cerrarModal, cambioBloque, guardar, editar, eliminar, setBloque, filtrar, agregarTelefono, previewFoto };
 })();
 
-// ── Tema: empresa (server) + localStorage (preferencia usuario) ──
+// ── Modo embebido en dashboard: ocultar topbar propio ──
+(function(){
+  if (window.self !== window.top) {
+    document.addEventListener('DOMContentLoaded', function(){
+      var tb = document.querySelector('.topbar');
+      if (tb) tb.style.display = 'none';
+    });
+  }
+})();
+
+// ── Tema: localStorage primero, luego empresa configurada ──
 (async () => {
   const empresaTema = '{{ tema_clave }}';
-  const saved = localStorage.getItem('nidus-tema');
+  const eid2   = '{{ empresa_id or "" }}';
+  const lsKey2 = eid2 ? ('nidus-tema-' + eid2) : 'nidus-tema';
+  const saved  = localStorage.getItem(lsKey2);
   const temaFinal = (saved && saved !== 'default') ? saved : (empresaTema || 'default');
   try {
     const r = await fetch('/config/apariencias');

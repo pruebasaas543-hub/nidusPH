@@ -18,6 +18,7 @@ from app.configuracion.apariencias.routes         import apariencias_bp
 from app.configuracion.apariencia_empresa.routes  import apariencia_empresa_bp
 from app.configuracion.directorio.routes          import directorio_cfg_bp
 from app.configuracion.boton_panico.routes        import panico_cfg_bp
+from app.configuracion.permisos.routes            import permisos_cfg_bp
 
 
 def register_config_blueprints(app):
@@ -35,7 +36,8 @@ def register_config_blueprints(app):
         apariencia_empresa_bp,
         directorio_cfg_bp,
         panico_cfg_bp,
+        permisos_cfg_bp,
     ]:
         app.register_blueprint(bp)
 
-    app.logger.info("Blueprints de configuración registrados: %d sub-módulos", 12)
+    app.logger.info("Blueprints de configuración registrados: %d sub-módulos", 13)

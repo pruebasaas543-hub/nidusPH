@@ -198,10 +198,12 @@ class ContactoModel:
         return str(_contactos().insert_one(doc).inserted_id)
 
     @staticmethod
-    def listar_por_empresa(empresa_id: str, solo_activos: bool = True) -> list:
+    def listar_por_empresa(empresa_id: str, solo_activos: bool = True, campo_visibilidad: str = None) -> list:
         filtro = {"empresa_id": ObjectId(empresa_id)}
         if solo_activos:
             filtro["activo"] = True
+        if campo_visibilidad:
+            filtro[campo_visibilidad] = True
         return list(_contactos().find(filtro).sort([("bloque", 1), ("orden", 1), ("nombre", 1)]))
 
     @staticmethod

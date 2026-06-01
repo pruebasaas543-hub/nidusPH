@@ -445,6 +445,7 @@
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-datos-ph')"><span class="nav-icon">📑</span> Datos Generales PH</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-apariencia')"><span class="nav-icon">🎨</span> Apariencia</a>
                 <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-datos-pago')"><span class="nav-icon">💳</span> Asociacion Medios de Pago Empresa</a>
+                <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-permisos');_permisosPoblarEmpresas()"><span class="nav-icon">🔑</span> Habilitación de Permisos</a>
             </div>
         </div>
 
@@ -1756,6 +1757,32 @@
 
             </div><!-- /dir-panel -->
         </div><!-- /cfg-directorio -->
+
+        <!-- ════════════════════════════════════════════════════════════
+             HABILITACIÓN DE PERMISOS
+        ════════════════════════════════════════════════════════════ -->
+        <div id="cfg-permisos" class="config-panel">
+            <div class="config-panel-title">🔑 <span>Habilitación de Permisos</span></div>
+
+            <!-- Selector empresa -->
+            <div style="max-width:380px;margin-bottom:24px;">
+                <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:6px;">Empresa</label>
+                <select id="permisos-empresa-sel" class="form-control" onchange="_permisosSeleccionarEmpresa(this.value)">
+                    <option value="">— Selecciona una empresa —</option>
+                </select>
+            </div>
+
+            <!-- Panel por empresa -->
+            <div id="permisos-panel" style="display:none;">
+
+                <!-- Módulo: Directorio -->
+                <div style="background:#f8faff;border:1.5px solid #93b8e8;border-radius:14px;padding:20px 22px;margin-bottom:20px;">
+                    <div style="font-size:.84rem;font-weight:700;color:#042243;margin-bottom:16px;">📋 Directorio de Contactos</div>
+                    <div id="permisos-directorio-tabla" style="display:flex;flex-direction:column;gap:0;"></div>
+                </div>
+
+            </div>
+        </div>
 
         <!-- ═══════════════════════════════════════════════════════════ -->
         <!-- cfg-boton-panico                                            -->
@@ -6952,6 +6979,133 @@ async function dirEliminarContacto(contactoId, nombre) {
 }
 
 // La carga de empresas se dispara desde el onclick del nav-item (mostrarPanel + _dirPoblarEmpresas)
+
+// ═══════════════════════════════════════════════════════════════════
+// HABILITACIÓN DE PERMISOS
+// ═══════════════════════════════════════════════════════════════════
+let _permisosEmpresaId = null;
+let _permisosRoles     = [];  // [{_id, nombre}]
+let _permisosData      = {};  // { rol_id: { rol_nombre, modulos: { directorio: {ver,crear,...} } } }
+
+async function _permisosPoblarEmpresas() {
+    const sel = document.getElementById('permisos-empresa-sel');
+    if (!sel || sel.options.length > 1) return;
+    try {
+        const j = await apiFetch('/config/empresas');
+        if (!j.ok || !Array.isArray(j.data)) return;
+        [...j.data]
+            .sort((a, b) => (a.razon_social || '').localeCompare(b.razon_social || ''))
+            .forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e._id;
+                opt.textContent = e.razon_social || e._id;
+                sel.appendChild(opt);
+            });
+    } catch(e) {}
+}
+
+async function _permisosSeleccionarEmpresa(empresaId) {
+    _permisosEmpresaId = empresaId || null;
+    const panel = document.getElementById('permisos-panel');
+    if (!panel) return;
+    if (!_permisosEmpresaId) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    await _permisosCargar();
+}
+
+async function _permisosCargar() {
+    if (!_permisosEmpresaId) return;
+    try {
+        const [jRoles, jPermisos] = await Promise.all([
+            apiFetch(`/config/permisos/roles`),
+            apiFetch(`/config/permisos?propiedad_id=${_permisosEmpresaId}`),
+        ]);
+        _permisosRoles = (jRoles.ok && Array.isArray(jRoles.data)) ? jRoles.data : [];
+        _permisosData  = (jPermisos.ok && jPermisos.data) ? jPermisos.data : {};
+        _permisosRenderDirectorio();
+    } catch(e) { showToast('Error al cargar permisos', true); }
+}
+
+const _PERMISOS_ACCIONES = ['ver', 'crear', 'editar', 'eliminar'];
+const _PERMISOS_LABELS   = { ver: '👁 Ver', crear: '➕ Crear', editar: '✏️ Editar', eliminar: '🗑 Eliminar' };
+
+function _permisosRenderDirectorio() {
+    const tabla = document.getElementById('permisos-directorio-tabla');
+    if (!tabla) return;
+    if (!_permisosRoles.length) {
+        tabla.innerHTML = '<span style="font-size:.78rem;color:#6b7280;">No hay roles configurados.</span>';
+        return;
+    }
+
+    // Cabecera
+    const header = `
+        <div style="display:grid;grid-template-columns:1fr repeat(4,90px);gap:8px;align-items:center;
+                    padding:8px 12px;background:#e8f0fb;border-radius:8px 8px 0 0;margin-bottom:2px;">
+            <span style="font-size:.72rem;font-weight:700;color:#2563a8;text-transform:uppercase;letter-spacing:.8px;">Rol</span>
+            ${_PERMISOS_ACCIONES.map(a =>
+                `<span style="font-size:.72rem;font-weight:700;color:#2563a8;text-align:center;text-transform:uppercase;letter-spacing:.8px;">${_PERMISOS_LABELS[a]}</span>`
+            ).join('')}
+        </div>`;
+
+    const filas = _permisosRoles.map((rol, idx) => {
+        const rid     = rol._id;
+        const datos   = _permisosData[rid]?.modulos?.directorio || {};
+        const bgColor = idx % 2 === 0 ? '#fff' : '#f8faff';
+        const toggles = _PERMISOS_ACCIONES.map(accion => {
+            const activo = bool(datos[accion]);
+            return `
+                <div style="display:flex;justify-content:center;">
+                    <label class="canal-toggle" title="${_PERMISOS_LABELS[accion]}">
+                        <input type="checkbox" data-rol="${rid}" data-accion="${accion}"
+                               ${activo ? 'checked' : ''}
+                               onchange="_permisosToggle('${rid}','${accion}',this.checked)">
+                        <span class="canal-toggle-slider"></span>
+                    </label>
+                </div>`;
+        }).join('');
+        return `
+            <div style="display:grid;grid-template-columns:1fr repeat(4,90px);gap:8px;align-items:center;
+                        padding:10px 12px;background:${bgColor};border-bottom:1px solid rgba(4,34,67,.06);">
+                <span style="font-size:.82rem;font-weight:600;color:#042243;">${_esc(rol.nombre)}</span>
+                ${toggles}
+            </div>`;
+    }).join('');
+
+    tabla.innerHTML = header + filas;
+}
+
+function bool(v) { return v === true || v === 'true' || v === 1; }
+
+async function _permisosToggle(rolId, accion, valor) {
+    if (!_permisosEmpresaId) return;
+    // Actualiza local primero (optimistic)
+    if (!_permisosData[rolId]) _permisosData[rolId] = { modulos: {} };
+    if (!_permisosData[rolId].modulos) _permisosData[rolId].modulos = {};
+    if (!_permisosData[rolId].modulos.directorio) _permisosData[rolId].modulos.directorio = {};
+    _permisosData[rolId].modulos.directorio[accion] = valor;
+
+    // Construye el objeto completo de acciones para este rol+modulo
+    const acciones = Object.fromEntries(
+        _PERMISOS_ACCIONES.map(a => [a, bool(_permisosData[rolId].modulos.directorio[a])])
+    );
+    try {
+        const r = await apiFetch(
+            `/config/permisos?propiedad_id=${_permisosEmpresaId}`,
+            'PUT',
+            { rol_id: rolId, modulo: 'directorio', acciones }
+        );
+        if (!r.ok) {
+            // Revertir si falla
+            _permisosData[rolId].modulos.directorio[accion] = !valor;
+            _permisosRenderDirectorio();
+            showToast(r.error || 'Error al guardar permiso', true);
+        }
+    } catch {
+        _permisosData[rolId].modulos.directorio[accion] = !valor;
+        _permisosRenderDirectorio();
+        showToast('Error de conexión', true);
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // BOTÓN DE PÁNICO — configuración admin

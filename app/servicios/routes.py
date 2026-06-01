@@ -23,7 +23,22 @@ def panel_servicio(codigo):
     if codigo == "contabilidad_financiera":
         return render_template("servicios/contabilidad.html", servicio=srv)
     if codigo == "directorio":
-        return render_template("servicios/directorio.html", servicio=srv)
+        es_sistema = session.get("es_sistema", False)
+        empresa_id = session.get("empresa_id", "")
+        from app.auth.routes import _tema_efectivo
+        tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
+        if not es_sistema:
+            from app.servicios.permisos.model import PermisosRolModel
+            rol      = session.get("rol", "")
+            permisos = PermisosRolModel.obtener_para_sesion(empresa_id, rol, "directorio")
+            return render_template("servicios/directorio_usuario.html",
+                                   servicio=srv, permisos=permisos,
+                                   empresa_id=empresa_id,
+                                   tema_clave=tema_clave, tema_css=tema_css,
+                                   tema_vars=tema_vars)
+        return render_template("servicios/directorio.html", servicio=srv,
+                               tema_clave=tema_clave, tema_css=tema_css,
+                               tema_vars=tema_vars)
     if codigo == "boton_panico":
         import logging
         from app.configuracion.roles.model import RolModel

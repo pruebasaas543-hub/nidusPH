@@ -43,6 +43,21 @@ def _parse_contacto_payload():
 _BLOQUE_MAP = {"ADMIN": "ADMINISTRACION", "LOGISTICA": "LOGISTICA"}
 
 
+@directorio_bp.route("/bloques", methods=["GET"])
+@requiere_login
+def listar_bloques_usuario():
+    """Devuelve los bloques activos de la empresa en sesión (para usuarios de copropiedad)."""
+    eid = _empresa_id()
+    if not eid:
+        return err("No hay empresa en sesión", 400)
+    try:
+        from app.servicios.directorio.model import DirectorioConfigModel
+        bloques = DirectorioConfigModel.listar_bloques(eid, solo_activos=True)
+        return ok(bloques)
+    except Exception as e:
+        return err(str(e))
+
+
 @directorio_bp.route("/paises", methods=["GET"])
 @requiere_login
 def listar_paises():
@@ -79,10 +94,21 @@ def listar_contactos():
     if not eid:
         return err("No hay empresa en sesión", 400)
     solo_activos = request.args.get("solo_activos", "1") == "1"
-    exito, lista = ContactoController.listar(eid, solo_activos)
+    campo_vis = None
+    if not session.get("es_sistema"):
+        from app.servicios.permisos.model import PermisosRolModel
+        campo_vis = PermisosRolModel.campo_visibilidad(session.get("rol", ""))
+    exito, lista = ContactoController.listar(eid, solo_activos, campo_vis)
     if not exito:
         return err(lista)
-    return ok(serializar(lista))
+    resultado = []
+    for doc in lista:
+        d = serializar(doc)
+        d["tiene_foto"] = bool(doc.get("foto_data"))
+        d.pop("foto_data", None)
+        d.pop("foto_mimetype", None)
+        resultado.append(d)
+    return ok(resultado)
 
 
 @directorio_bp.route("/contactos", methods=["POST"])

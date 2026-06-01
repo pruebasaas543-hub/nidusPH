@@ -71,9 +71,9 @@ class ContactoController:
         return True, _id
 
     @staticmethod
-    def listar(empresa_id: str, solo_activos: bool = True):
+    def listar(empresa_id: str, solo_activos: bool = True, campo_visibilidad: str = None):
         try:
-            return True, ContactoModel.listar_por_empresa(empresa_id, solo_activos)
+            return True, ContactoModel.listar_por_empresa(empresa_id, solo_activos, campo_visibilidad)
         except Exception as e:
             return False, str(e)
 

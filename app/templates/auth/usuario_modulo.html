@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="{{ tema_clave }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ modulo_actual.nombre }} — {% if empresa_nombre %}{{ empresa_nombre }}{% else %}Nidus{% endif %}</title>
+  <script>
+    (function(){
+      var eid   = '{{ empresa_id or "" }}';
+      var lsKey = eid ? ('nidus-tema-' + eid) : 'nidus-tema';
+      var saved = localStorage.getItem(lsKey);
+      var empresa = '{{ tema_clave }}';
+      var t = (saved && saved !== 'default') ? saved : (empresa || 'default');
+      document.documentElement.setAttribute('data-tema', t);
+    })();
+  </script>
+  <style id="nidus-tema">{{ tema_css | safe }}</style>
+  {% if tema_vars %}<style id="nidus-vars">{{ tema_vars | safe }}</style>{% endif %}
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', 'Segoe UI', sans-serif; }
+    html { height: 100%; overflow: hidden; }
+    body { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #EEF2FF; color: #1E2756; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ══ TOPBAR ══ */
+    .topbar {
+      width: 100%; height: 64px; flex-shrink: 0;
+      background: #042243;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+      box-shadow: 0 2px 20px rgba(4,34,67,0.35); z-index: 100;
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .topbar-logo img { height: 38px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.35)); }
+    .topbar-spacer { flex: 1; }
+    .empresa-badge {
+      font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+      color: #e0f0ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
+    }
+    .user-profile {
+      display: flex; align-items: center; gap: 10px;
+      padding: 4px 12px 4px 4px; border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15);
+    }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(224,240,255,.9));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #042243; font-size: .85rem;
+    }
+    .user-name  { font-size: .82rem; font-weight: 600; color: white; }
+    .user-role  { font-size: .68rem; color: rgba(224,248,255,.9); }
+    .btn-topbar {
+      padding: 7px 14px; border-radius: 8px; border: none;
+      font-size: .76rem; font-weight: 700; cursor: pointer;
+      transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-cambiar { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); color: #fff; }
+    .btn-cambiar:hover { background: rgba(255,255,255,.24); }
+    .btn-salir { background: rgba(255,255,255,.08); border: 1px solid rgba(255,80,80,.45); color: #ffcccc; }
+    .btn-salir:hover { background: rgba(255,80,80,.2); color: #fff; }
+
+    /* ══ LAYOUT ══ */
+    .main-layout { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar {
+      width: 240px; flex-shrink: 0; background: #042243;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      display: flex; flex-direction: column; overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 4px; }
+    .sidebar-section-title {
+      font-size: .6rem; font-weight: 700; letter-spacing: 1.5px;
+      color: rgba(255,255,255,.45); text-transform: uppercase; padding: 20px 16px 8px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer;
+      color: rgba(255,255,255,.72); font-size: .78rem;
+      border-left: 3px solid transparent; transition: all .22s; text-decoration: none;
+    }
+    .nav-item:hover { color: white; background: rgba(255,255,255,.12); border-left-color: rgba(255,255,255,.5); }
+    .nav-item.active { color: white; background: rgba(255,255,255,.2); border-left-color: white; font-weight: 600; }
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-item.disabled { opacity: .38; cursor: not-allowed; pointer-events: none; }
+    .nav-coming { font-size: .6rem; margin-left: auto; background: rgba(255,255,255,.12); color: rgba(255,255,255,.55); padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+    .sidebar-divider { height: 1px; background: rgba(255,255,255,.12); margin: 8px 16px; }
+
+    /* ══ IFRAME CONTAINER ══ */
+    .iframe-wrap {
+      flex: 1; overflow: hidden; display: flex; flex-direction: column;
+      background: #EEF2FF;
+    }
+    .iframe-wrap iframe {
+      width: 100%; flex: 1; border: none; display: block; min-height: 0;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .topbar { padding: 0 16px; gap: 10px; }
+      .empresa-badge { max-width: 150px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<div class="topbar">
+  <a class="topbar-logo" href="{{ url_for('auth.dashboard') }}">
+    <img src="{{ url_for('static', filename='images/Logo-Caminos-1.png') }}" alt="Nidus">
+  </a>
+
+  {% if empresa_nombre %}
+  <span class="empresa-badge">🏢 {{ empresa_nombre }}</span>
+  {% endif %}
+
+  <div class="topbar-spacer"></div>
+
+  {% if num_empresas > 1 %}
+  <a href="{{ url_for('auth.cambiar_empresa') }}" class="btn-topbar btn-cambiar">
+    🔄 Cambiar empresa
+  </a>
+  {% endif %}
+
+  <div class="user-profile">
+    <div class="user-avatar">{{ (nombres or 'U')[0].upper() }}</div>
+    <div>
+      <div class="user-name">{{ nombres }}</div>
+      <div class="user-role">{{ rol or 'Usuario' }}</div>
+    </div>
+  </div>
+
+  <a href="{{ url_for('auth.logout') }}" class="btn-topbar btn-salir">⏻ Salir</a>
+</div>
+
+<!-- ══ LAYOUT ══ -->
+<div class="main-layout">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-section-title">Menú</div>
+
+    <a href="{{ url_for('auth.dashboard') }}" class="nav-item">
+      <span class="nav-icon">🏠</span> Inicio
+    </a>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section-title">Módulos</div>
+
+    {% for srv in modulos %}
+    <a href="{{ url_for('auth.modulo_usuario', codigo=srv.codigo) }}"
+       class="nav-item {% if srv.codigo == codigo %}active{% endif %}">
+      <span class="nav-icon">{{ srv.icono or '📋' }}</span>
+      {{ srv.nombre }}
+    </a>
+    {% endfor %}
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section-title">Configuraciones</div>
+
+    <a href="{{ url_for('auth.mi_apariencia') }}" class="nav-item">
+      <span class="nav-icon">🎨</span> Apariencia
+    </a>
+
+    <span class="nav-item disabled">
+      <span class="nav-icon">⚙️</span> General
+      <span class="nav-coming">Pronto</span>
+    </span>
+  </aside>
+
+  <!-- ══ IFRAME DEL MÓDULO ══ -->
+  <div class="iframe-wrap">
+    <iframe id="modulo-frame"
+            src="/servicios/{{ codigo }}/?em=1"
+            title="{{ modulo_actual.nombre }}"
+            allowfullscreen>
+    </iframe>
+  </div>
+
+</div>
+
+<script>
+(async () => {
+  const empresaTema = '{{ tema_clave }}';
+  const eid   = '{{ empresa_id or "" }}';
+  const lsKey = eid ? ('nidus-tema-' + eid) : 'nidus-tema';
+  const saved = localStorage.getItem(lsKey);
+  const temaFinal = (saved && saved !== 'default') ? saved : (empresaTema || 'default');
+  try {
+    const r = await fetch('/config/apariencias');
+    const j = await r.json();
+    if (j.ok && Array.isArray(j.data)) {
+      const mapa = {};
+      j.data.forEach(t => { if (t.css) mapa[t.clave] = t.css; });
+      document.getElementById('nidus-tema').textContent = mapa[temaFinal] || '';
+      document.documentElement.dataset.tema = temaFinal;
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
