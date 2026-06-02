@@ -808,3 +808,43 @@ def debug_contactos_bd():
         return ok(resultado)
     except Exception as e:
         return err(str(e))
+
+
+@panico_bp.route("/debug/estructura-evento", methods=["GET"])
+@requiere_login
+def debug_estructura_evento():
+    """[DEBUG] Ver estructura de un evento de pánico"""
+    try:
+        eid = _empresa_admin()
+        if not eid:
+            return err("Necesitas ser admin", 400)
+
+        # Obtener el primer evento
+        ev = db["panic_events"].find_one({"empresa_id": ObjectId(eid)})
+        if not ev:
+            return ok({"mensaje": "No hay eventos en esta empresa"})
+
+        resultado = {
+            "evento_id": str(ev.get("_id")),
+            "empresa_id": str(ev.get("empresa_id")),
+            "nombre_residente": ev.get("nombre_residente"),
+            "activado_en": ev.get("activado_en"),
+            "resultado_keys": list((ev.get("resultado") or {}).keys()),
+            "resultado_completo": serializar(ev.get("resultado", {})),
+            "estructura_externos": None,
+            "estructura_directorio": None,
+        }
+
+        # Ver estructura de externos
+        externos = ev.get("resultado", {}).get("externos", [])
+        if externos:
+            resultado["estructura_externos"] = serializar(externos[0])
+
+        # Ver estructura de directorio
+        directorio = ev.get("resultado", {}).get("directorio", [])
+        if directorio:
+            resultado["estructura_directorio"] = serializar(directorio[0])
+
+        return ok(resultado)
+    except Exception as e:
+        return err(str(e))
