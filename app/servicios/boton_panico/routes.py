@@ -481,12 +481,20 @@ def admin_log():
             filtrados = []
             for ev in todos:
                 res = ev.get("resultado", {})
+
+                # Si es evento bloqueado (cooldown), solo mostrar si filtra por error
+                if res.get("bloqueado") == True:
+                    if estado_fil and estado_fil != "error":
+                        continue
+                    filtrados.append(ev)
+                    continue
+
                 canales_ev = [*res.get("externos", []), *res.get("directorio", [])]
                 match = False
                 for c in canales_ev:
                     for tipo, info in (c.get("canales") or {}).items():
-                        ok_canal  = (not canal_fil)  or (tipo == canal_fil)
-                        ok_estado = (not estado_fil) or _normalizar_estado(info.get("estado","")) == estado_fil
+                        ok_canal  = (not canal_fil)  or (tipo.lower() == canal_fil)
+                        ok_estado = (not estado_fil) or _estado_coincide(info.get("estado",""), estado_fil)
                         if ok_canal and ok_estado:
                             match = True
                             break
@@ -521,6 +529,19 @@ def _normalizar_estado(estado: str) -> str:
     if e in ("mock",):
         return "mock"
     return "error"
+
+def _estado_coincide(estado_real: str, filtro: str) -> bool:
+    """Verifica si un estado real coincide con el filtro (puede ser específico o normalizado)."""
+    e_real = (estado_real or "").lower()
+    e_filt = (filtro or "").lower()
+
+    # Coincidencia exacta
+    if e_real == e_filt:
+        return True
+
+    # Coincidencia normalizada
+    estado_normalizado = _normalizar_estado(estado_real)
+    return estado_normalizado == e_filt
 
 
 @panico_bp.route("/admin/refresh-estados", methods=["POST"])
