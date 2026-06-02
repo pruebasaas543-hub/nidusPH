@@ -232,10 +232,16 @@ body { background:var(--bg); color:var(--text); }
 .r-mock   { background:rgba(183,121,31,.12); color:var(--orange); }
 
 /* Historial */
-.hist-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg2); border:1.5px solid var(--border); border-radius:10px; font-size:.8rem; margin-bottom:8px; }
-.hist-item:last-child { margin-bottom:0; }
-.hist-dot { width:9px; height:9px; border-radius:50%; background:var(--red); flex-shrink:0; }
-.hist-fecha { color:var(--muted); margin-left:auto; font-size:.7rem; }
+.hist-list-wrap { display:flex; flex-direction:column; gap:7px; }
+.hist-item {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 14px 8px 10px;
+  background:color-mix(in srgb, var(--red) 6%, var(--bg2));
+  border:1.5px solid color-mix(in srgb, var(--red) 18%, transparent);
+  border-radius:99px; font-size:.79rem;
+}
+.hist-dot { width:8px; height:8px; border-radius:50%; background:var(--red); flex-shrink:0; box-shadow:0 0 6px color-mix(in srgb, var(--red) 55%, transparent); }
+.hist-fecha { color:var(--muted); margin-left:auto; font-size:.68rem; white-space:nowrap; }
 
 /* Overlay */
 .panic-overlay { position:fixed; inset:0; z-index:500; background:rgba(120,0,0,.88); display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
@@ -933,19 +939,17 @@ function cerrarOverlay(){ document.getElementById('panicOverlay').classList.remo
 function renderHistorial(eventos){
   const list = document.getElementById('histList');
   if(!eventos.length){ list.innerHTML='<div class="empty-state" style="padding:10px 0;">Sin activaciones registradas</div>'; return; }
-  list.innerHTML = eventos.map(e => {
+  list.innerHTML = `<div class="hist-list-wrap">` + eventos.map(e => {
     const r=e.resultado||{};
     const total=(r.externos||[]).length+(r.directorio||[]).length;
-    const quien = e.nombre_residente ? `<span style="font-size:.7rem;color:var(--accent);">${_esc(e.nombre_residente)}</span>` : '';
+    const quien = e.nombre_residente ? ` · <span style="color:var(--accent);font-weight:700;">${_esc(e.nombre_residente)}</span>` : '';
     return `<div class="hist-item">
       <div class="hist-dot"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:.82rem;">Pánico activado ${quien}</div>
-        <div style="font-size:.7rem;color:var(--muted);">${total} contacto(s) notificado(s)</div>
-      </div>
+      <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🚨 Pánico${quien}</span>
+      <span style="font-size:.7rem;color:var(--muted);flex-shrink:0;margin-left:6px;">${total} contacto(s)</span>
       <span class="hist-fecha">${_fmtFecha(e.activado_en)}</span>
     </div>`;
-  }).join('');
+  }).join('') + `</div>`;
 }
 async function recargarHistorial(){
   const eid = ES_SISTEMA ? _admEmpresaId : MI_EMPRESA;
