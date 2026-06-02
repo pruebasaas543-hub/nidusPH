@@ -375,3 +375,48 @@ def admin_log():
         return ok(serializar(eventos))
     except Exception as e:
         return err(str(e))
+
+
+@panico_bp.route("/admin/buscar-usuario", methods=["GET"])
+@_requiere_sistema
+def admin_buscar_usuario():
+    """Busca usuarios por nombre/apellidos o número de documento y retorna su config de pánico."""
+    q = request.args.get("q", "").strip()
+    if len(q) < 2:
+        return ok([])
+    try:
+        # Buscar por número de documento (exacto o prefijo) o por nombre/apellidos (regex)
+        filtro = {"$or": [
+            {"numero_documento": {"$regex": f"^{q}", "$options": "i"}},
+            {"nombres":          {"$regex": q, "$options": "i"}},
+            {"apellidos":        {"$regex": q, "$options": "i"}},
+        ]}
+        usuarios = list(db["users"].find(
+            filtro,
+            {"nombres": 1, "apellidos": 1, "numero_documento": 1, "tipo_documento": 1},
+        ).limit(15))
+
+        # Obtener configs de pánico de los usuarios encontrados (guardadas por user_id)
+        uids = [u["_id"] for u in usuarios]
+        cfgs_map = {}
+        for cfg_doc in db["panic_configurations"].find({"user_id": {"$in": uids}}):
+            cfgs_map[str(cfg_doc.get("user_id"))] = cfg_doc
+
+        resultado = []
+        for u in usuarios:
+            uid = str(u["_id"])
+            nombre_completo = f"{u.get('nombres','')} {u.get('apellidos','')}".strip()
+            doc = u.get("numero_documento", "")
+            cfg = cfgs_map.get(uid, {})
+            externos = cfg.get("contactos_externos", [])
+            resultado.append({
+                "_id":                uid,
+                "nombre_completo":    nombre_completo,
+                "numero_documento":   doc,
+                "tipo_documento":     u.get("tipo_documento", "CC"),
+                "label":              f"{nombre_completo} - {doc}",
+                "contactos_externos": externos,
+            })
+        return ok(resultado)
+    except Exception as e:
+        return err(str(e))

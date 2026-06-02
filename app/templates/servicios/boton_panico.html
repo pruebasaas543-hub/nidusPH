@@ -427,21 +427,42 @@ body { background:var(--bg); color:var(--text); }
 
         <!-- Col derecha: configuración del residente -->
         <div style="display:flex;flex-direction:column;gap:18px;">
+          <!-- Externos: buscador para superadmin, lista propia para usuarios normales -->
           <div class="card">
             <div class="card-title">📞 Contactos de emergencia externos</div>
+            {% if es_sistema %}
+            <p style="font-size:.77rem;color:var(--muted);margin-bottom:12px;line-height:1.5;">
+              Busca un usuario por nombre, apellido o número de documento.
+            </p>
+            <div style="position:relative;margin-bottom:14px;">
+              <input id="ext-buscar-input" type="text" placeholder="Nombre Apellido - Nº documento…"
+                style="width:100%;padding:9px 36px 9px 14px;border-radius:10px;border:1.5px solid var(--border);
+                       background:var(--bg2);color:var(--text);font-size:.84rem;font-family:inherit;outline:none;"
+                oninput="buscarUsuarioExterno(this.value)"
+                onfocus="this.style.borderColor='var(--accent)'"
+                onblur="this.style.borderColor='var(--border)'">
+              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;">🔍</span>
+            </div>
+            <div id="ext-buscar-resultados"></div>
+            {% else %}
             <p style="font-size:.77rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">
               Máximo <strong style="color:var(--text);">2 contactos</strong>. Define cómo notificarlos.
             </p>
             <div class="ext-list" id="extList"></div>
             <button class="btn-add-ext" id="btnAddExt" onclick="agregarExterno()">＋ Agregar contacto</button>
+            {% endif %}
           </div>
 
           <div class="card">
             <div class="card-title">📒 Contactos del directorio</div>
+            {% if es_sistema %}
+            <div id="dirList"><div class="empty-state" style="padding:14px 0;">Selecciona una empresa para ver los contactos.</div></div>
+            {% else %}
             <p style="font-size:.77rem;color:var(--muted);margin-bottom:14px;line-height:1.5;">
               Activa cómo contactar a cada persona vinculada al botón de pánico.
             </p>
             <div class="dir-list" id="dirList"><div class="empty-state">Cargando…</div></div>
+            {% endif %}
           </div>
 
           <button class="btn-guardar" id="btnGuardar" onclick="guardarConfig()">💾 Guardar Configuración</button>
@@ -997,9 +1018,9 @@ async function admSelEmpresa(eid) {
   const empty = document.getElementById('adm-empty-sel');
   if (!eid) { if(panel) panel.style.display='none'; if(empty) empty.style.display='flex'; return; }
   if(panel) panel.style.display='block'; if(empty) empty.style.display='none';
-  // Recargar config/log Y pestaña emergencia con la empresa seleccionada
+  // Recargar config/log Y directorio de la empresa seleccionada
   const tasks = [admCargarMensajes(), admCargarContactos()];
-  if (PERM.emergencia) tasks.push(init(eid));
+  if (PERM.emergencia) tasks.push(_cargarDirectorioEmpresa(eid));
   await Promise.all(tasks);
 }
 function _admEid(){ return ES_SISTEMA ? _admEmpresaId : MI_EMPRESA; }
@@ -1116,10 +1137,74 @@ async function admBuscarLog() {
   } catch { cont.innerHTML = '<p style="color:var(--red);">Error de conexión.</p>'; }
 }
 
+// ── Cargar directorio para empresa específica (superadmin) ──
+async function _cargarDirectorioEmpresa(eid) {
+  const list = document.getElementById('dirList');
+  if (!list) return;
+  list.innerHTML = '<div class="empty-state">Cargando…</div>';
+  try {
+    const r = await fetch(`/servicios/boton_panico/directorio?empresa_id=${eid}&_t=${Date.now()}`);
+    const d = await r.json();
+    const contactos = d.ok ? (d.data || []) : [];
+    // Inicializar estado igual que init()
+    const savedMap = {};
+    _directorio = contactos.map(c => ({
+      ...c,
+      habilitado_para_sms:      savedMap[c._id]?.habilitado_para_sms      || false,
+      habilitado_para_llamar:   savedMap[c._id]?.habilitado_para_llamar   || false,
+      habilitado_para_whatsapp: savedMap[c._id]?.habilitado_para_whatsapp || false,
+    }));
+    renderDirectorio();
+  } catch { list.innerHTML = '<div class="empty-state">Error al cargar</div>'; }
+}
+
+// ── Buscador de usuarios externos (solo superadmin) ──
+let _buscarTimer = null;
+async function buscarUsuarioExterno(q) {
+  clearTimeout(_buscarTimer);
+  const res = document.getElementById('ext-buscar-resultados');
+  if (!res) return;
+  if (!q || q.trim().length < 2) { res.innerHTML = ''; return; }
+  res.innerHTML = '<div style="font-size:.78rem;color:var(--muted);padding:8px 0;">Buscando…</div>';
+  _buscarTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`/servicios/boton_panico/admin/buscar-usuario?q=${encodeURIComponent(q.trim())}`);
+      const j = await r.json();
+      if (!j.ok || !j.data?.length) {
+        res.innerHTML = '<div class="empty-state" style="padding:10px 0;">Sin resultados</div>';
+        return;
+      }
+      res.innerHTML = j.data.map(u => {
+        const exts = u.contactos_externos || [];
+        const extHtml = exts.length
+          ? exts.map(e => `
+              <div style="font-size:.76rem;padding:5px 10px;background:var(--bg3);border-radius:8px;margin-top:5px;display:flex;gap:8px;align-items:center;">
+                <span style="font-weight:600;">${_esc(e.nombre||'Sin nombre')}</span>
+                <span style="color:var(--muted);">${_esc(e.prefijo||'+57')} ${_esc(e.celular||'')}</span>
+                <span style="color:var(--accent);font-size:.7rem;">${(e.tipo_notificacion||[]).join(', ')}</span>
+              </div>`).join('')
+          : '<div style="font-size:.74rem;color:var(--muted);padding:5px 0;">Sin contactos externos configurados</div>';
+        return `
+          <div style="border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--bg2);">
+            <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:4px;">👤 ${_esc(u.label)}</div>
+            ${extHtml}
+          </div>`;
+      }).join('');
+    } catch { res.innerHTML = '<div style="color:var(--red);font-size:.78rem;">Error de conexión</div>'; }
+  }, 350);
+}
+
 // ═══════════ Arranque ═══════════
 if (ES_SISTEMA) {
   admCargarEmpresas();
-  if (PERM.emergencia) init(''); // carga todos los contactos de todas las empresas
+  // Directorio vacío hasta seleccionar empresa — init sin empresa no carga contactos
+  if (PERM.emergencia) {
+    // Solo cargar paises e historial global; directorio espera empresa
+    fetch(`/servicios/boton_panico/paises?_t=${Date.now()}`)
+      .then(r=>r.json()).then(d=>{ _paises = d.ok?(d.data||[]):[{nombre_pais:'Colombia',prefijo:'+57',bandera:'🇨🇴'}]; });
+    fetch(`/servicios/boton_panico/eventos?_t=${Date.now()}`)
+      .then(r=>r.json()).then(d=>{ if(d.ok) renderHistorial(d.data||[]); });
+  }
 } else {
   // Usuario normal: empresa fija de sesión
   _admEmpresaId = MI_EMPRESA;
