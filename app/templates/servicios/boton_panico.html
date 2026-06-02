@@ -394,13 +394,7 @@ body { background:var(--bg); color:var(--text); }
 
         <!-- Col izquierda: botón + historial -->
         <div style="display:flex;flex-direction:column;gap:18px;">
-          {% if es_sistema %}
-          <div id="emergencia-sin-empresa" style="padding:40px;text-align:center;color:var(--muted);">
-            <div style="font-size:2.5rem;opacity:.4;margin-bottom:12px;">🏢</div>
-            <p style="font-size:.9rem;">Selecciona una empresa en el toolbar<br>para activar el botón de pánico.</p>
-          </div>
-          {% endif %}
-          <div class="panic-panel" id="panic-panel-main" {% if es_sistema %}style="display:none;"{% endif %}>
+          <div class="panic-panel" id="panic-panel-main">
             <div class="panic-status listo" id="panicStatus">● LISTO</div>
             <div class="panic-btn-wrap">
               <svg class="panic-ring" viewBox="0 0 210 210">
@@ -633,12 +627,15 @@ function toast(msg, isError=false) {
 async function init(empresaId) {
   const ts  = Date.now();
   const eid = empresaId || MI_EMPRESA;
-  const eq  = eid ? `&empresa_id=${eid}` : '';
+  // Superadmin sin empresa: directorio y eventos sin filtro (trae todo)
+  // Config del residente solo aplica cuando hay empresa seleccionada
+  const eqDir  = (ES_SISTEMA && !eid) ? '' : (eid ? `&empresa_id=${eid}` : '');
+  const eqCfg  = eid ? `&empresa_id=${eid}` : '';
   const [rP, rDir, rCfg, rHist] = await Promise.all([
     fetch(`/servicios/boton_panico/paises?_t=${ts}`),
-    fetch(`/servicios/boton_panico/directorio?_t=${ts}${eq}`),
-    fetch(`/servicios/boton_panico/config?_t=${ts}${eq}`),
-    fetch(`/servicios/boton_panico/eventos?_t=${ts}${eq}`),
+    fetch(`/servicios/boton_panico/directorio?_t=${ts}${eqDir}`),
+    eid ? fetch(`/servicios/boton_panico/config?_t=${ts}${eqCfg}`) : Promise.resolve({json:()=>({ok:false,data:{}})}),
+    fetch(`/servicios/boton_panico/eventos?_t=${ts}${eqDir}`),
   ]);
   const [dP, dDir, dCfg, dHist] = await Promise.all([rP.json(), rDir.json(), rCfg.json(), rHist.json()]);
 
@@ -756,7 +753,30 @@ function renderDirectorio(){
     list.innerHTML = `<div class="empty-state">No hay contactos vinculados.<br><span style="font-size:.7rem;">Actívalos en el Directorio de Contactos.</span></div>`;
     return;
   }
-  list.innerHTML = _directorio.map((c,i) => `
+
+  // Superadmin: agrupar por empresa
+  if (ES_SISTEMA) {
+    const grupos = {};
+    _directorio.forEach((c, i) => {
+      const emp = c.empresa_nombre || 'Sin empresa';
+      if (!grupos[emp]) grupos[emp] = [];
+      grupos[emp].push({c, i});
+    });
+    list.innerHTML = Object.entries(grupos).map(([emp, items]) => `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--accent);padding:4px 0 8px;border-bottom:1px solid var(--border);margin-bottom:8px;">
+          🏢 ${_esc(emp)}
+        </div>
+        ${items.map(({c, i}) => _renderDirItem(c, i)).join('')}
+      </div>`).join('');
+    return;
+  }
+
+  list.innerHTML = _directorio.map((c, i) => _renderDirItem(c, i)).join('');
+}
+
+function _renderDirItem(c, i){
+  return `
     <div class="dir-item">
       <div class="dir-avatar">👤</div>
       <div class="dir-info">
@@ -777,7 +797,7 @@ function renderDirectorio(){
           <span class="toggle-lbl">WHATSAPP</span>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
 }
 
 function _mostrarLoading(){
@@ -849,6 +869,16 @@ function animarAnillo(){
 }
 async function dispararPanico(){
   _holding=false; cancelAnimationFrame(_animFrame);
+  // Superadmin debe tener empresa seleccionada para disparar
+  if (ES_SISTEMA && !_admEmpresaId) {
+    ringFill.style.strokeDashoffset=CIRCUM;
+    panicBtn.classList.remove('holding'); panicBtn.classList.add('pulsing');
+    btnLabel.style.display=''; btnCount.style.display='none';
+    btnIcon.textContent='🚨'; setStatus('listo','● LISTO');
+    document.getElementById('panicHint').innerHTML='<strong style="color:var(--red);">Selecciona una empresa en el toolbar primero</strong>';
+    setTimeout(()=>{ document.getElementById('panicHint').innerHTML='Mantén presionado <strong>3 segundos</strong><br>para activar la alerta'; },3000);
+    return;
+  }
   navigator.vibrate && navigator.vibrate([100,50,100,50,200]);
   ringFill.style.strokeDashoffset=0; panicBtn.disabled=true;
   setStatus('enviando','● ENVIANDO…');
@@ -906,7 +936,15 @@ function renderHistorial(eventos){
   list.innerHTML = eventos.map(e => {
     const r=e.resultado||{};
     const total=(r.externos||[]).length+(r.directorio||[]).length;
-    return `<div class="hist-item"><div class="hist-dot"></div><div><div style="font-weight:600;font-size:.82rem;">Pánico activado</div><div style="font-size:.7rem;color:var(--muted);">${total} contacto(s) notificado(s)</div></div><span class="hist-fecha">${_fmtFecha(e.activado_en)}</span></div>`;
+    const quien = e.nombre_residente ? `<span style="font-size:.7rem;color:var(--accent);">${_esc(e.nombre_residente)}</span>` : '';
+    return `<div class="hist-item">
+      <div class="hist-dot"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:.82rem;">Pánico activado ${quien}</div>
+        <div style="font-size:.7rem;color:var(--muted);">${total} contacto(s) notificado(s)</div>
+      </div>
+      <span class="hist-fecha">${_fmtFecha(e.activado_en)}</span>
+    </div>`;
   }).join('');
 }
 async function recargarHistorial(){
@@ -947,11 +985,6 @@ async function admSelEmpresa(eid) {
   const empty = document.getElementById('adm-empty-sel');
   if (!eid) { if(panel) panel.style.display='none'; if(empty) empty.style.display='flex'; return; }
   if(panel) panel.style.display='block'; if(empty) empty.style.display='none';
-  // Mostrar panel emergencia y ocultar aviso "selecciona empresa"
-  const sinEmp = document.getElementById('emergencia-sin-empresa');
-  const panelMain = document.getElementById('panic-panel-main');
-  if (sinEmp) sinEmp.style.display = 'none';
-  if (panelMain) panelMain.style.display = '';
   // Recargar config/log Y pestaña emergencia con la empresa seleccionada
   const tasks = [admCargarMensajes(), admCargarContactos()];
   if (PERM.emergencia) tasks.push(init(eid));
@@ -1073,8 +1106,8 @@ async function admBuscarLog() {
 
 // ═══════════ Arranque ═══════════
 if (ES_SISTEMA) {
-  // Superadmin: cargar lista de empresas; init() se dispara al seleccionar empresa
   admCargarEmpresas();
+  if (PERM.emergencia) init(''); // carga todos los contactos de todas las empresas
 } else {
   // Usuario normal: empresa fija de sesión
   _admEmpresaId = MI_EMPRESA;

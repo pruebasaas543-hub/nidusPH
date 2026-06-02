@@ -129,19 +129,36 @@ def guardar_config():
 @panico_bp.route("/directorio", methods=["GET"])
 @requiere_login
 def directorio_panico():
-    eid = _eid_efectivo()
-    if not eid:
-        return err("No hay empresa en sesión", 400)
     try:
-        contactos = list(
-            db["directorio_contactos"].find(
-                {
-                    "empresa_id":                   ObjectId(eid),
-                    "vinculado_al_boton_de_panico": True,
-                },
-                {"nombre": 1, "cargo_titulo": 1, "bloque": 1, "telefonos": 1},
-            ).sort("nombre", 1)
-        )
+        if _es_sistema():
+            # Superadmin: todos los contactos de todas las empresas con su nombre de empresa
+            pipeline = [
+                {"$match": {"vinculado_al_boton_de_panico": True, "activo": True}},
+                {"$lookup": {
+                    "from": "empresas",
+                    "localField": "empresa_id",
+                    "foreignField": "_id",
+                    "as": "_emp",
+                }},
+                {"$unwind": {"path": "$_emp", "preserveNullAndEmptyArrays": True}},
+                {"$project": {
+                    "nombre": 1, "cargo_titulo": 1, "bloque": 1,
+                    "telefonos": 1, "empresa_id": 1,
+                    "empresa_nombre": {"$ifNull": ["$_emp.razon_social", "Sin nombre"]},
+                }},
+                {"$sort": {"empresa_nombre": 1, "nombre": 1}},
+            ]
+            contactos = list(db["directorio_contactos"].aggregate(pipeline))
+        else:
+            eid = _eid_efectivo()
+            if not eid:
+                return err("No hay empresa en sesión", 400)
+            contactos = list(
+                db["directorio_contactos"].find(
+                    {"empresa_id": ObjectId(eid), "vinculado_al_boton_de_panico": True},
+                    {"nombre": 1, "cargo_titulo": 1, "bloque": 1, "telefonos": 1},
+                ).sort("nombre", 1)
+            )
         return ok(serializar(contactos))
     except Exception as e:
         return err(str(e))
@@ -188,6 +205,19 @@ def trigger():
 @panico_bp.route("/eventos", methods=["GET"])
 @requiere_login
 def listar_eventos():
+    if _es_sistema():
+        # Superadmin: últimas activaciones de todas las empresas
+        try:
+            eventos = list(
+                db["panic_events"]
+                .find({}, {"activado_en": 1, "empresa_id": 1, "residente_id": 1,
+                           "nombre_residente": 1, "resultado": 1})
+                .sort("activado_en", -1)
+                .limit(20)
+            )
+            return ok(serializar(eventos))
+        except Exception as e:
+            return err(str(e))
     eid = _eid_efectivo()
     if not eid:
         return err("No hay empresa en sesión", 400)
