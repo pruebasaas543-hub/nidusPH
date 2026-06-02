@@ -355,7 +355,11 @@ def admin_log():
     eid         = _empresa_admin()
     fecha_ini   = request.args.get("fecha_ini", "").strip()
     fecha_fin   = request.args.get("fecha_fin", "").strip()
-    limite      = min(int(request.args.get("limite", 50)), 200)
+    nombre_res  = request.args.get("nombre_res", "").strip()
+    canal_fil   = request.args.get("canal", "").strip().lower()
+    estado_fil  = request.args.get("estado", "").strip().lower()
+    pagina      = max(1, int(request.args.get("pagina", 1)))
+    por_pagina  = 30
 
     if not eid:
         return err("empresa_id requerido", 400)
@@ -369,16 +373,58 @@ def admin_log():
     except ValueError:
         return err("Formato de fecha inválido. Use YYYY-MM-DD", 400)
 
+    if nombre_res:
+        filtro["nombre_residente"] = {"$regex": nombre_res, "$options": "i"}
+
+    # Filtros de canal y estado requieren inspeccionar el resultado
     try:
-        eventos = list(
-            db["panic_events"]
-            .find(filtro)
-            .sort("activado_en", -1)
-            .limit(limite)
-        )
-        return ok(serializar(eventos))
+        cursor = db["panic_events"].find(filtro).sort("activado_en", -1)
+        todos  = list(cursor)
+
+        # Post-filtro por canal / estado (están anidados en resultado.externos/directorio)
+        if canal_fil or estado_fil:
+            filtrados = []
+            for ev in todos:
+                res = ev.get("resultado", {})
+                canales_ev = [*res.get("externos", []), *res.get("directorio", [])]
+                match = False
+                for c in canales_ev:
+                    for tipo, info in (c.get("canales") or {}).items():
+                        ok_canal  = (not canal_fil)  or (tipo == canal_fil)
+                        ok_estado = (not estado_fil) or _normalizar_estado(info.get("estado","")) == estado_fil
+                        if ok_canal and ok_estado:
+                            match = True
+                            break
+                    if match:
+                        break
+                if match:
+                    filtrados.append(ev)
+            todos = filtrados
+
+        total   = len(todos)
+        skip    = (pagina - 1) * por_pagina
+        pagina_data = todos[skip: skip + por_pagina]
+        from flask import jsonify
+        return jsonify({
+            "ok": True,
+            "data": serializar(pagina_data),
+            "total": total,
+            "pagina": pagina,
+            "por_pagina": por_pagina,
+            "total_paginas": max(1, -(-total // por_pagina)),
+        })
     except Exception as e:
         return err(str(e))
+
+
+def _normalizar_estado(estado: str) -> str:
+    """Normaliza estados de Twilio a categorías simples."""
+    e = (estado or "").lower()
+    if e in ("enviado", "sent", "delivered", "initiated", "iniciado", "completed"):
+        return "ok"
+    if e in ("mock",):
+        return "mock"
+    return "error"
 
 
 @panico_bp.route("/admin/buscar-usuario", methods=["GET"])

@@ -545,28 +545,73 @@ body { background:var(--bg); color:var(--text); }
     <div id="bp-pane-log" class="bp-pane">
       <div class="a-content">
         <div class="a-card">
-          <div class="a-card-title">📋 Historial de activaciones</div>
-          <div class="a-log-filters">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div class="a-card-title" style="margin:0;">📋 Historial de activaciones</div>
+            <button class="a-btn a-btn-pri" onclick="logExportarCSV()" id="btnExportCSV" style="display:none;">⬇️ Exportar CSV</button>
+          </div>
+
+          <!-- Filtros -->
+          <div class="a-log-filters" style="flex-wrap:wrap;gap:10px;">
             {% if es_sistema %}
-            <label>🏢 Empresa
-              <select id="log-empresa" style="min-width:240px;">
+            <label style="flex:1;min-width:200px;">🏢 Empresa
+              <select id="log-empresa" style="width:100%;">
                 <option value="">— Selecciona —</option>
               </select>
             </label>
             {% endif %}
             <label>📅 Desde<input type="date" id="log-desde"></label>
             <label>📅 Hasta<input type="date" id="log-hasta"></label>
-            <button class="a-btn a-btn-pri" onclick="admBuscarLog()" style="align-self:flex-end;">🔍 Buscar</button>
+            <label>👤 Residente
+              <input type="text" id="log-nombre" placeholder="Nombre…"
+                style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:var(--text);">
+            </label>
+            <label>📡 Canal
+              <select id="log-canal" style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:var(--text);">
+                <option value="">Todos</option>
+                <option value="sms">📱 SMS</option>
+                <option value="whatsapp">💬 WhatsApp</option>
+                <option value="llamada">☎️ Llamada</option>
+              </select>
+            </label>
+            <label>✅ Estado
+              <select id="log-estado" style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:var(--text);">
+                <option value="">Todos</option>
+                <option value="ok">✅ Entregado / Contestó</option>
+                <option value="error">❌ Error / No contestó</option>
+                <option value="mock">🟡 Mock</option>
+              </select>
+            </label>
+            <button class="a-btn a-btn-pri" onclick="admBuscarLog(1)" style="align-self:flex-end;">🔍 Buscar</button>
           </div>
-          <div id="adm-log-contenedor">
+
+          <!-- Tabla -->
+          <div id="adm-log-contenedor" style="margin-top:18px;">
             <div style="padding:40px;text-align:center;color:var(--muted);font-size:.85rem;">
-              {% if es_sistema %}Selecciona una empresa y haz clic en Buscar.{% else %}Haz clic en Buscar para ver las activaciones.{% endif %}
+              {% if es_sistema %}Selecciona una empresa para ver el historial.{% else %}Cargando…{% endif %}
+            </div>
+          </div>
+
+          <!-- Paginación -->
+          <div id="log-paginacion" style="display:none;margin-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <span id="log-pag-info" style="font-size:.78rem;color:var(--muted);"></span>
+            <div style="display:flex;gap:8px;">
+              <button class="a-btn a-btn-del" id="log-pag-prev" onclick="admBuscarLog(_logPaginaActual-1)">&#8592; Anterior</button>
+              <button class="a-btn a-btn-del" id="log-pag-next" onclick="admBuscarLog(_logPaginaActual+1)">Siguiente &#8594;</button>
             </div>
           </div>
         </div>
       </div>
     </div>
     {% endif %}
+
+    <!-- Modal popup estado -->
+    <div id="log-estado-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+      <div style="background:var(--bg2);border-radius:16px;padding:28px 28px 22px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.3);position:relative;">
+        <button onclick="document.getElementById('log-estado-modal').style.display='none'"
+          style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);">✕</button>
+        <div id="log-estado-modal-body"></div>
+      </div>
+    </div>
 
   </div><!-- /bp-content -->
 </div><!-- /bp-page -->
@@ -640,7 +685,20 @@ function bpTab(id, btn) {
   document.querySelectorAll('.bp-pane').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('bp-pane-' + id).classList.add('active');
-  if (id === 'log' && !ES_SISTEMA && !_logCargado) { _logCargado = true; admBuscarLog(); }
+  if (id === 'log' && !_logCargado) {
+    _logCargado = true;
+    // Fechas por defecto: hoy y hace 3 días
+    const hoy  = new Date();
+    const hace3 = new Date(hoy); hace3.setDate(hoy.getDate() - 3);
+    const fmt = d => d.toISOString().slice(0,10);
+    const dDesde = document.getElementById('log-desde');
+    const dHasta = document.getElementById('log-hasta');
+    if (dDesde && !dDesde.value) dDesde.value = fmt(hace3);
+    if (dHasta && !dHasta.value) dHasta.value = fmt(hoy);
+    // Si ya hay empresa, cargar directo
+    const eid = ES_SISTEMA ? (document.getElementById('log-empresa')?.value||'') : MI_EMPRESA;
+    if (eid) admBuscarLog(1);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1023,6 +1081,13 @@ async function admSelEmpresa(eid) {
   const resBuscar   = document.getElementById('ext-buscar-resultados');
   if (inputBuscar) inputBuscar.value = '';
   if (resBuscar)   resBuscar.innerHTML = '';
+  // Si la pestaña log está activa, recargar con nueva empresa
+  const logPane = document.getElementById('bp-pane-log');
+  if (logPane && logPane.classList.contains('active')) {
+    _logCargado = false; admBuscarLog(1);
+  } else {
+    _logCargado = false; // forzar recarga cuando se abra
+  }
 
   // Recargar config/log Y directorio de la empresa seleccionada
   const tasks = [admCargarMensajes(), admCargarContactos()];
@@ -1104,43 +1169,177 @@ async function admCargarContactos() {
     }).join('');
   } catch { grid.innerHTML = '<p style="color:var(--red);font-size:.82rem;">Error al cargar contactos.</p>'; }
 }
-async function admBuscarLog() {
-  const eid   = ES_SISTEMA ? (document.getElementById('log-empresa')?.value || '') : MI_EMPRESA;
-  const desde = document.getElementById('log-desde').value;
-  const hasta = document.getElementById('log-hasta').value;
-  const cont  = document.getElementById('adm-log-contenedor');
+// ── Log: estado global ──
+let _logPaginaActual = 1;
+let _logDatosCSV     = [];
+
+const _ESTADO_INFO = {
+  // SMS / WhatsApp
+  enviado:     { label: 'Enviado',       cls: 'a-chip-ok',   icon: '📤', desc: 'El mensaje fue aceptado por el proveedor y está en camino.' },
+  sent:        { label: 'Enviado',       cls: 'a-chip-ok',   icon: '📤', desc: 'El mensaje fue aceptado por el proveedor y está en camino.' },
+  delivered:   { label: 'Entregado',     cls: 'a-chip-ok',   icon: '✅', desc: 'El mensaje llegó al dispositivo del destinatario.' },
+  read:        { label: 'Leído',         cls: 'a-chip-ok',   icon: '👁', desc: 'El destinatario abrió y leyó el mensaje.' },
+  initiated:   { label: 'Iniciado',      cls: 'a-chip-ok',   icon: '📞', desc: 'La llamada fue iniciada correctamente.' },
+  iniciado:    { label: 'Iniciado',      cls: 'a-chip-ok',   icon: '📞', desc: 'La llamada fue iniciada correctamente.' },
+  completed:   { label: 'Contestó',      cls: 'a-chip-ok',   icon: '✅', desc: 'La llamada fue contestada por el destinatario.' },
+  mock:        { label: 'Mock',          cls: 'a-chip-mock',  icon: '🟡', desc: 'Modo de prueba — no se envió realmente.' },
+  'no-answer': { label: 'No contestó',   cls: 'a-chip-err',  icon: '📵', desc: 'La llamada no fue contestada.' },
+  busy:        { label: 'Ocupado',       cls: 'a-chip-err',  icon: '🔴', desc: 'El destinatario estaba en otra llamada.' },
+  canceled:    { label: 'Cancelada',     cls: 'a-chip-err',  icon: '🚫', desc: 'La llamada fue cancelada antes de conectar.' },
+  failed:      { label: 'Fallido',       cls: 'a-chip-err',  icon: '❌', desc: 'Error técnico al intentar el envío o llamada.' },
+  undelivered: { label: 'No entregado',  cls: 'a-chip-err',  icon: '❌', desc: 'El mensaje no pudo ser entregado al destinatario.' },
+  error:       { label: 'Error',         cls: 'a-chip-err',  icon: '❌', desc: 'Ocurrió un error durante el envío.' },
+};
+function _estadoInfo(e) {
+  return _ESTADO_INFO[(e||'').toLowerCase()] || { label: e||'—', cls:'a-chip-err', icon:'❓', desc: `Estado: ${e||'desconocido'}` };
+}
+
+function logMostrarPopup(json) {
+  const data = JSON.parse(decodeURIComponent(json));
+  const ei   = _estadoInfo(data.estado);
+  const sidHtml = data.sid ? `<div style="font-size:.72rem;color:var(--muted);margin-top:6px;">SID Twilio: <code style="font-size:.72rem;">${data.sid}</code></div>` : '';
+  const detHtml = data.detalle ? `<div style="margin-top:8px;padding:8px 12px;background:color-mix(in srgb,var(--red) 8%,transparent);border-radius:8px;font-size:.78rem;color:var(--red);">⚠️ ${_esc(data.detalle)}</div>` : '';
+  document.getElementById('log-estado-modal-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="font-size:2rem;">${ei.icon}</div>
+      <div>
+        <div style="font-size:1rem;font-weight:700;color:var(--text);">${ei.label}</div>
+        <div style="font-size:.75rem;color:var(--muted);">${data.canal?.toUpperCase()||''} · ${_esc(data.receptor||'')}</div>
+      </div>
+    </div>
+    <div style="font-size:.84rem;color:var(--text);line-height:1.6;padding:12px 14px;background:var(--bg3);border-radius:10px;">${ei.desc}</div>
+    ${sidHtml}${detHtml}
+    <div style="margin-top:14px;font-size:.75rem;color:var(--muted);">Residente: <strong>${_esc(data.residente||'')}</strong> · ${_esc(data.fecha||'')}</div>`;
+  document.getElementById('log-estado-modal').style.display = 'flex';
+}
+
+async function admBuscarLog(pagina) {
+  pagina = pagina || 1;
+  if (pagina < 1) return;
+  const eid    = ES_SISTEMA ? (document.getElementById('log-empresa')?.value || '') : MI_EMPRESA;
+  const desde  = document.getElementById('log-desde')?.value || '';
+  const hasta  = document.getElementById('log-hasta')?.value || '';
+  const nombre = document.getElementById('log-nombre')?.value?.trim() || '';
+  const canal  = document.getElementById('log-canal')?.value || '';
+  const estado = document.getElementById('log-estado')?.value || '';
+  const cont   = document.getElementById('adm-log-contenedor');
+  const pagDiv = document.getElementById('log-paginacion');
   if (!eid) { admToast('Selecciona una empresa', true); return; }
-  cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem;">Buscando...</div>';
-  let url = `/servicios/boton_panico/admin/log?empresa_id=${eid}`;
-  if (desde) url += `&fecha_ini=${desde}`;
-  if (hasta) url += `&fecha_fin=${hasta}T23:59:59`;
+
+  _logPaginaActual = pagina;
+  cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem;">Buscando…</div>';
+  if (pagDiv) pagDiv.style.display = 'none';
+
+  let url = `/servicios/boton_panico/admin/log?empresa_id=${eid}&pagina=${pagina}`;
+  if (desde)  url += `&fecha_ini=${desde}`;
+  if (hasta)  url += `&fecha_fin=${hasta}T23:59:59`;
+  if (nombre) url += `&nombre_res=${encodeURIComponent(nombre)}`;
+  if (canal)  url += `&canal=${canal}`;
+  if (estado) url += `&estado=${estado}`;
+
   try {
     const r = await fetch(url);
     const j = await r.json();
-    if (!j.ok) { cont.innerHTML = `<p style="color:var(--red);">Error: ${j.error}</p>`; return; }
+    if (!j.ok) { cont.innerHTML = `<div style="color:var(--red);padding:20px;">Error: ${j.error}</div>`; return; }
+
     const eventos = j.data || [];
+    const total   = j.total || 0;
+    const totPag  = j.total_paginas || 1;
+
+    // Mostrar/ocultar botón CSV
+    const btnCSV = document.getElementById('btnExportCSV');
+    if (btnCSV) btnCSV.style.display = total > 0 ? '' : 'none';
+
     if (!eventos.length) {
       cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);"><div style="font-size:2.5rem;opacity:.3;margin-bottom:10px;">📋</div><p style="font-size:.85rem;">Sin activaciones en ese período.</p></div>';
       return;
     }
+
+    // Guardar para CSV
+    _logDatosCSV = eventos;
+
+    // Construir tabla
     const filas = eventos.flatMap(ev => {
-      const fecha = ev.activado_en ? new Date(ev.activado_en).toLocaleString('es-CO') : '—';
-      const res   = ev.resultado || {};
+      const fecha   = ev.activado_en ? new Date(ev.activado_en).toLocaleString('es-CO') : '—';
+      const res     = ev.resultado || {};
       const canales = [...(res.externos||[]), ...(res.directorio||[])];
-      if (!canales.length) return [`<tr><td>${fecha}</td><td><b>${ev.nombre_residente||ev.residente_id||'—'}</b></td><td colspan="4" style="color:var(--muted);">Sin destinatarios</td></tr>`];
+      if (!canales.length) return [`<tr>
+        <td style="white-space:nowrap;">${fecha}</td>
+        <td><b>${_esc(ev.nombre_residente||ev.residente_id||'—')}</b></td>
+        <td colspan="4" style="color:var(--muted);">Sin destinatarios</td>
+        <td>—</td></tr>`];
       return canales.flatMap(c =>
         Object.entries(c.canales||{}).map(([tipo, info]) => {
-          const icon   = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
-          const estado = info.estado||'—';
-          const cls    = (estado==='enviado'||estado==='iniciado'||estado==='delivered')?'a-chip-ok':estado==='mock'?'a-chip-mock':'a-chip-err';
-          const sid    = info.sid ? `<br><span style="font-size:.62rem;color:var(--muted);">…${info.sid.slice(-8)}</span>` : '';
-          const det    = info.detalle ? `<br><span style="font-size:.65rem;color:var(--red);">${info.detalle}</span>` : '';
-          return `<tr><td style="white-space:nowrap;">${fecha}</td><td><b>${ev.nombre_residente||ev.residente_id||'—'}</b></td><td>${icon} ${tipo.toUpperCase()}</td><td>${c.nombre||'—'}</td><td style="color:var(--accent);">${c.numero||'—'}</td><td><span class="a-chip ${cls}">${estado}</span>${sid}${det}</td></tr>`;
+          const icon = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
+          const ei   = _estadoInfo(info.estado);
+          const popData = encodeURIComponent(JSON.stringify({
+            estado: info.estado, canal: tipo, receptor: c.nombre||'', sid: info.sid||'',
+            detalle: info.detalle||'', residente: ev.nombre_residente||ev.residente_id||'', fecha,
+          }));
+          return `<tr>
+            <td style="white-space:nowrap;font-size:.78rem;">${fecha}</td>
+            <td><b>${_esc(ev.nombre_residente||ev.residente_id||'—')}</b></td>
+            <td>${icon} ${tipo.toUpperCase()}</td>
+            <td>${_esc(c.nombre||'—')}</td>
+            <td style="color:var(--accent);">${_esc(c.numero||'—')}</td>
+            <td><span class="a-chip ${ei.cls}">${ei.icon} ${ei.label}</span></td>
+            <td>
+              <button onclick="logMostrarPopup('${popData}')"
+                title="Ver detalle"
+                style="background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);border-radius:99px;padding:3px 10px;cursor:pointer;font-size:.78rem;color:var(--accent);transition:all .2s;"
+                onmouseover="this.style.background='color-mix(in srgb,var(--accent) 20%,transparent)'"
+                onmouseout="this.style.background='color-mix(in srgb,var(--accent) 10%,transparent)'">💬 Ver</button>
+            </td>
+          </tr>`;
         })
       );
     }).join('');
-    cont.innerHTML = `<div style="overflow-x:auto;"><table class="a-log-table"><thead><tr><th>Fecha / Hora</th><th>Residente</th><th>Canal</th><th>Receptor</th><th>Número</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table></div>`;
-  } catch { cont.innerHTML = '<p style="color:var(--red);">Error de conexión.</p>'; }
+
+    cont.innerHTML = `<div style="overflow-x:auto;">
+      <table class="a-log-table">
+        <thead><tr>
+          <th>Fecha / Hora</th><th>Residente</th><th>Canal</th>
+          <th>Receptor</th><th>Número</th><th>Estado</th><th>Detalle</th>
+        </tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>`;
+
+    // Paginación
+    if (pagDiv && totPag > 1) {
+      pagDiv.style.display = 'flex';
+      document.getElementById('log-pag-info').textContent = `Página ${pagina} de ${totPag} · ${total} activaciones`;
+      document.getElementById('log-pag-prev').disabled = pagina <= 1;
+      document.getElementById('log-pag-next').disabled = pagina >= totPag;
+    }
+
+  } catch { cont.innerHTML = '<div style="color:var(--red);padding:20px;">Error de conexión.</div>'; }
+}
+
+function logExportarCSV() {
+  if (!_logDatosCSV.length) return;
+  const filas = [['Fecha','Residente','Canal','Receptor','Número','Estado','SID']];
+  _logDatosCSV.forEach(ev => {
+    const fecha = ev.activado_en ? new Date(ev.activado_en).toLocaleString('es-CO') : '—';
+    const res   = ev.resultado || {};
+    const canales = [...(res.externos||[]), ...(res.directorio||[])];
+    if (!canales.length) {
+      filas.push([fecha, ev.nombre_residente||ev.residente_id||'—', '—','—','—','Sin destinatarios','']);
+    } else {
+      canales.forEach(c => {
+        Object.entries(c.canales||{}).forEach(([tipo, info]) => {
+          filas.push([fecha, ev.nombre_residente||ev.residente_id||'—', tipo.toUpperCase(),
+            c.nombre||'—', c.numero||'—', info.estado||'—', info.sid||'']);
+        });
+      });
+    }
+  });
+  const csv  = filas.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `log_panico_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 // ── Cargar directorio para empresa específica (superadmin) ──
