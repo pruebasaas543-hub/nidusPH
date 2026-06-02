@@ -449,6 +449,10 @@
             </div>
         </div>
 
+        <div class="sidebar-section-title" style="margin-top:8px;">Módulos</div>
+        <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()"><span class="nav-icon">🚨</span> Botón de Pánico</a>
+        <a class="nav-item" href="/servicios/boton_panico/" target="_blank"><span class="nav-icon">⚡</span> Activar Pánico</a>
+
         <div id="servicios-nav-body" style="display:none;"></div>
     </div>
 
@@ -1803,13 +1807,18 @@
                     &#8592; Volver a Inicio
                 </button>
                 <div style="width:1px;height:32px;background:rgba(4,34,67,.12);flex-shrink:0;"></div>
-                <div style="display:flex;align-items:center;gap:12px;">
+                <div style="display:flex;align-items:center;gap:12px;flex:1;">
                     <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#7b0d1e,#e53e3e);display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 4px 12px rgba(229,62,62,.3);flex-shrink:0;">🚨</div>
                     <div>
                         <div style="font-size:1.05rem;font-weight:800;color:#042243;line-height:1.2;">Botón de Pánico</div>
                         <div style="font-size:.75rem;color:#8A9CC8;margin-top:2px;">Configuración y monitoreo del sistema de emergencias</div>
                     </div>
                 </div>
+                <a href="/servicios/boton_panico/" target="_blank"
+                   style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:12px;border:none;cursor:pointer;font-size:.84rem;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#7b0d1e,#e53e3e);color:#fff;box-shadow:0 4px 14px rgba(229,62,62,.35);transition:all .2s;flex-shrink:0;"
+                   onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+                    ⚡ Activar Botón de Pánico
+                </a>
             </div>
 
             <!-- Selector empresa -->
