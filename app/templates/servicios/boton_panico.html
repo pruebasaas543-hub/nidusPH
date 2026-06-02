@@ -787,9 +787,12 @@ function renderDirectorio(){
 }
 
 function _renderDirItem(c, i){
+  const avatarHtml = c.tiene_foto
+    ? `<div class="dir-avatar" style="padding:0;overflow:hidden;"><img src="/servicios/directorio/contactos/${c._id}/foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML='👤'"></div>`
+    : `<div class="dir-avatar">👤</div>`;
   return `
     <div class="dir-item">
-      <div class="dir-avatar">👤</div>
+      ${avatarHtml}
       <div class="dir-info">
         <div class="dir-nombre">${_esc(c.nombre)}</div>
         <div class="dir-cargo">${_esc(c.cargo_titulo||c.bloque||'')}</div>

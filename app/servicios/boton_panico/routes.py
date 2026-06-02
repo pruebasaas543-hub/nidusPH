@@ -131,7 +131,6 @@ def guardar_config():
 def directorio_panico():
     try:
         if _es_sistema():
-            # Superadmin: todos los contactos de todas las empresas con su nombre de empresa
             pipeline = [
                 {"$match": {"vinculado_al_boton_de_panico": True, "activo": True}},
                 {"$lookup": {
@@ -143,23 +142,29 @@ def directorio_panico():
                 {"$unwind": {"path": "$_emp", "preserveNullAndEmptyArrays": True}},
                 {"$project": {
                     "nombre": 1, "cargo_titulo": 1, "bloque": 1,
-                    "telefonos": 1, "empresa_id": 1,
+                    "telefonos": 1, "empresa_id": 1, "foto_data": 1,
                     "empresa_nombre": {"$ifNull": ["$_emp.razon_social", "Sin nombre"]},
                 }},
                 {"$sort": {"empresa_nombre": 1, "nombre": 1}},
             ]
-            contactos = list(db["directorio_contactos"].aggregate(pipeline))
+            docs = list(db["directorio_contactos"].aggregate(pipeline))
         else:
             eid = _eid_efectivo()
             if not eid:
                 return err("No hay empresa en sesión", 400)
-            contactos = list(
+            docs = list(
                 db["directorio_contactos"].find(
                     {"empresa_id": ObjectId(eid), "vinculado_al_boton_de_panico": True},
-                    {"nombre": 1, "cargo_titulo": 1, "bloque": 1, "telefonos": 1},
+                    {"nombre": 1, "cargo_titulo": 1, "bloque": 1, "telefonos": 1, "foto_data": 1},
                 ).sort("nombre", 1)
             )
-        return ok(serializar(contactos))
+        resultado = []
+        for doc in docs:
+            d = serializar(doc)
+            d["tiene_foto"] = bool(doc.get("foto_data"))
+            d.pop("foto_data", None)
+            resultado.append(d)
+        return ok(resultado)
     except Exception as e:
         return err(str(e))
 
