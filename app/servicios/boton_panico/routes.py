@@ -727,3 +727,44 @@ def admin_migrar_contactos():
     if not exito:
         return err(count)
     return ok({"migrados": count})
+
+
+# ═══════════════════════════════════════════════════════════════
+# DEBUG: Ver contenido de user_panic_contacts
+# ═══════════════════════════════════════════════════════════════
+
+@panico_bp.route("/debug/contactos-bd", methods=["GET"])
+@requiere_login
+def debug_contactos_bd():
+    """[DEBUG] Ver qué hay en user_panic_contacts"""
+    try:
+        from bson import ObjectId
+        usuario_id = session.get("usuario_id")
+        empresa_id = session.get("empresa_id")
+
+        resultado = {
+            "usuario_id": usuario_id,
+            "empresa_id": empresa_id,
+            "mis_contactos": [],
+            "total_en_bd": 0,
+        }
+
+        # Mis contactos
+        if usuario_id and empresa_id:
+            mis = list(db["user_panic_contacts"].find({
+                "usuario_id": ObjectId(usuario_id),
+                "empresa_id": ObjectId(empresa_id)
+            }))
+            resultado["mis_contactos"] = serializar(mis)
+
+        # Total en toda la colección
+        total = db["user_panic_contacts"].count_documents({})
+        resultado["total_en_bd"] = total
+
+        # Mostrar todos (para debug)
+        todos = list(db["user_panic_contacts"].find({}))
+        resultado["todos_los_contactos"] = serializar(todos)
+
+        return ok(resultado)
+    except Exception as e:
+        return err(str(e))
