@@ -348,6 +348,73 @@ def admin_contactos():
         return err(str(e))
 
 
+_ESTADOS_PENDIENTES = {"enviado", "sent", "initiated", "iniciado", "queued", "ringing"}
+_ESTADOS_FINALES    = {"delivered", "read", "completed", "failed", "undelivered",
+                       "no-answer", "busy", "canceled", "mock", "error", "in-progress"}
+
+
+@panico_bp.route("/admin/refresh-lote", methods=["POST"])
+@requiere_login
+@_requiere_permiso("log")
+def admin_refresh_lote():
+    """Refresca estados desde Twilio para una lista de evento_ids."""
+    datos      = request.get_json(silent=True) or {}
+    evento_ids = datos.get("evento_ids", [])
+    solo_pendientes = datos.get("solo_pendientes", True)
+
+    if not evento_ids:
+        return err("evento_ids requerido", 400)
+
+    try:
+        from app.servicios.boton_panico.controller import _twilio_client
+        cliente = _twilio_client()
+        if not cliente:
+            return err("Sin credenciales Twilio", 400)
+
+        actualizados = 0
+        for eid_str in evento_ids[:30]:  # máx 30 por lote
+            try:
+                ev = db["panic_events"].find_one({"_id": ObjectId(eid_str)})
+                if not ev:
+                    continue
+                resultado  = ev.get("resultado", {})
+                cambio     = False
+                for grupo in ("externos", "directorio"):
+                    for contacto in resultado.get(grupo, []):
+                        for tipo, info in list((contacto.get("canales") or {}).items()):
+                            sid = info.get("sid", "")
+                            estado_actual = (info.get("estado") or "").lower()
+                            if not sid:
+                                continue
+                            if solo_pendientes and estado_actual not in _ESTADOS_PENDIENTES:
+                                continue
+                            try:
+                                if tipo in ("sms", "whatsapp"):
+                                    nuevo = cliente.messages(sid).fetch().status
+                                else:
+                                    nuevo = cliente.calls(sid).fetch().status
+                                if nuevo and nuevo != info.get("estado"):
+                                    info["estado"] = nuevo
+                                    info["estado_actualizado"] = datetime.utcnow().isoformat()
+                                    cambio = True
+                            except Exception:
+                                pass
+                if cambio:
+                    db["panic_events"].update_one(
+                        {"_id": ev["_id"]},
+                        {"$set": {"resultado": resultado,
+                                  "estados_actualizados_en": datetime.utcnow()}},
+                    )
+                    actualizados += 1
+            except Exception:
+                pass
+
+        from flask import jsonify as _j
+        return _j({"ok": True, "actualizados": actualizados})
+    except Exception as e:
+        return err(str(e))
+
+
 @panico_bp.route("/admin/log", methods=["GET"])
 @requiere_login
 @_requiere_permiso("log")
