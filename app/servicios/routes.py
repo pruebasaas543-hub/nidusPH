@@ -48,10 +48,8 @@ def panel_servicio(codigo):
         es_sistema = rol in nombres
         empresa_id = session.get("empresa_id", "")
         tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
-        # DEBUG: también considerar admin-like roles
-        if es_sistema or 'admin' in rol.lower() or 'super' in rol.lower():
+        if es_sistema:
             permisos = {"emergencia": True, "configuracion": True, "log": True}
-            es_sistema = True
         else:
             from app.servicios.permisos.model import PermisosRolModel
             permisos = PermisosRolModel.obtener_para_sesion(empresa_id, rol, "boton_panico")
