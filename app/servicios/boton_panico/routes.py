@@ -131,8 +131,12 @@ def guardar_config():
 def directorio_panico():
     try:
         if _es_sistema():
+            eid = _eid_efectivo()
+            match = {"vinculado_al_boton_de_panico": True, "activo": True}
+            if eid:
+                match["empresa_id"] = ObjectId(eid)
             pipeline = [
-                {"$match": {"vinculado_al_boton_de_panico": True, "activo": True}},
+                {"$match": match},
                 {"$lookup": {
                     "from": "empresas",
                     "localField": "empresa_id",
