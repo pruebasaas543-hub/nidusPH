@@ -449,9 +449,6 @@
             </div>
         </div>
 
-        <div class="sidebar-section-title" style="margin-top:8px;">Módulos</div>
-        <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas();_panicoTab(document.querySelector('[data-ptab=panico]'))"><span class="nav-icon">🚨</span> Botón de Pánico</a>
-
         <div id="servicios-nav-body" style="display:none;"></div>
     </div>
 
@@ -1831,24 +1828,24 @@
                 </div>
             </div>
 
-            <!-- Panel principal (oculto hasta seleccionar empresa) -->
+            <!-- Tabs siempre visibles -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
+                <button class="dir-tab-btn active" data-ptab="panico" onclick="_panicoTab(this)">🚨 Botón de Pánico</button>
+                <button class="dir-tab-btn" data-ptab="config" onclick="_panicoTab(this)">⚙️ Configuraciones</button>
+                <button class="dir-tab-btn" data-ptab="log" onclick="_panicoTab(this)">📋 Log de activaciones</button>
+            </div>
+
+            <!-- ── Pane Botón de Pánico ── -->
+            <div id="panico-pane-panico">
+                <iframe id="panico-modulo-frame"
+                        src="/servicios/boton_panico/"
+                        style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;"
+                        title="Botón de Pánico">
+                </iframe>
+            </div>
+
+            <!-- Panel de config/log (requiere empresa) -->
             <div id="panico-panel" style="display:none;">
-
-                <!-- Tabs -->
-                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
-                    <button class="dir-tab-btn active" data-ptab="panico" onclick="_panicoTab(this)">🚨 Botón de Pánico</button>
-                    <button class="dir-tab-btn" data-ptab="config" onclick="_panicoTab(this)">⚙️ Configuraciones</button>
-                    <button class="dir-tab-btn" data-ptab="log" onclick="_panicoTab(this)">📋 Log de activaciones</button>
-                </div>
-
-                <!-- ── Pane Botón de Pánico ── -->
-                <div id="panico-pane-panico" style="display:none;">
-                    <iframe id="panico-modulo-frame"
-                            src=""
-                            style="width:100%;height:680px;border:none;display:block;background:#EEF2FF;border-radius:12px;"
-                            title="Botón de Pánico">
-                    </iframe>
-                </div>
 
                 <!-- ── Pane Configuraciones ── -->
                 <div id="panico-pane-config" style="display:none;">
@@ -7170,9 +7167,13 @@ function _panicoTab(btn) {
     const tab = btn.dataset.ptab;
     document.querySelectorAll('[data-ptab]').forEach(b => b.classList.toggle('active', b === btn));
     document.getElementById('panico-pane-panico').style.display = tab === 'panico' ? 'block' : 'none';
-    document.getElementById('panico-pane-config').style.display = tab === 'config' ? 'block' : 'none';
-    document.getElementById('panico-pane-log').style.display    = tab === 'log'    ? 'block' : 'none';
-    if (tab === 'panico') _actualizarIframePanico();
+    // config y log viven dentro de panico-panel (requieren empresa)
+    const panelEmp = document.getElementById('panico-panel');
+    if (panelEmp) panelEmp.style.display = (tab !== 'panico') ? 'block' : 'none';
+    if (document.getElementById('panico-pane-config'))
+        document.getElementById('panico-pane-config').style.display = tab === 'config' ? 'block' : 'none';
+    if (document.getElementById('panico-pane-log'))
+        document.getElementById('panico-pane-log').style.display    = tab === 'log'    ? 'block' : 'none';
 }
 
 async function _panicoSeleccionarEmpresa(empresaId) {
