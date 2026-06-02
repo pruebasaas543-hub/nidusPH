@@ -1073,7 +1073,7 @@ async function admCargarEmpresas() {
     if (selL) selL.innerHTML = '<option value="">— Selecciona —</option>' + opts;
   } catch {}
 }
-async function admSelEmpresa(eid) {
+async function admSelEmpresa(eid, skipDirectorio) {
   _admEmpresaId = eid;
   const panel = document.getElementById('adm-config-panel');
   const empty = document.getElementById('adm-empty-sel');
@@ -1089,12 +1089,11 @@ async function admSelEmpresa(eid) {
   if (logPane && logPane.classList.contains('active')) {
     _logCargado = false; admBuscarLog(1);
   } else {
-    _logCargado = false; // forzar recarga cuando se abra
+    _logCargado = false;
   }
-
-  // Recargar config/log Y directorio de la empresa seleccionada
+  // Recargar config/log; directorio solo si no se indica skip
   const tasks = [admCargarMensajes(), admCargarContactos()];
-  if (PERM.emergencia) tasks.push(_cargarDirectorioEmpresa(eid));
+  if (PERM.emergencia && !skipDirectorio) tasks.push(_cargarDirectorioEmpresa(eid));
   await Promise.all(tasks);
 }
 function _admEid(){ return ES_SISTEMA ? _admEmpresaId : MI_EMPRESA; }
@@ -1506,11 +1505,21 @@ async function _cargarDirectorioEmpresa(eid) {
   if (!list) return;
   list.innerHTML = '<div class="empty-state">Cargando…</div>';
   try {
-    const r = await fetch(`/servicios/boton_panico/directorio?empresa_id=${eid}&_t=${Date.now()}`);
-    const d = await r.json();
-    const contactos = d.ok ? (d.data || []) : [];
-    // Inicializar estado igual que init()
+    const ts = Date.now();
+    // Cargar directorio Y config guardado en paralelo
+    const [rDir, rCfg] = await Promise.all([
+      fetch(`/servicios/boton_panico/directorio?empresa_id=${eid}&_t=${ts}`),
+      fetch(`/servicios/boton_panico/config?empresa_id=${eid}&_t=${ts}`),
+    ]);
+    const [dDir, dCfg] = await Promise.all([rDir.json(), rCfg.json()]);
+
+    const contactos = dDir.ok ? (dDir.data || []) : [];
+    const cfg       = dCfg.ok ? (dCfg.data || {}) : {};
+
+    // Reconstruir savedMap con las selecciones guardadas
     const savedMap = {};
+    (cfg.contactos_directorio || []).forEach(c => { savedMap[c.contacto_id] = c; });
+
     _directorio = contactos.map(c => ({
       ...c,
       habilitado_para_sms:      savedMap[c._id]?.habilitado_para_sms      || false,
@@ -1582,8 +1591,13 @@ if (ES_SISTEMA) {
 } else {
   // Usuario normal: empresa fija de sesión
   _admEmpresaId = MI_EMPRESA;
-  if (PERM.emergencia) init(MI_EMPRESA);
-  if (PERM.configuracion) admSelEmpresa(MI_EMPRESA);
+  // init() carga directorio+config para emergencia
+  // admSelEmpresa carga mensajes+contactosAdmin para config/log
+  // NO llamar _cargarDirectorioEmpresa desde admSelEmpresa al inicio (init ya lo maneja)
+  const arranque = [];
+  if (PERM.emergencia) arranque.push(init(MI_EMPRESA));
+  if (PERM.configuracion) arranque.push(admSelEmpresa(MI_EMPRESA, true)); // true = skip directorio
+  Promise.all(arranque);
 }
 // Activar la primera pestaña disponible
 (function(){
