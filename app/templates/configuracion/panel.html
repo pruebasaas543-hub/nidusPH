@@ -7538,17 +7538,9 @@ const _ESTADOS_PENDIENTES_PAN = new Set(['enviado','sent','initiated','iniciado'
 
 async function _panicoRefrescarTodos(soloMostrarBtn) {
     if (soloMostrarBtn) {
-        // Solo mostrar/ocultar el botón según si hay estados pendientes
-        const hayPend = _panicoLogCSV.some(ev => {
-            const res = ev.resultado || {};
-            return [...(res.externos||[]), ...(res.directorio||[])].some(c =>
-                Object.values(c.canales||{}).some(i =>
-                    i.sid && _ESTADOS_PENDIENTES_PAN.has((i.estado||'').toLowerCase())
-                )
-            );
-        });
+        // Mostrar el botón siempre que haya registros cargados
         const btn = document.getElementById('panicoRefreshAll');
-        if (btn) btn.style.display = hayPend ? '' : 'none';
+        if (btn) btn.style.display = _panicoLogCSV.length > 0 ? '' : 'none';
         return;
     }
 
@@ -7562,7 +7554,7 @@ async function _panicoRefrescarTodos(soloMostrarBtn) {
         const r = await fetch('/servicios/boton_panico/admin/refresh-lote', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({evento_ids: ids, solo_pendientes: true}),
+            body: JSON.stringify({evento_ids: ids, solo_pendientes: false}),
         });
         const j = await r.json();
         if (j.ok) {
