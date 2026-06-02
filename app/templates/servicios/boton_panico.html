@@ -1268,27 +1268,29 @@ async function admBuscarLog(pagina) {
         <td><b>${_esc(ev.nombre_residente||ev.residente_id||'—')}</b></td>
         <td colspan="4" style="color:var(--muted);">Sin destinatarios</td>
         <td>—</td></tr>`];
-      return canales.flatMap(c =>
-        Object.entries(c.canales||{}).map(([tipo, info]) => {
+      return canales.flatMap((c, ci) =>
+        Object.entries(c.canales||{}).map(([tipo, info], i) => {
           const icon = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
           const ei   = _estadoInfo(info.estado);
           const popData = encodeURIComponent(JSON.stringify({
             estado: info.estado, canal: tipo, receptor: c.nombre||'', sid: info.sid||'',
             detalle: info.detalle||'', residente: ev.nombre_residente||ev.residente_id||'', fecha,
           }));
-          return `<tr>
+          const rowId = `row-${ev._id}-${tipo}-${i}`;
+          const canRefresh = info.sid && !['mock','error'].includes((info.estado||'').toLowerCase());
+          return `<tr id="${rowId}">
             <td style="white-space:nowrap;font-size:.78rem;">${fecha}</td>
             <td><b>${_esc(ev.nombre_residente||ev.residente_id||'—')}</b></td>
             <td>${icon} ${tipo.toUpperCase()}</td>
             <td>${_esc(c.nombre||'—')}</td>
             <td style="color:var(--accent);">${_esc(c.numero||'—')}</td>
-            <td><span class="a-chip ${ei.cls}">${ei.icon} ${ei.label}</span></td>
-            <td>
+            <td id="${rowId}-chip"><span class="a-chip ${ei.cls}">${ei.icon} ${ei.label}</span></td>
+            <td style="display:flex;gap:5px;align-items:center;">
               <button onclick="logMostrarPopup('${popData}')"
                 title="Ver detalle"
-                style="background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);border-radius:99px;padding:3px 10px;cursor:pointer;font-size:.78rem;color:var(--accent);transition:all .2s;"
-                onmouseover="this.style.background='color-mix(in srgb,var(--accent) 20%,transparent)'"
-                onmouseout="this.style.background='color-mix(in srgb,var(--accent) 10%,transparent)'">💬 Ver</button>
+                style="background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);border-radius:99px;padding:3px 10px;cursor:pointer;font-size:.78rem;color:var(--accent);">💬 Ver</button>
+              ${canRefresh ? `<button onclick="logRefrescarEstado('${ev._id}','${rowId}')" title="Actualizar estado desde Twilio"
+                style="background:color-mix(in srgb,var(--green) 10%,transparent);border:1px solid color-mix(in srgb,var(--green) 25%,transparent);border-radius:99px;padding:3px 10px;cursor:pointer;font-size:.78rem;color:var(--green);" id="${rowId}-btn">🔄</button>` : ''}
             </td>
           </tr>`;
         })
@@ -1314,6 +1316,29 @@ async function admBuscarLog(pagina) {
     }
 
   } catch { cont.innerHTML = '<div style="color:var(--red);padding:20px;">Error de conexión.</div>'; }
+}
+
+async function logRefrescarEstado(eventoId, rowId) {
+  const btn  = document.getElementById(rowId + '-btn');
+  const chip = document.getElementById(rowId + '-chip');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+  try {
+    const r = await fetch('/servicios/boton_panico/admin/refresh-estados', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({evento_id: eventoId}),
+    });
+    const j = await r.json();
+    if (!j.ok) { admToast('Error: ' + (j.error||''), true); }
+    else if (!j.actualizado) { admToast('Estado sin cambios', false); }
+    else {
+      admToast('✅ Estado actualizado');
+      // Recargar la fila — volver a buscar para reflejar el nuevo estado
+      admBuscarLog(_logPaginaActual);
+      return;
+    }
+  } catch { admToast('Error de conexión', true); }
+  if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
 }
 
 function logExportarCSV() {

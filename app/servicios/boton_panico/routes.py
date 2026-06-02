@@ -427,6 +427,65 @@ def _normalizar_estado(estado: str) -> str:
     return "error"
 
 
+@panico_bp.route("/admin/refresh-estados", methods=["POST"])
+@requiere_login
+@_requiere_permiso("log")
+def admin_refresh_estados():
+    """Consulta Twilio por el SID de cada canal y actualiza el estado en panic_events."""
+    datos       = request.get_json(silent=True) or {}
+    evento_id   = datos.get("evento_id", "").strip()
+    if not evento_id:
+        return err("evento_id requerido", 400)
+    try:
+        from bson import ObjectId as OID
+        ev = db["panic_events"].find_one({"_id": OID(evento_id)})
+        if not ev:
+            return err("Evento no encontrado", 404)
+
+        # Obtener cliente Twilio
+        from app.servicios.boton_panico.controller import _twilio_client
+        cliente = _twilio_client()
+        if not cliente:
+            return err("Sin credenciales Twilio — no se puede consultar estado", 400)
+
+        resultado = ev.get("resultado", {})
+        actualizado = False
+
+        for grupo in ("externos", "directorio"):
+            for contacto in resultado.get(grupo, []):
+                canales = contacto.get("canales", {})
+                for tipo, info in list(canales.items()):
+                    sid = info.get("sid", "")
+                    if not sid or info.get("estado") in ("mock", "error"):
+                        continue
+                    nuevo_estado = None
+                    try:
+                        if tipo in ("sms", "whatsapp"):
+                            msg = cliente.messages(sid).fetch()
+                            nuevo_estado = msg.status   # queued/sent/delivered/read/failed/undelivered
+                        elif tipo == "llamada":
+                            call = cliente.calls(sid).fetch()
+                            nuevo_estado = call.status  # queued/ringing/in-progress/completed/busy/failed/no-answer/canceled
+                    except Exception as e:
+                        nuevo_estado = f"error_twilio: {e}"
+
+                    if nuevo_estado and nuevo_estado != info.get("estado"):
+                        info["estado"]           = nuevo_estado
+                        info["estado_actualizado"] = datetime.utcnow().isoformat()
+                        actualizado = True
+
+        if actualizado:
+            db["panic_events"].update_one(
+                {"_id": OID(evento_id)},
+                {"$set": {"resultado": resultado, "estados_actualizados_en": datetime.utcnow()}},
+            )
+
+        from flask import jsonify as _jsonify
+        return _jsonify({"ok": True, "data": serializar(resultado), "actualizado": actualizado})
+    except Exception as e:
+        return err(str(e))
+
+
 @panico_bp.route("/admin/buscar-usuario", methods=["GET"])
 @_requiere_sistema
 def admin_buscar_usuario():
