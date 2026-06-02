@@ -794,7 +794,8 @@ function renderExternos(){
         </label>
       </div>`;
     if(!editing){
-      const telDisplay = c.celular ? `${c.prefijo||'+57'}${c.celular}` : '—';
+      // Soportar ambos formatos: personales (c.telefono) y empresa (c.prefijo + c.celular)
+      const telDisplay = c.telefono ? c.telefono : (c.celular ? `${c.prefijo||'+57'}${c.celular}` : '—');
       return `
       <div class="ext-card readonly">
         <div class="ext-card-header">
@@ -809,6 +810,11 @@ function renderExternos(){
         ${chipsHtml}
       </div>`;
     }
+    // En modo edición, si es personal, mostrar teléfono combinado; si es empresa, mostrar prefijo+celular
+    const telInput = c._es_personal
+      ? `<input class="cel-input" type="tel" placeholder="+57..." value="${_esc(c.telefono||'')}" oninput="_externos[${i}].telefono=this.value; _externos[${i}].celular=undefined;">`
+      : `<select class="pais-sel" onchange="_externos[${i}].prefijo=this.value">${_paisesOpts(c.prefijo||'+57')}</select><input class="cel-input" type="tel" placeholder="Número celular" value="${_esc(c.celular||'')}" oninput="_externos[${i}].celular=this.value">`;
+
     return `
     <div class="ext-card">
       <div class="ext-card-header">
@@ -819,8 +825,7 @@ function renderExternos(){
         </div>
       </div>
       <div class="pais-cel-wrap">
-        <select class="pais-sel" onchange="_externos[${i}].prefijo=this.value">${_paisesOpts(c.prefijo||'+57')}</select>
-        <input class="cel-input" type="tel" placeholder="Número celular" value="${_esc(c.celular)}" oninput="_externos[${i}].celular=this.value">
+        ${telInput}
       </div>
       ${chipsHtml}
     </div>`;
