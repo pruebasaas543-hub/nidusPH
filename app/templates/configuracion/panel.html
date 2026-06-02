@@ -7280,6 +7280,17 @@ function _actualizarIframePanico() {
 
 let _panicoPagActual  = 1;
 let _panicoLogCSV     = [];
+let _panicoJerarquia  = {};
+let _panicoPollingTimer = null;
+
+// Cargar jerarquías al iniciar
+(async () => {
+    try {
+        const r = await fetch('/servicios/boton_panico/jerarquia-estados');
+        const j = await r.json();
+        if (j.ok) _panicoJerarquia = j.data;
+    } catch {}
+})();
 
 const _PANICO_ESTADO_INFO = {
     enviado:     { label:'Enviado',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje fue aceptado por el proveedor y está en camino.' },
@@ -7302,22 +7313,92 @@ function _panicoEstadoInfo(e) {
         || { label: e||'—', color:'#c53030', bg:'rgba(229,62,62,.1)', icon:'❓', desc:`Estado: ${e||'desconocido'}` };
 }
 
+function _panicoFmtTs(iso) {
+    if (!iso || iso === '—') return '—';
+    try {
+        const d = new Date(iso);
+        return d.toLocaleString('es-CO', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    } catch { return iso; }
+}
+
 function _panicoMostrarPopup(json) {
-    const d  = JSON.parse(decodeURIComponent(json));
-    const ei = _panicoEstadoInfo(d.estado);
-    const sid  = d.sid    ? `<div style="font-size:.72rem;color:#8A9CC8;margin-top:6px;">SID Twilio: <code style="font-size:.72rem;">${d.sid}</code></div>` : '';
-    const det  = d.detalle? `<div style="margin-top:8px;padding:8px 12px;background:rgba(229,62,62,.08);border-radius:8px;font-size:.78rem;color:#c53030;">⚠️ ${_esc(d.detalle)}</div>` : '';
+    const d   = JSON.parse(decodeURIComponent(json));
+    const ei  = _panicoEstadoInfo(d.estado);
+    const canal = (d.canal||'sms').toLowerCase();
+    const icono = canal==='llamada'?'☎️':canal==='whatsapp'?'💬':'📱';
+
+    // Jerarquía del canal
+    const jerarquia = _panicoJerarquia[canal] || [];
+    const historial = d.historial || [];
+    const histMap   = {};
+    historial.forEach(h => { histMap[h.estado] = h; });
+    const estadoActual = d.estado || '';
+
+    // Todos los estados que aparecen: los de jerarquía + extras del historial
+    const todosEstados = [...jerarquia];
+    historial.forEach(h => { if (!todosEstados.includes(h.estado)) todosEstados.push(h.estado); });
+
+    // Determinar posición actual en jerarquía
+    const posActual = todosEstados.indexOf(estadoActual);
+
+    const timelineHtml = todosEstados.map((est, idx) => {
+        const ei2   = _panicoEstadoInfo(est);
+        const logH  = histMap[est];
+        const pasado = logH != null;
+        const esActual = est === estadoActual;
+        const esFinal = !['queued','sending','sent','initiated','ringing','in-progress'].includes(est);
+
+        let lineColor = '#e2e8f0'; // gris por defecto
+        let dotBg     = '#e2e8f0';
+        let dotColor  = '#8A9CC8';
+        let textColor = '#8A9CC8';
+        let fontWeight= '400';
+
+        if (pasado && !esActual) { lineColor='#276749'; dotBg='#276749'; dotColor='#fff'; textColor='#042243'; fontWeight='500'; }
+        if (esActual && ei.color==='#276749') { dotBg='#276749'; dotColor='#fff'; textColor='#042243'; fontWeight='700'; }
+        if (esActual && ei.color==='#c53030') { dotBg='#c53030'; dotColor='#fff'; textColor='#c53030'; fontWeight='700'; }
+        if (esActual && ei.color==='#b7791f') { dotBg='#b7791f'; dotColor='#fff'; textColor='#b7791f'; fontWeight='700'; }
+
+        const ts   = logH ? _panicoFmtTs(logH.en) : '';
+        const det2 = logH?.detalle ? `<div style="font-size:.69rem;color:#c53030;margin-top:2px;">⚠️ ${_esc(logH.detalle)}</div>` : '';
+        const badge = esActual ? `<span style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:99px;background:${dotBg};color:${dotColor};margin-left:6px;">ACTUAL</span>` : '';
+
+        // Línea conectora (no en el último)
+        const lineHtml = idx < todosEstados.length-1
+            ? `<div style="width:2px;height:20px;background:${pasado&&idx<posActual?'#276749':'#e2e8f0'};margin:2px auto;"></div>`
+            : '';
+
+        return `
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+                <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:${dotBg};display:flex;align-items:center;justify-content:center;font-size:.85rem;border:2px solid ${pasado?dotBg:'#e2e8f0'};">${pasado?ei2.icon:'○'}</div>
+                    ${lineHtml}
+                </div>
+                <div style="padding-bottom:4px;flex:1;min-width:0;">
+                    <div style="font-size:.82rem;font-weight:${fontWeight};color:${textColor};">${ei2.label}${badge}</div>
+                    <div style="font-size:.72rem;color:#8A9CC8;">${ei2.desc}</div>
+                    ${ts ? `<div style="font-size:.68rem;color:#b0bec5;margin-top:1px;">🕐 ${ts}</div>` : ''}
+                    ${det2}
+                </div>
+            </div>`;
+    }).join('');
+
+    const sidHtml = d.sid ? `<div style="font-size:.7rem;color:#8A9CC8;margin-top:10px;padding-top:10px;border-top:1px solid #f0f4f8;">SID: <code style="font-size:.68rem;">${d.sid}</code></div>` : '';
+
     document.getElementById('panico-log-modal-body').innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-            <div style="font-size:2rem;">${ei.icon}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1.5px solid #f0f4f8;">
+            <div style="font-size:1.6rem;">${icono}</div>
             <div>
-                <div style="font-size:1rem;font-weight:700;color:#042243;">${ei.label}</div>
-                <div style="font-size:.75rem;color:#8A9CC8;">${d.canal?.toUpperCase()||''} · ${_esc(d.receptor||'')}</div>
+                <div style="font-size:.95rem;font-weight:800;color:#042243;">${canal.toUpperCase()} — ${_esc(d.receptor||'')}</div>
+                <div style="font-size:.75rem;color:#8A9CC8;">Residente: ${_esc(d.residente||'—')} · ${_esc(d.fecha||'')}</div>
+            </div>
+            <div style="margin-left:auto;text-align:right;">
+                <span style="font-size:.76rem;font-weight:700;padding:3px 10px;border-radius:99px;background:${ei.bg};color:${ei.color};">${ei.icon} ${ei.label}</span>
             </div>
         </div>
-        <div style="font-size:.84rem;color:#042243;line-height:1.6;padding:12px 14px;background:#f8faff;border-radius:10px;">${ei.desc}</div>
-        ${sid}${det}
-        <div style="margin-top:14px;font-size:.75rem;color:#8A9CC8;">Residente: <strong>${_esc(d.residente||'')}</strong> · ${_esc(d.fecha||'')}</div>`;
+        <div style="font-size:.8rem;font-weight:700;color:#042243;margin-bottom:12px;letter-spacing:.3px;">📍 Trazabilidad</div>
+        <div style="max-height:320px;overflow-y:auto;padding-right:4px;">${timelineHtml}</div>
+        ${sidHtml}`;
     document.getElementById('panico-log-modal').style.display = 'flex';
 }
 
@@ -7372,8 +7453,11 @@ async function _panicoBuscarLog(pagina) {
 
         const btnCSV = document.getElementById('panicoExportCSV');
         if (btnCSV) btnCSV.style.display = total > 0 ? '' : 'none';
-        // Auto-detectar estados pendientes y mostrar/ocultar botón actualizar
-        setTimeout(() => _panicoRefrescarTodos(true), 0);
+        // Auto-detectar estados pendientes → mostrar botón y arrancar polling
+        setTimeout(() => {
+            _panicoRefrescarTodos(true);
+            _panicoIniciarPolling();
+        }, 0);
 
         if (!lista.length) {
             cont.innerHTML = '<div style="padding:40px;text-align:center;color:#8A9CC8;font-size:.85rem;"><div style="font-size:2.5rem;opacity:.3;margin-bottom:10px;">📋</div>Sin activaciones en ese período.</div>';
@@ -7402,6 +7486,7 @@ async function _panicoBuscarLog(pagina) {
                     estado: info.estado, canal: tipo, receptor: c.nombre||'',
                     sid: info.sid||'', detalle: info.detalle||'',
                     residente: ev.nombre_residente||ev.residente_id||'', fecha,
+                    historial: info.historial||[],
                 }));
                 return `<tr id="${rowId}">
                     <td style="${tdStyle}white-space:nowrap;">${fecha}</td>
@@ -7492,6 +7577,40 @@ async function _panicoRefrescarTodos(soloMostrarBtn) {
         showToast('Error de conexión', true);
         if (btn) { btn.textContent = '🔄 Actualizar estados'; btn.disabled = false; }
     }
+}
+
+function _panicoIniciarPolling() {
+    clearInterval(_panicoPollingTimer);
+    const hayPend = _panicoLogCSV.some(ev => {
+        const res = ev.resultado || {};
+        return [...(res.externos||[]),...(res.directorio||[])].some(c =>
+            Object.values(c.canales||{}).some(i =>
+                i.sid && _ESTADOS_PENDIENTES_PAN.has((i.estado||'').toLowerCase())
+            )
+        );
+    });
+    if (!hayPend) return;
+    _panicoPollingTimer = setInterval(async () => {
+        const ids = _panicoLogCSV.map(e => e._id).filter(Boolean);
+        if (!ids.length) { clearInterval(_panicoPollingTimer); return; }
+        try {
+            const r = await fetch('/servicios/boton_panico/admin/refresh-lote', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({evento_ids: ids, solo_pendientes: true}),
+            });
+            const j = await r.json();
+            if (j.ok && j.actualizados > 0) {
+                _panicoBuscarLog(_panicoPagActual);
+            } else {
+                // Si no hay cambios, verificar si quedan pendientes
+                _panicoRefrescarTodos(true);
+                const btnR = document.getElementById('panicoRefreshAll');
+                if (!btnR || btnR.style.display === 'none') {
+                    clearInterval(_panicoPollingTimer);
+                }
+            }
+        } catch { clearInterval(_panicoPollingTimer); }
+    }, 8000);
 }
 
 function _panicoExportarCSV() {

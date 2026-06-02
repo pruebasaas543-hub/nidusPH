@@ -348,9 +348,26 @@ def admin_contactos():
         return err(str(e))
 
 
-_ESTADOS_PENDIENTES = {"enviado", "sent", "initiated", "iniciado", "queued", "ringing"}
+_ESTADOS_PENDIENTES = {"enviado", "sent", "initiated", "iniciado", "queued",
+                       "ringing", "sending", "in-progress"}
 _ESTADOS_FINALES    = {"delivered", "read", "completed", "failed", "undelivered",
-                       "no-answer", "busy", "canceled", "mock", "error", "in-progress"}
+                       "no-answer", "busy", "canceled", "mock", "error"}
+
+# Jerarquía ordenada por canal (para el frontend)
+JERARQUIA_ESTADOS = {
+    "sms":      ["queued", "sending", "sent", "delivered", "undelivered", "failed"],
+    "whatsapp": ["queued", "sending", "sent", "delivered", "read", "failed", "undelivered"],
+    "llamada":  ["queued", "initiated", "ringing", "in-progress", "completed",
+                 "no-answer", "busy", "canceled", "failed"],
+}
+
+
+@panico_bp.route("/jerarquia-estados", methods=["GET"])
+@requiere_login
+def jerarquia_estados():
+    """Devuelve la jerarquía de estados por canal para uso en frontend."""
+    from flask import jsonify as _j
+    return _j({"ok": True, "data": JERARQUIA_ESTADOS})
 
 
 @panico_bp.route("/admin/refresh-lote", methods=["POST"])
@@ -394,8 +411,19 @@ def admin_refresh_lote():
                                 else:
                                     nuevo = cliente.calls(sid).fetch().status
                                 if nuevo and nuevo != info.get("estado"):
-                                    info["estado"] = nuevo
-                                    info["estado_actualizado"] = datetime.utcnow().isoformat()
+                                    # Acumular historial en vez de sobreescribir
+                                    historial = info.get("historial") or [
+                                        {"estado": info.get("estado",""), "en": "—"}
+                                    ]
+                                    # Solo agregar si el estado no está ya en historial
+                                    estados_vistos = {h["estado"] for h in historial}
+                                    if nuevo not in estados_vistos:
+                                        historial.append({
+                                            "estado": nuevo,
+                                            "en": datetime.utcnow().isoformat(),
+                                        })
+                                    info["estado"]    = nuevo
+                                    info["historial"] = historial
                                     cambio = True
                             except Exception:
                                 pass
@@ -538,8 +566,17 @@ def admin_refresh_estados():
                         nuevo_estado = f"error_twilio: {e}"
 
                     if nuevo_estado and nuevo_estado != info.get("estado"):
-                        info["estado"]           = nuevo_estado
-                        info["estado_actualizado"] = datetime.utcnow().isoformat()
+                        historial = info.get("historial") or [
+                            {"estado": info.get("estado",""), "en": "—"}
+                        ]
+                        estados_vistos = {h["estado"] for h in historial}
+                        if nuevo_estado not in estados_vistos:
+                            historial.append({
+                                "estado": nuevo_estado,
+                                "en": datetime.utcnow().isoformat(),
+                            })
+                        info["estado"]    = nuevo_estado
+                        info["historial"] = historial
                         actualizado = True
 
         if actualizado:

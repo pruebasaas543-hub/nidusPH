@@ -1197,22 +1197,70 @@ function _estadoInfo(e) {
   return _ESTADO_INFO[(e||'').toLowerCase()] || { label: e||'—', cls:'a-chip-err', icon:'❓', desc: `Estado: ${e||'desconocido'}` };
 }
 
+function _fmtTs(iso) {
+  if (!iso || iso === '—') return '—';
+  try { return new Date(iso).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+  catch { return iso; }
+}
+
 function logMostrarPopup(json) {
-  const data = JSON.parse(decodeURIComponent(json));
-  const ei   = _estadoInfo(data.estado);
-  const sidHtml = data.sid ? `<div style="font-size:.72rem;color:var(--muted);margin-top:6px;">SID Twilio: <code style="font-size:.72rem;">${data.sid}</code></div>` : '';
-  const detHtml = data.detalle ? `<div style="margin-top:8px;padding:8px 12px;background:color-mix(in srgb,var(--red) 8%,transparent);border-radius:8px;font-size:.78rem;color:var(--red);">⚠️ ${_esc(data.detalle)}</div>` : '';
+  const d     = JSON.parse(decodeURIComponent(json));
+  const ei    = _estadoInfo(d.estado);
+  const canal = (d.canal||'sms').toLowerCase();
+  const icono = canal==='llamada'?'☎️':canal==='whatsapp'?'💬':'📱';
+  const jerarquia = _logJerarquia[canal] || [];
+  const historial = d.historial || [];
+  const histMap   = {};
+  historial.forEach(h => { histMap[h.estado] = h; });
+
+  const todosEstados = [...jerarquia];
+  historial.forEach(h => { if (!todosEstados.includes(h.estado)) todosEstados.push(h.estado); });
+  const posActual = todosEstados.indexOf(d.estado);
+
+  const timelineHtml = todosEstados.map((est, idx) => {
+    const ei2      = _estadoInfo(est);
+    const logH     = histMap[est];
+    const pasado   = logH != null;
+    const esActual = est === d.estado;
+    const okColor  = 'var(--green,#276749)';
+    const errColor = 'var(--red,#c53030)';
+    const dotBg    = esActual ? (ei.color==='#276749'?okColor:errColor) : (pasado ? okColor : 'var(--border)');
+    const textColor= esActual ? (ei.color==='#276749'?okColor:errColor) : (pasado?'var(--text)':'var(--muted)');
+    const fw       = esActual||pasado ? '600':'400';
+    const ts       = logH ? _fmtTs(logH.en) : '';
+    const det2     = logH?.detalle ? `<div style="font-size:.69rem;color:var(--red);margin-top:2px;">⚠️ ${_esc(logH.detalle)}</div>` : '';
+    const badge    = esActual ? `<span style="font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:99px;background:${dotBg};color:#fff;margin-left:6px;">ACTUAL</span>` : '';
+    const lineHtml = idx < todosEstados.length-1
+      ? `<div style="width:2px;height:18px;background:${pasado&&idx<posActual?okColor:'var(--border)'};margin:2px auto;"></div>` : '';
+    return `
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+          <div style="width:26px;height:26px;border-radius:50%;background:${dotBg};display:flex;align-items:center;justify-content:center;font-size:.8rem;">${pasado?ei2.icon:'○'}</div>
+          ${lineHtml}
+        </div>
+        <div style="flex:1;min-width:0;padding-bottom:2px;">
+          <div style="font-size:.8rem;font-weight:${fw};color:${textColor};">${ei2.label}${badge}</div>
+          <div style="font-size:.7rem;color:var(--muted);">${ei2.desc}</div>
+          ${ts?`<div style="font-size:.66rem;color:var(--muted);margin-top:1px;">🕐 ${ts}</div>`:''}
+          ${det2}
+        </div>
+      </div>`;
+  }).join('');
+
+  const sidHtml = d.sid ? `<div style="font-size:.7rem;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">SID: <code>${d.sid}</code></div>` : '';
+
   document.getElementById('log-estado-modal-body').innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="font-size:2rem;">${ei.icon}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div style="font-size:1.5rem;">${icono}</div>
       <div>
-        <div style="font-size:1rem;font-weight:700;color:var(--text);">${ei.label}</div>
-        <div style="font-size:.75rem;color:var(--muted);">${data.canal?.toUpperCase()||''} · ${_esc(data.receptor||'')}</div>
+        <div style="font-size:.92rem;font-weight:800;color:var(--text);">${canal.toUpperCase()} — ${_esc(d.receptor||'')}</div>
+        <div style="font-size:.73rem;color:var(--muted);">Residente: ${_esc(d.residente||'—')} · ${_esc(d.fecha||'')}</div>
       </div>
+      <span style="margin-left:auto;font-size:.74rem;font-weight:700;padding:3px 10px;border-radius:99px;background:${ei.cls==='a-chip-ok'?'rgba(39,103,73,.12)':ei.cls==='a-chip-mock'?'rgba(183,121,31,.12)':'rgba(229,62,62,.12)'};color:${ei.cls==='a-chip-ok'?'#2f9e6e':ei.cls==='a-chip-mock'?'var(--orange)':'var(--red)'};">${ei.icon} ${ei.label}</span>
     </div>
-    <div style="font-size:.84rem;color:var(--text);line-height:1.6;padding:12px 14px;background:var(--bg3);border-radius:10px;">${ei.desc}</div>
-    ${sidHtml}${detHtml}
-    <div style="margin-top:14px;font-size:.75rem;color:var(--muted);">Residente: <strong>${_esc(data.residente||'')}</strong> · ${_esc(data.fecha||'')}</div>`;
+    <div style="font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:10px;">📍 Trazabilidad</div>
+    <div style="max-height:300px;overflow-y:auto;">${timelineHtml}</div>
+    ${sidHtml}`;
   document.getElementById('log-estado-modal').style.display = 'flex';
 }
 
@@ -1249,10 +1297,9 @@ async function admBuscarLog(pagina) {
     const total   = j.total || 0;
     const totPag  = j.total_paginas || 1;
 
-    // Mostrar/ocultar botones CSV y refresh
     const btnCSV = document.getElementById('btnExportCSV');
     if (btnCSV) btnCSV.style.display = total > 0 ? '' : 'none';
-    setTimeout(() => logRefrescarTodos(true), 0);
+    setTimeout(() => { logRefrescarTodos(true); _logIniciarPolling(); }, 0);
 
     if (!eventos.length) {
       cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);"><div style="font-size:2.5rem;opacity:.3;margin-bottom:10px;">📋</div><p style="font-size:.85rem;">Sin activaciones en ese período.</p></div>';
@@ -1282,6 +1329,12 @@ async function admBuscarLog(pagina) {
           }));
           const rowId = `row-${ev._id}-${tipo}-${i}`;
           const canRefresh = info.sid && !['mock','error'].includes((info.estado||'').toLowerCase());
+          const popData2 = encodeURIComponent(JSON.stringify({
+            estado:info.estado, canal:tipo, receptor:c.nombre||'',
+            sid:info.sid||'', detalle:info.detalle||'',
+            residente:ev.nombre_residente||ev.residente_id||'', fecha,
+            historial: info.historial||[],
+          }));
           return `<tr id="${rowId}">
             <td style="white-space:nowrap;font-size:.78rem;">${fecha}</td>
             <td><b>${_esc(ev.nombre_residente||ev.residente_id||'—')}</b></td>
@@ -1290,10 +1343,10 @@ async function admBuscarLog(pagina) {
             <td style="color:var(--accent);">${_esc(c.numero||'—')}</td>
             <td id="${rowId}-chip"><span class="a-chip ${ei.cls}">${ei.icon} ${ei.label}</span></td>
             <td style="display:flex;gap:5px;align-items:center;">
-              <button onclick="logMostrarPopup('${popData}')"
-                title="Ver detalle"
+              <button onclick="logMostrarPopup('${popData2}')"
+                title="Ver trazabilidad"
                 style="background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);border-radius:99px;padding:3px 10px;cursor:pointer;font-size:.78rem;color:var(--accent);">💬 Ver</button>
-              ${canRefresh ? `<button onclick="logRefrescarEstado('${ev._id}','${rowId}')" title="Actualizar estado desde Twilio"
+              ${canRefresh ? `<button onclick="logRefrescarEstado('${ev._id}','${rowId}')" title="Actualizar estado"
                 style="background:color-mix(in srgb,var(--green) 10%,transparent);border:1px solid color-mix(in srgb,var(--green) 25%,transparent);border-radius:99px;padding:3px 10px;cursor:pointer;font-size:.78rem;color:var(--green);" id="${rowId}-btn">🔄</button>` : ''}
             </td>
           </tr>`;
@@ -1345,7 +1398,16 @@ async function logRefrescarEstado(eventoId, rowId) {
   if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
 }
 
-const _ESTADOS_PEND = new Set(['enviado','sent','initiated','iniciado','queued','ringing']);
+const _ESTADOS_PEND = new Set(['enviado','sent','initiated','iniciado','queued','ringing','sending','in-progress']);
+let _logJerarquia = {};
+let _logPollingTimer = null;
+(async () => {
+    try {
+        const r = await fetch('/servicios/boton_panico/jerarquia-estados');
+        const j = await r.json();
+        if (j.ok) _logJerarquia = j.data;
+    } catch {}
+})();
 
 async function logRefrescarTodos(soloBtn) {
   if (soloBtn) {
@@ -1379,6 +1441,37 @@ async function logRefrescarTodos(soloBtn) {
     admToast('Error de conexión', true);
     if (btn) { btn.textContent = '🔄 Actualizar estados'; btn.disabled = false; }
   }
+}
+
+function _logIniciarPolling() {
+  clearInterval(_logPollingTimer);
+  const hayPend = _logDatosCSV.some(ev => {
+    const res = ev.resultado || {};
+    return [...(res.externos||[]),...(res.directorio||[])].some(c =>
+      Object.values(c.canales||{}).some(i => i.sid && _ESTADOS_PEND.has((i.estado||'').toLowerCase()))
+    );
+  });
+  if (!hayPend) return;
+  _logPollingTimer = setInterval(async () => {
+    const ids = _logDatosCSV.map(e => e._id).filter(Boolean);
+    if (!ids.length) { clearInterval(_logPollingTimer); return; }
+    try {
+      const r = await fetch('/servicios/boton_panico/admin/refresh-lote', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({evento_ids:ids, solo_pendientes:true}),
+      });
+      const j = await r.json();
+      if (j.ok && j.actualizados > 0) {
+        admBuscarLog(_logPaginaActual);
+      } else {
+        logRefrescarTodos(true);
+        if (!document.getElementById('btnRefreshAll') ||
+            document.getElementById('btnRefreshAll').style.display==='none') {
+          clearInterval(_logPollingTimer);
+        }
+      }
+    } catch { clearInterval(_logPollingTimer); }
+  }, 8000);
 }
 
 function logExportarCSV() {

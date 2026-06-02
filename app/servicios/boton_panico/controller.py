@@ -97,36 +97,49 @@ def _telefonos_contacto(contacto_id: str) -> list:
         return []
 
 
+def _ts() -> str:
+    return datetime.utcnow().isoformat()
+
+
 def _enviar_sms(cliente, numero: str, mensaje: str) -> dict:
     if not cliente or not TWILIO_FROM:
         log.info("[MOCK] SMS → %s", numero)
-        return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio"}
+        return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
+                "historial": [{"estado": "mock", "en": _ts()}]}
     try:
         msg = cliente.messages.create(to=numero, from_=TWILIO_FROM, body=mensaje)
         log.info("SMS enviado → %s (SID=%s)", numero, msg.sid)
-        return {"numero": numero, "estado": "enviado", "sid": msg.sid}
+        estado_ini = msg.status or "queued"
+        return {"numero": numero, "estado": estado_ini, "sid": msg.sid,
+                "historial": [{"estado": estado_ini, "en": _ts()}]}
     except Exception as e:
         log.error("SMS error → %s: %s", numero, e)
-        return {"numero": numero, "estado": "error", "detalle": str(e)}
+        return {"numero": numero, "estado": "error", "detalle": str(e),
+                "historial": [{"estado": "error", "en": _ts(), "detalle": str(e)}]}
 
 
 def _enviar_llamada(cliente, numero: str, twiml: str) -> dict:
     if not cliente or not TWILIO_FROM:
         log.info("[MOCK] CALL → %s", numero)
-        return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio"}
+        return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
+                "historial": [{"estado": "mock", "en": _ts()}]}
     try:
         call = cliente.calls.create(to=numero, from_=TWILIO_FROM, twiml=twiml)
         log.info("Llamada iniciada → %s (SID=%s)", numero, call.sid)
-        return {"numero": numero, "estado": "iniciado", "sid": call.sid}
+        estado_ini = call.status or "queued"
+        return {"numero": numero, "estado": estado_ini, "sid": call.sid,
+                "historial": [{"estado": estado_ini, "en": _ts()}]}
     except Exception as e:
         log.error("Call error → %s: %s", numero, e)
-        return {"numero": numero, "estado": "error", "detalle": str(e)}
+        return {"numero": numero, "estado": "error", "detalle": str(e),
+                "historial": [{"estado": "error", "en": _ts(), "detalle": str(e)}]}
 
 
 def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
     if not cliente or not TWILIO_WA_FROM:
         log.info("[MOCK] WhatsApp → %s", numero)
-        return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio"}
+        return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
+                "historial": [{"estado": "mock", "en": _ts()}]}
     try:
         kwargs = {"to": f"whatsapp:{numero}", "from_": TWILIO_WA_FROM}
         if TWILIO_PANIC_TEMPLATE_SID:
@@ -136,10 +149,13 @@ def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
             kwargs["body"] = cuerpo
         msg = cliente.messages.create(**kwargs)
         log.info("WhatsApp enviado → %s (SID=%s)", numero, msg.sid)
-        return {"numero": numero, "estado": "enviado", "sid": msg.sid}
+        estado_ini = msg.status or "queued"
+        return {"numero": numero, "estado": estado_ini, "sid": msg.sid,
+                "historial": [{"estado": estado_ini, "en": _ts()}]}
     except Exception as e:
         log.error("WhatsApp error → %s: %s", numero, e)
-        return {"numero": numero, "estado": "error", "detalle": str(e)}
+        return {"numero": numero, "estado": "error", "detalle": str(e),
+                "historial": [{"estado": "error", "en": _ts(), "detalle": str(e)}]}
 
 
 class PanicController:
