@@ -637,10 +637,29 @@ def admin_buscar_usuario():
             nombre_completo = f"{u.get('nombres','')} {u.get('apellidos','')}".strip()
             num_doc = u.get("numero_documento", "")
 
-            externos_grupo = [{
-                "empresa_nombre": emp_nombre,
-                "contactos": externos_empresa,
-            }] if externos_empresa else []
+            # Contactos personales de este usuario en esta empresa
+            contactos_personales = list(db["user_panic_contacts"].find({
+                "usuario_id": u["_id"],
+                "empresa_id": ObjectId(empresa_id)
+            }).sort("nombre", 1))
+
+            externos_grupo = []
+
+            # Agregar contactos de empresa si existen
+            if externos_empresa:
+                externos_grupo.append({
+                    "empresa_nombre": emp_nombre,
+                    "tipo": "empresa",
+                    "contactos": externos_empresa,
+                })
+
+            # Agregar contactos personales si existen
+            if contactos_personales:
+                externos_grupo.append({
+                    "empresa_nombre": emp_nombre,
+                    "tipo": "personal",
+                    "contactos": serializar(contactos_personales),
+                })
 
             resultado.append({
                 "_id":                  uid,
