@@ -450,7 +450,7 @@
         </div>
 
         <div class="sidebar-section-title" style="margin-top:8px;">Módulos</div>
-        <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas();_abrirModuloPanico()"><span class="nav-icon">🚨</span> Botón de Pánico</a>
+        <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas();_panicoTab(document.querySelector('[data-ptab=panico]'))"><span class="nav-icon">🚨</span> Botón de Pánico</a>
 
         <div id="servicios-nav-body" style="display:none;"></div>
     </div>
@@ -1836,12 +1836,22 @@
 
                 <!-- Tabs -->
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
-                    <button class="dir-tab-btn active" data-ptab="config" onclick="_panicoTab(this)">⚙️ Configuraciones</button>
+                    <button class="dir-tab-btn active" data-ptab="panico" onclick="_panicoTab(this)">🚨 Botón de Pánico</button>
+                    <button class="dir-tab-btn" data-ptab="config" onclick="_panicoTab(this)">⚙️ Configuraciones</button>
                     <button class="dir-tab-btn" data-ptab="log" onclick="_panicoTab(this)">📋 Log de activaciones</button>
                 </div>
 
+                <!-- ── Pane Botón de Pánico ── -->
+                <div id="panico-pane-panico" style="display:none;">
+                    <iframe id="panico-modulo-frame"
+                            src=""
+                            style="width:100%;height:680px;border:none;display:block;background:#EEF2FF;border-radius:12px;"
+                            title="Botón de Pánico">
+                    </iframe>
+                </div>
+
                 <!-- ── Pane Configuraciones ── -->
-                <div id="panico-pane-config">
+                <div id="panico-pane-config" style="display:none;">
 
                     <!-- Stats -->
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px;" id="panico-stats-grid"></div>
@@ -1971,19 +1981,6 @@
 
             </div><!-- /panico-panel -->
 
-            <!-- ── Módulo embebido: Botón de Pánico ── -->
-            <div id="panico-modulo-wrap" style="margin-top:28px;border-radius:16px;overflow:hidden;border:1.5px solid rgba(229,62,62,.2);box-shadow:0 4px 20px rgba(229,62,62,.1);display:none;">
-                <div style="background:linear-gradient(90deg,#7b0d1e,#c0392b);padding:12px 20px;display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:1.1rem;">🚨</span>
-                    <span style="font-size:.88rem;font-weight:700;color:#fff;letter-spacing:.3px;">Botón de Pánico</span>
-                    <span id="panico-modulo-empresa-label" style="font-size:.75rem;color:rgba(255,255,255,.7);margin-left:4px;"></span>
-                </div>
-                <iframe id="panico-modulo-frame"
-                        src=""
-                        style="width:100%;height:680px;border:none;display:block;background:#EEF2FF;"
-                        title="Botón de Pánico">
-                </iframe>
-            </div>
 
         </div><!-- /cfg-boton-panico -->
 
@@ -7172,8 +7169,10 @@ async function _panicoPoblarEmpresas() {
 function _panicoTab(btn) {
     const tab = btn.dataset.ptab;
     document.querySelectorAll('[data-ptab]').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('panico-pane-panico').style.display = tab === 'panico' ? 'block' : 'none';
     document.getElementById('panico-pane-config').style.display = tab === 'config' ? 'block' : 'none';
     document.getElementById('panico-pane-log').style.display    = tab === 'log'    ? 'block' : 'none';
+    if (tab === 'panico') _actualizarIframePanico();
 }
 
 async function _panicoSeleccionarEmpresa(empresaId) {
@@ -7188,40 +7187,40 @@ async function _panicoSeleccionarEmpresa(empresaId) {
 }
 
 function _abrirModuloPanico() {
-    const wrap = document.getElementById('panico-modulo-wrap');
-    if (!wrap) return;
-    wrap.style.display = 'block';
-    _actualizarIframePanico();
-    // Scroll suave hacia el módulo
-    setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 150);
+    // activado desde sidebar — el tab panico ya se activó via _panicoTab
 }
 
 function _actualizarIframePanico() {
     const frame = document.getElementById('panico-modulo-frame');
-    const label = document.getElementById('panico-modulo-empresa-label');
     if (!frame) return;
-    // Cargar el módulo (sin empresa_id en URL — se pasa via el selector dentro del módulo)
-    if (!frame.src || frame.src === window.location.href || frame.src === '') {
+    // Primera carga
+    if (!frame.src || frame.src === 'about:blank' || frame.src === '') {
         frame.src = '/servicios/boton_panico/';
     }
-    // Si hay empresa seleccionada, esperar que cargue e inyectarla
+    // Inyectar empresa cuando iframe esté listo
     if (_panicoEmpresaId) {
-        const sel = document.getElementById('panico-empresa-sel');
-        const nombre = sel ? sel.options[sel.selectedIndex]?.text : '';
-        if (label) label.textContent = nombre ? '— ' + nombre : '';
         frame.onload = () => {
             try {
                 const win = frame.contentWindow;
                 if (win && typeof win.admSelEmpresa === 'function') {
-                    win.admSelEmpresa(_panicoEmpresaId);
-                    // Sincronizar el select dentro del iframe
+                    // Sincronizar el select del selector de empresa
                     const selInner = win.document.getElementById('adm-empresa');
-                    if (selInner) selInner.value = _panicoEmpresaId;
+                    if (selInner) {
+                        selInner.value = _panicoEmpresaId;
+                        win.admSelEmpresa(_panicoEmpresaId);
+                    }
                 }
             } catch(e) {}
+            frame.onload = null;
         };
-    } else {
-        if (label) label.textContent = '';
+        // Si ya cargó antes, llamar directo
+        try {
+            const win = frame.contentWindow;
+            if (win && typeof win.admSelEmpresa === 'function' && win.document.readyState === 'complete') {
+                const selInner = win.document.getElementById('adm-empresa');
+                if (selInner) { selInner.value = _panicoEmpresaId; win.admSelEmpresa(_panicoEmpresaId); }
+            }
+        } catch(e) {}
     }
 }
 
