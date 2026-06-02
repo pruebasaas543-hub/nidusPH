@@ -450,8 +450,7 @@
         </div>
 
         <div class="sidebar-section-title" style="margin-top:8px;">Módulos</div>
-        <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()"><span class="nav-icon">🚨</span> Botón de Pánico</a>
-        <a class="nav-item" href="/servicios/boton_panico/" target="_blank"><span class="nav-icon">⚡</span> Activar Pánico</a>
+        <a class="nav-item" href="#" onclick="setActive(this);mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas();_abrirModuloPanico()"><span class="nav-icon">🚨</span> Botón de Pánico</a>
 
         <div id="servicios-nav-body" style="display:none;"></div>
     </div>
@@ -1814,11 +1813,6 @@
                         <div style="font-size:.75rem;color:#8A9CC8;margin-top:2px;">Configuración y monitoreo del sistema de emergencias</div>
                     </div>
                 </div>
-                <a href="/servicios/boton_panico/" target="_blank"
-                   style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:12px;border:none;cursor:pointer;font-size:.84rem;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#7b0d1e,#e53e3e);color:#fff;box-shadow:0 4px 14px rgba(229,62,62,.35);transition:all .2s;flex-shrink:0;"
-                   onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
-                    ⚡ Activar Botón de Pánico
-                </a>
             </div>
 
             <!-- Selector empresa -->
@@ -1976,6 +1970,21 @@
                 </div><!-- /panico-pane-log -->
 
             </div><!-- /panico-panel -->
+
+            <!-- ── Módulo embebido: Botón de Pánico ── -->
+            <div id="panico-modulo-wrap" style="margin-top:28px;border-radius:16px;overflow:hidden;border:1.5px solid rgba(229,62,62,.2);box-shadow:0 4px 20px rgba(229,62,62,.1);display:none;">
+                <div style="background:linear-gradient(90deg,#7b0d1e,#c0392b);padding:12px 20px;display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.1rem;">🚨</span>
+                    <span style="font-size:.88rem;font-weight:700;color:#fff;letter-spacing:.3px;">Botón de Pánico</span>
+                    <span id="panico-modulo-empresa-label" style="font-size:.75rem;color:rgba(255,255,255,.7);margin-left:4px;"></span>
+                </div>
+                <iframe id="panico-modulo-frame"
+                        src=""
+                        style="width:100%;height:680px;border:none;display:block;background:#EEF2FF;"
+                        title="Botón de Pánico">
+                </iframe>
+            </div>
+
         </div><!-- /cfg-boton-panico -->
 
         <!-- Modal Confirmación Botón de Pánico -->
@@ -7174,6 +7183,46 @@ async function _panicoSeleccionarEmpresa(empresaId) {
     if (!_panicoEmpresaId) { panel.style.display = 'none'; return; }
     panel.style.display = 'block';
     await Promise.all([_panicoCargarStats(), _panicoCargarMensaje()]);
+    // Actualizar iframe con la empresa seleccionada
+    _actualizarIframePanico();
+}
+
+function _abrirModuloPanico() {
+    const wrap = document.getElementById('panico-modulo-wrap');
+    if (!wrap) return;
+    wrap.style.display = 'block';
+    _actualizarIframePanico();
+    // Scroll suave hacia el módulo
+    setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 150);
+}
+
+function _actualizarIframePanico() {
+    const frame = document.getElementById('panico-modulo-frame');
+    const label = document.getElementById('panico-modulo-empresa-label');
+    if (!frame) return;
+    // Cargar el módulo (sin empresa_id en URL — se pasa via el selector dentro del módulo)
+    if (!frame.src || frame.src === window.location.href || frame.src === '') {
+        frame.src = '/servicios/boton_panico/';
+    }
+    // Si hay empresa seleccionada, esperar que cargue e inyectarla
+    if (_panicoEmpresaId) {
+        const sel = document.getElementById('panico-empresa-sel');
+        const nombre = sel ? sel.options[sel.selectedIndex]?.text : '';
+        if (label) label.textContent = nombre ? '— ' + nombre : '';
+        frame.onload = () => {
+            try {
+                const win = frame.contentWindow;
+                if (win && typeof win.admSelEmpresa === 'function') {
+                    win.admSelEmpresa(_panicoEmpresaId);
+                    // Sincronizar el select dentro del iframe
+                    const selInner = win.document.getElementById('adm-empresa');
+                    if (selInner) selInner.value = _panicoEmpresaId;
+                }
+            } catch(e) {}
+        };
+    } else {
+        if (label) label.textContent = '';
+    }
 }
 
 async function _panicoBuscarLog() {
