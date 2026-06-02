@@ -420,7 +420,8 @@ def admin_log():
 def _normalizar_estado(estado: str) -> str:
     """Normaliza estados de Twilio a categorías simples."""
     e = (estado or "").lower()
-    if e in ("enviado", "sent", "delivered", "initiated", "iniciado", "completed"):
+    if e in ("enviado", "sent", "delivered", "read", "initiated", "iniciado",
+             "completed", "in-progress", "ringing", "queued"):
         return "ok"
     if e in ("mock",):
         return "mock"
