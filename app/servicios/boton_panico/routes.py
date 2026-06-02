@@ -815,14 +815,30 @@ def debug_contactos_bd():
 def debug_estructura_evento():
     """[DEBUG] Ver estructura de un evento de pánico"""
     try:
-        eid = _empresa_admin()
+        # Permitir superadmin pasar empresa_id por param
+        eid = request.args.get("empresa_id") or _empresa_admin()
         if not eid:
-            return err("Necesitas ser admin", 400)
+            return err("Necesitas ser admin o pasar ?empresa_id=xxx", 400)
+
+        # Verificar que el usuario sea del sistema
+        if not session.get("es_sistema"):
+            return err("Solo superadmin", 400)
 
         # Obtener el primer evento
         ev = db["panic_events"].find_one({"empresa_id": ObjectId(eid)})
         if not ev:
             return ok({"mensaje": "No hay eventos en esta empresa"})
+
+        # Si no hay eventos, mostrar las empresas disponibles
+        if not ev:
+            empresas = list(db["panic_events"].find(
+                {}, {"empresa_id": 1}
+            ).distinct("empresa_id"))
+            return ok({
+                "mensaje": "No hay eventos en esta empresa",
+                "empresas_disponibles": [str(e) for e in empresas],
+                "instruccion": "Pasa ?empresa_id=xxx con una de las empresas"
+            })
 
         resultado = {
             "evento_id": str(ev.get("_id")),
