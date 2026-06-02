@@ -451,8 +451,8 @@ def admin_log():
     fecha_ini   = request.args.get("fecha_ini", "").strip()
     fecha_fin   = request.args.get("fecha_fin", "").strip()
     nombre_res  = request.args.get("nombre_res", "").strip()
-    canal_fil   = request.args.get("canal", "").strip().lower()
-    estado_fil  = request.args.get("estado", "").strip().lower()
+    canal_fil   = request.args.get("canal", "").strip()  # NO convertir a lower() aquí
+    estado_fil  = request.args.get("estado", "").strip()  # NO convertir a lower() aquí
     pagina      = max(1, int(request.args.get("pagina", 1)))
     por_pagina  = 30
 
@@ -482,26 +482,36 @@ def admin_log():
             for ev in todos:
                 res = ev.get("resultado", {})
 
-                # Si es evento bloqueado (cooldown), solo mostrar si filtra por error
+                # Si es evento bloqueado (cooldown), incluir si filtra por error
                 if res.get("bloqueado") == True:
-                    if estado_fil and estado_fil != "error":
-                        continue
-                    filtrados.append(ev)
+                    if not estado_fil or estado_fil.lower() == "error":
+                        filtrados.append(ev)
                     continue
 
-                canales_ev = [*res.get("externos", []), *res.get("directorio", [])]
-                match = False
-                for c in canales_ev:
-                    for tipo, info in (c.get("canales") or {}).items():
-                        ok_canal  = (not canal_fil)  or (tipo.lower() == canal_fil)
-                        ok_estado = (not estado_fil) or _estado_coincide(info.get("estado",""), estado_fil)
-                        if ok_canal and ok_estado:
-                            match = True
-                            break
-                    if match:
+                # Para eventos normales: revisar si hay al menos un contacto/canal que coincida
+                externos = res.get("externos", [])
+                directorio = res.get("directorio", [])
+                todos_contactos = externos + directorio
+
+                evento_coincide = False
+                for contacto in todos_contactos:
+                    canales = contacto.get("canales", {})
+                    for tipo_canal, info_canal in canales.items():
+                        # Verificar canal
+                        if canal_fil and tipo_canal.lower() != canal_fil.lower():
+                            continue  # Este canal no coincide, próximo
+                        # Verificar estado
+                        if estado_fil and not _estado_coincide(info_canal.get("estado", ""), estado_fil):
+                            continue  # Este estado no coincide, próximo
+                        # Ambos coinciden (o no hay filtro para ellos)
+                        evento_coincide = True
                         break
-                if match:
+                    if evento_coincide:
+                        break
+
+                if evento_coincide:
                     filtrados.append(ev)
+
             todos = filtrados
 
         total   = len(todos)
@@ -532,16 +542,22 @@ def _normalizar_estado(estado: str) -> str:
 
 def _estado_coincide(estado_real: str, filtro: str) -> bool:
     """Verifica si un estado real coincide con el filtro (puede ser específico o normalizado)."""
+    if not filtro:  # Si no hay filtro, todo coincide
+        return True
+
     e_real = (estado_real or "").lower()
     e_filt = (filtro or "").lower()
 
-    # Coincidencia exacta
+    # Coincidencia exacta: "sent" == "sent", "error" == "error", etc
     if e_real == e_filt:
         return True
 
-    # Coincidencia normalizada
+    # Coincidencia normalizada: "sent" normaliza a "ok", filtro es "ok"
     estado_normalizado = _normalizar_estado(estado_real)
-    return estado_normalizado == e_filt
+    if estado_normalizado == e_filt:
+        return True
+
+    return False
 
 
 @panico_bp.route("/admin/refresh-estados", methods=["POST"])
