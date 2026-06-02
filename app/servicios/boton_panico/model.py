@@ -3,9 +3,11 @@ app/servicios/boton_panico/model.py
 Capa de datos para el módulo Botón de Pánico.
 
 Colecciones MongoDB:
-  panic_configurations – un documento por empresa  (nivel="empresa")
-                         contiene mensajes, canales activos y contactos configurados
-  panic_events         – historial de activaciones (quién disparó y resultado)
+  panic_configurations      – un documento por empresa  (nivel="empresa")
+                              contiene mensajes, canales activos
+  user_panic_contacts       – contactos externos personales por usuario
+                              cada documento = un contacto de un usuario en una empresa
+  panic_events              – historial de activaciones (quién disparó y resultado)
 """
 
 from app import db
@@ -13,8 +15,9 @@ from datetime import datetime
 from bson import ObjectId
 
 
-def _configs():  return db["panic_configurations"]
-def _eventos():  return db["panic_events"]
+def _configs():      return db["panic_configurations"]
+def _eventos():      return db["panic_events"]
+def _user_contacts(): return db["user_panic_contacts"]
 
 
 class PanicConfigModel:
@@ -172,3 +175,113 @@ class PanicEventModel:
             "residente_id": residente_id,
             "activado_en":  {"$gte": desde},
         })
+
+
+class UserPanicContactModel:
+    """Contactos externos personales por usuario (normalizado)."""
+
+    @staticmethod
+    def crear(usuario_id: str, empresa_id: str, nombre: str, telefono: str,
+              descripcion: str = "", habilitado: bool = True) -> tuple:
+        """Crear contacto personal."""
+        try:
+            ahora = datetime.utcnow()
+            doc = {
+                "usuario_id":    ObjectId(usuario_id),
+                "empresa_id":    ObjectId(empresa_id),
+                "nombre":        str(nombre).strip(),
+                "telefono":      str(telefono).strip(),
+                "descripcion":   str(descripcion).strip(),
+                "habilitado":    bool(habilitado),
+                "creado_en":     ahora,
+                "actualizado_en": ahora,
+            }
+            result = _user_contacts().insert_one(doc)
+            doc["_id"] = result.inserted_id
+            return True, doc
+        except Exception as e:
+            return False, str(e)
+
+    @staticmethod
+    def listar(usuario_id: str, empresa_id: str) -> list:
+        """Obtener contactos personales del usuario en una empresa."""
+        return list(_user_contacts().find({
+            "usuario_id": ObjectId(usuario_id),
+            "empresa_id": ObjectId(empresa_id),
+        }).sort("nombre", 1))
+
+    @staticmethod
+    def actualizar(contacto_id: str, datos: dict) -> tuple:
+        """Actualizar contacto."""
+        try:
+            actualizables = {"nombre", "telefono", "descripcion", "habilitado"}
+            update_data = {k: v for k, v in datos.items() if k in actualizables}
+            if not update_data:
+                return False, "Sin cambios"
+            update_data["actualizado_en"] = datetime.utcnow()
+            result = _user_contacts().update_one(
+                {"_id": ObjectId(contacto_id)},
+                {"$set": update_data}
+            )
+            return result.modified_count > 0, "Actualizado" if result.modified_count > 0 else "No encontrado"
+        except Exception as e:
+            return False, str(e)
+
+    @staticmethod
+    def eliminar(contacto_id: str) -> tuple:
+        """Eliminar contacto."""
+        try:
+            result = _user_contacts().delete_one({"_id": ObjectId(contacto_id)})
+            return result.deleted_count > 0, "Eliminado" if result.deleted_count > 0 else "No encontrado"
+        except Exception as e:
+            return False, str(e)
+
+    @staticmethod
+    def obtener(contacto_id: str) -> dict:
+        """Obtener un contacto por ID."""
+        return _user_contacts().find_one({"_id": ObjectId(contacto_id)}) or {}
+
+    @staticmethod
+    def migrar_desde_empresa(empresa_id: str, usuario_id: str = None) -> tuple:
+        """Migrar contactos de panic_configurations a user_panic_contacts.
+        Si usuario_id es None, los contactos migran como 'creados por sistema'."""
+        try:
+            cfg = _configs().find_one({"empresa_id": ObjectId(empresa_id)})
+            if not cfg or not cfg.get("contactos_externos"):
+                return True, 0
+
+            creado_por = ObjectId(usuario_id) if usuario_id else None
+            ahora = datetime.utcnow()
+            count = 0
+
+            for contacto in cfg.get("contactos_externos", []):
+                # Evitar duplicados
+                existe = _user_contacts().find_one({
+                    "empresa_id": ObjectId(empresa_id),
+                    "nombre": contacto.get("nombre"),
+                    "telefono": contacto.get("telefono"),
+                })
+                if existe:
+                    continue
+
+                doc = {
+                    "usuario_id":    creado_por,  # None para "sistema"
+                    "empresa_id":    ObjectId(empresa_id),
+                    "nombre":        contacto.get("nombre", ""),
+                    "telefono":      contacto.get("telefono", ""),
+                    "descripcion":   "Migrado de configuración empresa",
+                    "habilitado":    True,
+                    "creado_en":     ahora,
+                    "actualizado_en": ahora,
+                }
+                _user_contacts().insert_one(doc)
+                count += 1
+
+            # Limpiar contactos_externos de panic_configurations
+            _configs().update_one(
+                {"empresa_id": ObjectId(empresa_id)},
+                {"$unset": {"contactos_externos": ""}}
+            )
+            return True, count
+        except Exception as e:
+            return False, str(e)

@@ -12,7 +12,7 @@ from app import db
 from app.configuracion.utils import requiere_login, ok, err, serializar
 from app.configuracion.roles.model import RolModel
 from app.servicios.boton_panico.controller import PanicController
-from app.servicios.boton_panico.model import PanicConfigModel, PanicEventModel
+from app.servicios.boton_panico.model import PanicConfigModel, PanicEventModel, UserPanicContactModel
 
 panico_bp = Blueprint("boton_panico", __name__, url_prefix="/servicios/boton_panico")
 
@@ -653,3 +653,77 @@ def admin_buscar_usuario():
         return ok(resultado)
     except Exception as e:
         return err(str(e))
+
+
+# ═══════════════════════════════════════════════════════════════
+# Contactos Personales del Usuario (user_panic_contacts)
+# ═══════════════════════════════════════════════════════════════
+
+@panico_bp.route("/mis-contactos", methods=["GET"])
+@requiere_login
+def listar_mis_contactos():
+    """Obtener contactos personales del usuario en su empresa."""
+    usuario_id = session.get("usuario_id")
+    empresa_id = _empresa_id()
+    if not usuario_id or not empresa_id:
+        return err("Sin usuario o empresa", 400)
+    contactos = UserPanicContactModel.listar(usuario_id, empresa_id)
+    return ok(serializar(contactos))
+
+
+@panico_bp.route("/mis-contactos", methods=["POST"])
+@requiere_login
+def crear_mi_contacto():
+    """Crear contacto personal."""
+    usuario_id = session.get("usuario_id")
+    empresa_id = _empresa_id()
+    if not usuario_id or not empresa_id:
+        return err("Sin usuario o empresa", 400)
+    datos = request.get_json() or {}
+    exito, resultado = UserPanicContactModel.crear(
+        usuario_id, empresa_id,
+        datos.get("nombre", ""),
+        datos.get("telefono", ""),
+        datos.get("descripcion", ""),
+        datos.get("habilitado", True)
+    )
+    if not exito:
+        return err(resultado)
+    return ok(serializar(resultado), status=201)
+
+
+@panico_bp.route("/mis-contactos/<contacto_id>", methods=["PUT"])
+@requiere_login
+def actualizar_mi_contacto(contacto_id):
+    """Actualizar contacto personal."""
+    datos = request.get_json() or {}
+    exito, msg = UserPanicContactModel.actualizar(contacto_id, datos)
+    if not exito:
+        return err(msg)
+    return ok(mensaje=msg)
+
+
+@panico_bp.route("/mis-contactos/<contacto_id>", methods=["DELETE"])
+@requiere_login
+def eliminar_mi_contacto(contacto_id):
+    """Eliminar contacto personal."""
+    exito, msg = UserPanicContactModel.eliminar(contacto_id)
+    if not exito:
+        return err(msg)
+    return ok(mensaje=msg)
+
+
+@panico_bp.route("/admin/migrar-contactos", methods=["POST"])
+@_requiere_sistema
+def admin_migrar_contactos():
+    """Migrar contactos de panic_configurations a user_panic_contacts.
+    (Solo administrador del sistema)"""
+    datos = request.get_json() or {}
+    empresa_id = datos.get("empresa_id")
+    usuario_id = datos.get("usuario_id")  # Opcional: si se especifica, asigna a este usuario
+    if not empresa_id:
+        return err("Falta empresa_id", 400)
+    exito, count = UserPanicContactModel.migrar_desde_empresa(empresa_id, usuario_id)
+    if not exito:
+        return err(count)
+    return ok({"migrados": count})
