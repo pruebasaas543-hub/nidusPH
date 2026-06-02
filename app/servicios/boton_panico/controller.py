@@ -206,10 +206,17 @@ class PanicController:
         cooldown_min = int(cfg.get("cooldown_minutos", 10))
         recientes = PanicEventModel.contar_recientes(empresa_id, residente_id, cooldown_min)
         if recientes >= cooldown_max:
-            return False, (
-                f"Límite de activaciones alcanzado. "
-                f"Máximo {cooldown_max} en {cooldown_min} minutos."
+            motivo = (f"Límite de activaciones alcanzado. "
+                      f"Máximo {cooldown_max} en {cooldown_min} minutos.")
+            # Registrar el intento fallido en el historial
+            PanicEventModel.registrar(
+                empresa_id, residente_id,
+                resultado={"bloqueado": True, "motivo": motivo,
+                           "externos": [], "directorio": []},
+                ip=ip, nombre_residente=nombre_residente,
+                nombre_empresa=nombre_empresa,
             )
+            return False, motivo
 
         cliente    = _twilio_client()
         resultado  = {"externos": [], "directorio": [], "errores": []}

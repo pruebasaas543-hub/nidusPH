@@ -1960,10 +1960,7 @@
                     <!-- Cabecera -->
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
                         <span style="font-size:.84rem;font-weight:700;color:#042243;">📋 Historial de activaciones</span>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <button onclick="_panicoRefrescarTodos()" id="panicoRefreshAll" style="display:none;padding:7px 16px;border-radius:8px;border:1.5px solid rgba(39,103,73,.3);background:rgba(39,103,73,.08);color:#276749;font-size:.8rem;font-weight:700;cursor:pointer;">🔄 Actualizar estados</button>
-                            <button onclick="_panicoExportarCSV()" id="panicoExportCSV" style="display:none;padding:7px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#1a6de0,#2787F5);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">⬇️ Exportar CSV</button>
-                        </div>
+                        <button onclick="_panicoExportarCSV()" id="panicoExportCSV" style="display:none;padding:7px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#1a6de0,#2787F5);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">⬇️ Exportar CSV</button>
                     </div>
 
                     <!-- Filtros -->
@@ -1993,7 +1990,16 @@
                                 <option value="mock">🟡 Mock</option>
                             </select>
                         </label>
-                        <button onclick="_panicoBuscarLog(1)" class="btn btn-primary" style="align-self:flex-end;padding:8px 22px;font-size:.82rem;">🔍 Buscar</button>
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">🕐 Hora desde
+                            <input type="time" id="panico-log-hora-desde" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                        </label>
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">🕐 Hora hasta
+                            <input type="time" id="panico-log-hora-hasta" value="23:59" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                        </label>
+                        <div style="display:flex;gap:8px;align-self:flex-end;">
+                            <button onclick="_panicoBuscarLog(1)" class="btn btn-primary" style="padding:8px 22px;font-size:.82rem;">🔍 Buscar</button>
+                            <button onclick="_panicoRefrescarTodos()" id="panicoRefreshAll" style="display:none;padding:8px 16px;border-radius:8px;border:1.5px solid rgba(39,103,73,.3);background:rgba(39,103,73,.08);color:#276749;font-size:.82rem;font-weight:700;cursor:pointer;">🔄 Actualizar</button>
+                        </div>
                     </div>
 
                     <div id="panico-eventos-tabla">
@@ -7316,8 +7322,8 @@ function _panicoEstadoInfo(e) {
 function _panicoFmtTs(iso) {
     if (!iso || iso === '—') return '—';
     try {
-        const d = new Date(iso);
-        return d.toLocaleString('es-CO', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        const d = new Date(iso.includes('T') ? iso : iso + 'Z');
+        return d.toLocaleString('es-CO', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit',..._CO_TZ});
     } catch { return iso; }
 }
 
@@ -7424,11 +7430,13 @@ async function _panicoBuscarLog(pagina) {
     if (!_panicoEmpresaId) { showToast('Selecciona una empresa', true); return; }
     _panicoPagActual = pagina;
 
-    const desde  = document.getElementById('panico-log-desde')?.value  || '';
-    const hasta  = document.getElementById('panico-log-hasta')?.value  || '';
-    const nombre = document.getElementById('panico-log-nombre')?.value?.trim() || '';
-    const canal  = document.getElementById('panico-log-canal')?.value  || '';
-    const estado = document.getElementById('panico-log-estado')?.value || '';
+    const desde     = document.getElementById('panico-log-desde')?.value      || '';
+    const hasta     = document.getElementById('panico-log-hasta')?.value      || '';
+    const horaDesde = document.getElementById('panico-log-hora-desde')?.value || '00:00';
+    const horaHasta = document.getElementById('panico-log-hora-hasta')?.value || '23:59';
+    const nombre    = document.getElementById('panico-log-nombre')?.value?.trim() || '';
+    const canal     = document.getElementById('panico-log-canal')?.value  || '';
+    const estado    = document.getElementById('panico-log-estado')?.value || '';
     const cont   = document.getElementById('panico-eventos-tabla');
     const pagDiv = document.getElementById('panico-log-paginacion');
 
@@ -7436,8 +7444,8 @@ async function _panicoBuscarLog(pagina) {
     if (pagDiv) pagDiv.style.display = 'none';
 
     let url = `/servicios/boton_panico/admin/log?empresa_id=${_panicoEmpresaId}&pagina=${pagina}`;
-    if (desde)  url += `&fecha_ini=${desde}`;
-    if (hasta)  url += `&fecha_fin=${hasta}T23:59:59`;
+    if (desde)  url += `&fecha_ini=${desde}T${horaDesde}:00`;
+    if (hasta)  url += `&fecha_fin=${hasta}T${horaHasta}:59`;
     if (nombre) url += `&nombre_res=${encodeURIComponent(nombre)}`;
     if (canal)  url += `&canal=${canal}`;
     if (estado) url += `&estado=${estado}`;
@@ -7498,12 +7506,8 @@ async function _panicoBuscarLog(pagina) {
                         <span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:6px;background:${ei.bg};color:${ei.color};">${ei.icon} ${ei.label}</span>
                     </td>
                     <td style="${tdStyle}">
-                        <div style="display:flex;gap:5px;">
-                            <button onclick="_panicoMostrarPopup('${popData}')" title="Ver detalle"
-                                style="padding:3px 10px;border-radius:99px;border:1px solid rgba(39,135,245,.3);background:rgba(39,135,245,.08);color:#2787F5;font-size:.76rem;cursor:pointer;">💬 Ver</button>
-                            ${canRef ? `<button onclick="_panicoRefrescarEstado('${ev._id}','${rowId}')" id="${rowId}-rbtn" title="Actualizar estado desde Twilio"
-                                style="padding:3px 10px;border-radius:99px;border:1px solid rgba(39,103,73,.3);background:rgba(39,103,73,.08);color:#276749;font-size:.76rem;cursor:pointer;">🔄</button>` : ''}
-                        </div>
+                        <button onclick="_panicoMostrarPopup('${popData}')" title="Ver trazabilidad"
+                            style="padding:3px 10px;border-radius:99px;border:1px solid rgba(39,135,245,.3);background:rgba(39,135,245,.08);color:#2787F5;font-size:.76rem;cursor:pointer;">💬 Ver</button>
                     </td>
                 </tr>`;
             }));
@@ -7998,12 +8002,13 @@ function _panicoStatBadge(arr) {
     return `<span style="background:${bg};color:${color};padding:2px 8px;border-radius:6px;font-size:.72rem;">${n}</span>`;
 }
 
+const _CO_TZ = {timeZone: 'America/Bogota'};
 function _panicoFmtFecha(str) {
     if (!str) return '—';
-    const d = new Date(str.includes('T') ? str : str.replace(' ','T'));
+    const d = new Date(str.includes('T') ? str : str.replace(' ','T') + 'Z');
     if (isNaN(d)) return str;
-    return d.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})
-        + ' ' + d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    return d.toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric', ..._CO_TZ})
+        + ' ' + d.toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit', ..._CO_TZ});
 }
 
 function _esc(s) {
