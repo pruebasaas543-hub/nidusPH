@@ -380,21 +380,42 @@ def admin_log():
 @panico_bp.route("/admin/buscar-usuario", methods=["GET"])
 @_requiere_sistema
 def admin_buscar_usuario():
-    """Busca usuarios por nombre/apellidos o número de documento y retorna su config de pánico."""
-    q = request.args.get("q", "").strip()
+    """Busca usuarios de una empresa por nombre/apellidos o número de documento."""
+    q          = request.args.get("q", "").strip()
+    empresa_id = request.args.get("empresa_id", "").strip()
     if len(q) < 2:
         return ok([])
+    if not empresa_id:
+        return err("Debe indicar empresa_id", 400)
     try:
-        # Buscar por número de documento (exacto o prefijo) o por nombre/apellidos (regex)
-        filtro = {"$or": [
-            {"numero_documento": {"$regex": f"^{q}", "$options": "i"}},
-            {"nombres":          {"$regex": q, "$options": "i"}},
-            {"apellidos":        {"$regex": q, "$options": "i"}},
-        ]}
+        # 1) IDs de usuarios que pertenecen a esa empresa
+        asocs = list(db["asociaciones"].find(
+            {"empresa_id": ObjectId(empresa_id), "activo": True},
+            {"user_id": 1},
+        ))
+        user_ids = [a["user_id"] for a in asocs if a.get("user_id")]
+        if not user_ids:
+            return ok([])
+
+        # 2) Filtrar por texto dentro de esos usuarios
+        filtro = {
+            "_id": {"$in": user_ids},
+            "$or": [
+                {"numero_documento": {"$regex": f"^{q}", "$options": "i"}},
+                {"nombres":          {"$regex": q, "$options": "i"}},
+                {"apellidos":        {"$regex": q, "$options": "i"}},
+            ],
+        }
         usuarios = list(db["users"].find(
             filtro,
             {"nombres": 1, "apellidos": 1, "numero_documento": 1, "tipo_documento": 1},
         ).limit(15))
+
+        # Config de pánico de esta empresa (única)
+        cfg_emp = db["panic_configurations"].find_one({"empresa_id": ObjectId(empresa_id)}) or {}
+        externos_empresa = cfg_emp.get("contactos_externos", [])
+        emp_doc = db["empresas"].find_one({"_id": ObjectId(empresa_id)}, {"razon_social": 1})
+        emp_nombre = (emp_doc or {}).get("razon_social", empresa_id)
 
         resultado = []
         for u in usuarios:
@@ -402,32 +423,18 @@ def admin_buscar_usuario():
             nombre_completo = f"{u.get('nombres','')} {u.get('apellidos','')}".strip()
             num_doc = u.get("numero_documento", "")
 
-            # Buscar empresas del usuario via asociaciones
-            asocs = list(db["asociaciones"].find(
-                {"user_id": u["_id"], "activo": True, "empresa_id": {"$ne": None}},
-                {"empresa_id": 1}
-            ))
-            eids = [a["empresa_id"] for a in asocs if a.get("empresa_id")]
-
-            # Obtener configs de pánico de cada empresa del usuario
-            externos_por_empresa = []
-            for eid_obj in eids:
-                cfg_doc = db["panic_configurations"].find_one({"empresa_id": eid_obj})
-                if cfg_doc and cfg_doc.get("contactos_externos"):
-                    emp = db["empresas"].find_one({"_id": eid_obj}, {"razon_social": 1})
-                    emp_nombre = (emp or {}).get("razon_social", str(eid_obj))
-                    externos_por_empresa.append({
-                        "empresa_nombre": emp_nombre,
-                        "contactos": cfg_doc["contactos_externos"],
-                    })
+            externos_grupo = [{
+                "empresa_nombre": emp_nombre,
+                "contactos": externos_empresa,
+            }] if externos_empresa else []
 
             resultado.append({
-                "_id":                   uid,
-                "nombre_completo":       nombre_completo,
-                "numero_documento":      num_doc,
-                "tipo_documento":        u.get("tipo_documento", "CC"),
-                "label":                 f"{nombre_completo} - {num_doc}",
-                "externos_por_empresa":  externos_por_empresa,
+                "_id":                  uid,
+                "nombre_completo":      nombre_completo,
+                "numero_documento":     num_doc,
+                "tipo_documento":       u.get("tipo_documento", "CC"),
+                "label":                f"{nombre_completo} - {num_doc}",
+                "externos_por_empresa": externos_grupo,
             })
         return ok(resultado)
     except Exception as e:

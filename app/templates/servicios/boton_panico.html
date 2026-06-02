@@ -1018,6 +1018,12 @@ async function admSelEmpresa(eid) {
   const empty = document.getElementById('adm-empty-sel');
   if (!eid) { if(panel) panel.style.display='none'; if(empty) empty.style.display='flex'; return; }
   if(panel) panel.style.display='block'; if(empty) empty.style.display='none';
+  // Limpiar buscador de externos al cambiar empresa
+  const inputBuscar = document.getElementById('ext-buscar-input');
+  const resBuscar   = document.getElementById('ext-buscar-resultados');
+  if (inputBuscar) inputBuscar.value = '';
+  if (resBuscar)   resBuscar.innerHTML = '';
+
   // Recargar config/log Y directorio de la empresa seleccionada
   const tasks = [admCargarMensajes(), admCargarContactos()];
   if (PERM.emergencia) tasks.push(_cargarDirectorioEmpresa(eid));
@@ -1165,10 +1171,14 @@ async function buscarUsuarioExterno(q) {
   const res = document.getElementById('ext-buscar-resultados');
   if (!res) return;
   if (!q || q.trim().length < 2) { res.innerHTML = ''; return; }
+  if (!_admEmpresaId) {
+    res.innerHTML = '<div style="font-size:.78rem;color:var(--muted);padding:8px 0;">Selecciona una empresa primero.</div>';
+    return;
+  }
   res.innerHTML = '<div style="font-size:.78rem;color:var(--muted);padding:8px 0;">Buscando…</div>';
   _buscarTimer = setTimeout(async () => {
     try {
-      const r = await fetch(`/servicios/boton_panico/admin/buscar-usuario?q=${encodeURIComponent(q.trim())}`);
+      const r = await fetch(`/servicios/boton_panico/admin/buscar-usuario?q=${encodeURIComponent(q.trim())}&empresa_id=${_admEmpresaId}`);
       const j = await r.json();
       if (!j.ok || !j.data?.length) {
         res.innerHTML = '<div class="empty-state" style="padding:10px 0;">Sin resultados</div>';
