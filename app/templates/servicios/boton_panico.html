@@ -1175,18 +1175,25 @@ async function buscarUsuarioExterno(q) {
         return;
       }
       res.innerHTML = j.data.map(u => {
-        const exts = u.contactos_externos || [];
-        const extHtml = exts.length
-          ? exts.map(e => `
-              <div style="font-size:.76rem;padding:5px 10px;background:var(--bg3);border-radius:8px;margin-top:5px;display:flex;gap:8px;align-items:center;">
-                <span style="font-weight:600;">${_esc(e.nombre||'Sin nombre')}</span>
-                <span style="color:var(--muted);">${_esc(e.prefijo||'+57')} ${_esc(e.celular||'')}</span>
-                <span style="color:var(--accent);font-size:.7rem;">${(e.tipo_notificacion||[]).join(', ')}</span>
-              </div>`).join('')
-          : '<div style="font-size:.74rem;color:var(--muted);padding:5px 0;">Sin contactos externos configurados</div>';
+        const grupos = u.externos_por_empresa || [];
+        let extHtml = '';
+        if (!grupos.length) {
+          extHtml = '<div style="font-size:.74rem;color:var(--muted);padding:6px 0;">Sin contactos externos configurados</div>';
+        } else {
+          extHtml = grupos.map(g => `
+            <div style="margin-top:8px;">
+              <div style="font-size:.68rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">🏢 ${_esc(g.empresa_nombre)}</div>
+              ${(g.contactos||[]).map(e => `
+                <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--bg3);border-radius:9px;margin-bottom:5px;font-size:.78rem;">
+                  <span style="font-weight:700;flex:1;">👤 ${_esc(e.nombre||'Sin nombre')}</span>
+                  <span style="color:var(--muted);">${_esc(e.prefijo||'+57')} ${_esc(e.celular||'—')}</span>
+                  <span style="color:var(--accent);font-size:.7rem;background:color-mix(in srgb,var(--accent) 10%,transparent);padding:2px 8px;border-radius:99px;">${(e.tipo_notificacion||[]).join(' · ')||'—'}</span>
+                </div>`).join('')}
+            </div>`).join('');
+        }
         return `
-          <div style="border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--bg2);">
-            <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:4px;">👤 ${_esc(u.label)}</div>
+          <div style="border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:10px;background:var(--bg2);">
+            <div style="font-size:.87rem;font-weight:700;color:var(--text);margin-bottom:6px;">👤 ${_esc(u.label)}</div>
             ${extHtml}
           </div>`;
       }).join('');

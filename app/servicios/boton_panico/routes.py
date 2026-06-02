@@ -396,26 +396,38 @@ def admin_buscar_usuario():
             {"nombres": 1, "apellidos": 1, "numero_documento": 1, "tipo_documento": 1},
         ).limit(15))
 
-        # Obtener configs de pánico de los usuarios encontrados (guardadas por user_id)
-        uids = [u["_id"] for u in usuarios]
-        cfgs_map = {}
-        for cfg_doc in db["panic_configurations"].find({"user_id": {"$in": uids}}):
-            cfgs_map[str(cfg_doc.get("user_id"))] = cfg_doc
-
         resultado = []
         for u in usuarios:
             uid = str(u["_id"])
             nombre_completo = f"{u.get('nombres','')} {u.get('apellidos','')}".strip()
-            doc = u.get("numero_documento", "")
-            cfg = cfgs_map.get(uid, {})
-            externos = cfg.get("contactos_externos", [])
+            num_doc = u.get("numero_documento", "")
+
+            # Buscar empresas del usuario via asociaciones
+            asocs = list(db["asociaciones"].find(
+                {"user_id": u["_id"], "activo": True, "empresa_id": {"$ne": None}},
+                {"empresa_id": 1}
+            ))
+            eids = [a["empresa_id"] for a in asocs if a.get("empresa_id")]
+
+            # Obtener configs de pánico de cada empresa del usuario
+            externos_por_empresa = []
+            for eid_obj in eids:
+                cfg_doc = db["panic_configurations"].find_one({"empresa_id": eid_obj})
+                if cfg_doc and cfg_doc.get("contactos_externos"):
+                    emp = db["empresas"].find_one({"_id": eid_obj}, {"razon_social": 1})
+                    emp_nombre = (emp or {}).get("razon_social", str(eid_obj))
+                    externos_por_empresa.append({
+                        "empresa_nombre": emp_nombre,
+                        "contactos": cfg_doc["contactos_externos"],
+                    })
+
             resultado.append({
-                "_id":                uid,
-                "nombre_completo":    nombre_completo,
-                "numero_documento":   doc,
-                "tipo_documento":     u.get("tipo_documento", "CC"),
-                "label":              f"{nombre_completo} - {doc}",
-                "contactos_externos": externos,
+                "_id":                   uid,
+                "nombre_completo":       nombre_completo,
+                "numero_documento":      num_doc,
+                "tipo_documento":        u.get("tipo_documento", "CC"),
+                "label":                 f"{nombre_completo} - {num_doc}",
+                "externos_por_empresa":  externos_por_empresa,
             })
         return ok(resultado)
     except Exception as e:
