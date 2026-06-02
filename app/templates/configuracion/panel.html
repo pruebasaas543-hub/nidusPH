@@ -1957,24 +1957,64 @@
                 <!-- ── Pane Log ── -->
                 <div id="panico-pane-log" style="display:none;">
 
+                    <!-- Cabecera -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+                        <span style="font-size:.84rem;font-weight:700;color:#042243;">📋 Historial de activaciones</span>
+                        <button onclick="_panicoExportarCSV()" id="panicoExportCSV" style="display:none;padding:7px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#1a6de0,#2787F5);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;">⬇️ Exportar CSV</button>
+                    </div>
+
                     <!-- Filtros -->
-                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;padding:16px 20px;background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:12px;">
-                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">
-                            📅 Desde
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px;padding:14px 18px;background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:12px;">
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">📅 Desde
                             <input type="date" id="panico-log-desde" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
                         </label>
-                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">
-                            📅 Hasta
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">📅 Hasta
                             <input type="date" id="panico-log-hasta" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
                         </label>
-                        <button onclick="_panicoBuscarLog()" class="btn btn-primary" style="align-self:flex-end;padding:8px 22px;font-size:.82rem;">🔍 Buscar</button>
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">👤 Residente
+                            <input type="text" id="panico-log-nombre" placeholder="Nombre…" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                        </label>
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">📡 Canal
+                            <select id="panico-log-canal" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                                <option value="">Todos</option>
+                                <option value="sms">📱 SMS</option>
+                                <option value="whatsapp">💬 WhatsApp</option>
+                                <option value="llamada">☎️ Llamada</option>
+                            </select>
+                        </label>
+                        <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">✅ Estado
+                            <select id="panico-log-estado" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                                <option value="">Todos</option>
+                                <option value="ok">✅ Entregado / Contestó</option>
+                                <option value="error">❌ Error / No contestó</option>
+                                <option value="mock">🟡 Mock</option>
+                            </select>
+                        </label>
+                        <button onclick="_panicoBuscarLog(1)" class="btn btn-primary" style="align-self:flex-end;padding:8px 22px;font-size:.82rem;">🔍 Buscar</button>
                     </div>
 
                     <div id="panico-eventos-tabla">
-                        <div style="padding:40px;text-align:center;color:#8A9CC8;font-size:.85rem;">Selecciona fechas y haz clic en Buscar.</div>
+                        <div style="padding:40px;text-align:center;color:#8A9CC8;font-size:.85rem;">Selecciona una empresa y haz clic en Buscar.</div>
                     </div>
 
+                    <!-- Paginación -->
+                    <div id="panico-log-paginacion" style="display:none;margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                        <span id="panico-log-pag-info" style="font-size:.78rem;color:#8A9CC8;"></span>
+                        <div style="display:flex;gap:8px;">
+                            <button id="panico-log-prev" onclick="_panicoBuscarLog(_panicoPagActual-1)" style="padding:6px 16px;border-radius:8px;border:1.5px solid rgba(4,34,67,.2);background:#fff;color:#042243;font-size:.8rem;font-weight:600;cursor:pointer;">&#8592; Anterior</button>
+                            <button id="panico-log-next" onclick="_panicoBuscarLog(_panicoPagActual+1)" style="padding:6px 16px;border-radius:8px;border:1.5px solid rgba(4,34,67,.2);background:#fff;color:#042243;font-size:.8rem;font-weight:600;cursor:pointer;">Siguiente &#8594;</button>
+                        </div>
+                    </div>
                 </div><!-- /panico-pane-log -->
+
+                <!-- Modal popup estado (panel config) -->
+                <div id="panico-log-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+                    <div style="background:#fff;border-radius:16px;padding:28px 28px 22px;max-width:420px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.25);position:relative;">
+                        <button onclick="document.getElementById('panico-log-modal').style.display='none'"
+                            style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#8A9CC8;">✕</button>
+                        <div id="panico-log-modal-body"></div>
+                    </div>
+                </div>
 
             </div><!-- /panico-panel -->
 
@@ -7167,13 +7207,23 @@ function _panicoTab(btn) {
     const tab = btn.dataset.ptab;
     document.querySelectorAll('[data-ptab]').forEach(b => b.classList.toggle('active', b === btn));
     document.getElementById('panico-pane-panico').style.display = tab === 'panico' ? 'block' : 'none';
-    // config y log viven dentro de panico-panel (requieren empresa)
     const panelEmp = document.getElementById('panico-panel');
     if (panelEmp) panelEmp.style.display = (tab !== 'panico') ? 'block' : 'none';
     if (document.getElementById('panico-pane-config'))
         document.getElementById('panico-pane-config').style.display = tab === 'config' ? 'block' : 'none';
     if (document.getElementById('panico-pane-log'))
         document.getElementById('panico-pane-log').style.display    = tab === 'log'    ? 'block' : 'none';
+    // Auto-cargar log con fechas predeterminadas (últimos 3 días)
+    if (tab === 'log' && _panicoEmpresaId) {
+        const hoy   = new Date();
+        const hace3 = new Date(hoy); hace3.setDate(hoy.getDate() - 3);
+        const fmt   = d => d.toISOString().slice(0,10);
+        const dD = document.getElementById('panico-log-desde');
+        const dH = document.getElementById('panico-log-hasta');
+        if (dD && !dD.value) dD.value = fmt(hace3);
+        if (dH && !dH.value) dH.value = fmt(hoy);
+        _panicoBuscarLog(1);
+    }
 }
 
 async function _panicoSeleccionarEmpresa(empresaId) {
@@ -7225,60 +7275,190 @@ function _actualizarIframePanico() {
     }
 }
 
-async function _panicoBuscarLog() {
+let _panicoPagActual  = 1;
+let _panicoLogCSV     = [];
+
+const _PANICO_ESTADO_INFO = {
+    enviado:     { label:'Enviado',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje fue aceptado por el proveedor y está en camino.' },
+    sent:        { label:'Enviado',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje fue aceptado por el proveedor y está en camino.' },
+    delivered:   { label:'Entregado',    color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'El mensaje llegó al dispositivo del destinatario.' },
+    read:        { label:'Leído',        color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'👁', desc:'El destinatario abrió y leyó el mensaje.' },
+    initiated:   { label:'Iniciado',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📞', desc:'La llamada fue iniciada correctamente.' },
+    iniciado:    { label:'Iniciado',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📞', desc:'La llamada fue iniciada correctamente.' },
+    completed:   { label:'Contestó',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'La llamada fue contestada por el destinatario.' },
+    mock:        { label:'Mock',         color:'#b7791f', bg:'rgba(183,121,31,.1)', icon:'🟡', desc:'Modo de prueba — no se envió realmente.' },
+    'no-answer': { label:'No contestó',  color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'📵', desc:'La llamada no fue contestada.' },
+    busy:        { label:'Ocupado',      color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'🔴', desc:'El destinatario estaba en otra llamada.' },
+    canceled:    { label:'Cancelada',    color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'🚫', desc:'La llamada fue cancelada antes de conectar.' },
+    failed:      { label:'Fallido',      color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'Error técnico al intentar el envío o llamada.' },
+    undelivered: { label:'No entregado', color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'El mensaje no pudo ser entregado al destinatario.' },
+    error:       { label:'Error',        color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'Ocurrió un error durante el envío.' },
+};
+function _panicoEstadoInfo(e) {
+    return _PANICO_ESTADO_INFO[(e||'').toLowerCase()]
+        || { label: e||'—', color:'#c53030', bg:'rgba(229,62,62,.1)', icon:'❓', desc:`Estado: ${e||'desconocido'}` };
+}
+
+function _panicoMostrarPopup(json) {
+    const d  = JSON.parse(decodeURIComponent(json));
+    const ei = _panicoEstadoInfo(d.estado);
+    const sid  = d.sid    ? `<div style="font-size:.72rem;color:#8A9CC8;margin-top:6px;">SID Twilio: <code style="font-size:.72rem;">${d.sid}</code></div>` : '';
+    const det  = d.detalle? `<div style="margin-top:8px;padding:8px 12px;background:rgba(229,62,62,.08);border-radius:8px;font-size:.78rem;color:#c53030;">⚠️ ${_esc(d.detalle)}</div>` : '';
+    document.getElementById('panico-log-modal-body').innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="font-size:2rem;">${ei.icon}</div>
+            <div>
+                <div style="font-size:1rem;font-weight:700;color:#042243;">${ei.label}</div>
+                <div style="font-size:.75rem;color:#8A9CC8;">${d.canal?.toUpperCase()||''} · ${_esc(d.receptor||'')}</div>
+            </div>
+        </div>
+        <div style="font-size:.84rem;color:#042243;line-height:1.6;padding:12px 14px;background:#f8faff;border-radius:10px;">${ei.desc}</div>
+        ${sid}${det}
+        <div style="margin-top:14px;font-size:.75rem;color:#8A9CC8;">Residente: <strong>${_esc(d.residente||'')}</strong> · ${_esc(d.fecha||'')}</div>`;
+    document.getElementById('panico-log-modal').style.display = 'flex';
+}
+
+async function _panicoRefrescarEstado(eventoId, rowId) {
+    const btn = document.getElementById(rowId + '-rbtn');
+    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+    try {
+        const r = await fetch('/servicios/boton_panico/admin/refresh-estados', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({evento_id: eventoId}),
+        });
+        const j = await r.json();
+        if (!j.ok)          showToast('Error: ' + (j.error||''), true);
+        else if (!j.actualizado) showToast('Estado sin cambios');
+        else { showToast('✅ Estado actualizado'); _panicoBuscarLog(_panicoPagActual); return; }
+    } catch { showToast('Error de conexión', true); }
+    if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
+}
+
+async function _panicoBuscarLog(pagina) {
+    pagina = pagina || 1;
+    if (pagina < 1) return;
     if (!_panicoEmpresaId) { showToast('Selecciona una empresa', true); return; }
-    const desde = document.getElementById('panico-log-desde').value;
-    const hasta = document.getElementById('panico-log-hasta').value;
-    const cont  = document.getElementById('panico-eventos-tabla');
+    _panicoPagActual = pagina;
+
+    const desde  = document.getElementById('panico-log-desde')?.value  || '';
+    const hasta  = document.getElementById('panico-log-hasta')?.value  || '';
+    const nombre = document.getElementById('panico-log-nombre')?.value?.trim() || '';
+    const canal  = document.getElementById('panico-log-canal')?.value  || '';
+    const estado = document.getElementById('panico-log-estado')?.value || '';
+    const cont   = document.getElementById('panico-eventos-tabla');
+    const pagDiv = document.getElementById('panico-log-paginacion');
+
     cont.innerHTML = '<div style="padding:20px;text-align:center;color:#8A9CC8;font-size:.85rem;">Buscando…</div>';
-    let url = `/config/boton_panico/eventos?propiedad_id=${_panicoEmpresaId}&limite=50`;
-    if (desde) url += `&fecha_ini=${desde}`;
-    if (hasta) url += `&fecha_fin=${hasta}T23:59:59`;
+    if (pagDiv) pagDiv.style.display = 'none';
+
+    let url = `/servicios/boton_panico/admin/log?empresa_id=${_panicoEmpresaId}&pagina=${pagina}`;
+    if (desde)  url += `&fecha_ini=${desde}`;
+    if (hasta)  url += `&fecha_fin=${hasta}T23:59:59`;
+    if (nombre) url += `&nombre_res=${encodeURIComponent(nombre)}`;
+    if (canal)  url += `&canal=${canal}`;
+    if (estado) url += `&estado=${estado}`;
+
     try {
         const r = await fetch(url + `&_t=${Date.now()}`);
-        const d = await r.json();
-        if (!d.ok) { cont.innerHTML = `<div style="padding:20px;color:#e53e3e;">${d.error}</div>`; return; }
-        const lista = d.data || [];
+        const j = await r.json();
+        if (!j.ok) { cont.innerHTML = `<div style="padding:20px;color:#e53e3e;">${j.error}</div>`; return; }
+
+        const lista   = j.data || [];
+        const total   = j.total || 0;
+        const totPag  = j.total_paginas || 1;
+
+        const btnCSV = document.getElementById('panicoExportCSV');
+        if (btnCSV) btnCSV.style.display = total > 0 ? '' : 'none';
+
         if (!lista.length) {
-            cont.innerHTML = '<div style="padding:40px;text-align:center;color:#8A9CC8;font-size:.85rem;">Sin activaciones en ese período.</div>';
+            cont.innerHTML = '<div style="padding:40px;text-align:center;color:#8A9CC8;font-size:.85rem;"><div style="font-size:2.5rem;opacity:.3;margin-bottom:10px;">📋</div>Sin activaciones en ese período.</div>';
             return;
         }
+        _panicoLogCSV = lista;
+
+        const thStyle = 'padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);white-space:nowrap;';
+        const tdStyle = 'padding:9px 14px;font-size:.8rem;color:#042243;border-bottom:1px solid rgba(4,34,67,.06);';
+
         const filas = lista.flatMap(ev => {
             const fecha = ev.activado_en ? _panicoFmtFecha(ev.activado_en) : '—';
             const res   = ev.resultado || {};
             const todos = [...(res.externos||[]), ...(res.directorio||[])];
-            if (!todos.length) return [`<tr><td style="padding:9px 14px;color:#042243;white-space:nowrap;">${fecha}</td><td style="padding:9px 14px;font-weight:700;color:#042243;">${_esc(ev.nombre_residente||ev.residente_id||'—')}</td><td colspan="4" style="padding:9px 14px;color:#8A9CC8;">Sin destinatarios</td></tr>`];
-            return todos.flatMap(c => Object.entries(c.canales||{}).map(([tipo, info]) => {
-                const icon   = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
-                const estado = info.estado||'—';
-                const ok     = estado==='enviado'||estado==='iniciado'||estado==='delivered';
-                const color  = ok?'#276749':estado==='mock'?'#b7791f':'#c53030';
-                const bg     = ok?'rgba(39,103,73,.08)':estado==='mock'?'rgba(183,121,31,.08)':'rgba(229,62,62,.08)';
-                const det    = info.detalle ? `<br><span style="font-size:.65rem;color:#e53e3e;">${_esc(info.detalle)}</span>` : '';
-                return `<tr style="border-bottom:1px solid rgba(4,34,67,.06);">
-                    <td style="padding:9px 14px;color:#042243;white-space:nowrap;font-size:.8rem;">${fecha}</td>
-                    <td style="padding:9px 14px;font-weight:700;color:#042243;font-size:.8rem;">${_esc(ev.nombre_residente||ev.residente_id||'—')}</td>
-                    <td style="padding:9px 14px;font-size:.8rem;">${icon} ${tipo.toUpperCase()}</td>
-                    <td style="padding:9px 14px;font-size:.8rem;color:#042243;">${_esc(c.nombre||'—')}</td>
-                    <td style="padding:9px 14px;font-size:.8rem;color:#2787F5;">${_esc(c.numero||'—')}</td>
-                    <td style="padding:9px 14px;"><span style="font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:6px;background:${bg};color:${color};">${estado}</span>${det}</td>
+            if (!todos.length) return [`<tr>
+                <td style="${tdStyle}white-space:nowrap;">${fecha}</td>
+                <td style="${tdStyle}font-weight:700;">${_esc(ev.nombre_residente||ev.residente_id||'—')}</td>
+                <td colspan="4" style="${tdStyle}color:#8A9CC8;">Sin destinatarios</td>
+                <td style="${tdStyle}">—</td></tr>`];
+            return todos.flatMap((c, ci) => Object.entries(c.canales||{}).map(([tipo, info], ii) => {
+                const icon = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
+                const ei   = _panicoEstadoInfo(info.estado);
+                const rowId = `prow-${ev._id}-${ci}-${ii}`;
+                const canRef = info.sid && !['mock','error'].includes((info.estado||'').toLowerCase());
+                const popData = encodeURIComponent(JSON.stringify({
+                    estado: info.estado, canal: tipo, receptor: c.nombre||'',
+                    sid: info.sid||'', detalle: info.detalle||'',
+                    residente: ev.nombre_residente||ev.residente_id||'', fecha,
+                }));
+                return `<tr id="${rowId}">
+                    <td style="${tdStyle}white-space:nowrap;">${fecha}</td>
+                    <td style="${tdStyle}font-weight:700;">${_esc(ev.nombre_residente||ev.residente_id||'—')}</td>
+                    <td style="${tdStyle}">${icon} ${tipo.toUpperCase()}</td>
+                    <td style="${tdStyle}">${_esc(c.nombre||'—')}</td>
+                    <td style="${tdStyle}color:#2787F5;">${_esc(c.numero||'—')}</td>
+                    <td style="${tdStyle}" id="${rowId}-chip">
+                        <span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:6px;background:${ei.bg};color:${ei.color};">${ei.icon} ${ei.label}</span>
+                    </td>
+                    <td style="${tdStyle}">
+                        <div style="display:flex;gap:5px;">
+                            <button onclick="_panicoMostrarPopup('${popData}')" title="Ver detalle"
+                                style="padding:3px 10px;border-radius:99px;border:1px solid rgba(39,135,245,.3);background:rgba(39,135,245,.08);color:#2787F5;font-size:.76rem;cursor:pointer;">💬 Ver</button>
+                            ${canRef ? `<button onclick="_panicoRefrescarEstado('${ev._id}','${rowId}')" id="${rowId}-rbtn" title="Actualizar estado desde Twilio"
+                                style="padding:3px 10px;border-radius:99px;border:1px solid rgba(39,103,73,.3);background:rgba(39,103,73,.08);color:#276749;font-size:.76rem;cursor:pointer;">🔄</button>` : ''}
+                        </div>
+                    </td>
                 </tr>`;
             }));
         }).join('');
+
         cont.innerHTML = `<div style="overflow-x:auto;border-radius:10px;border:1.5px solid rgba(4,34,67,.08);">
             <table style="width:100%;border-collapse:collapse;">
                 <thead><tr style="background:rgba(4,34,67,.04);">
-                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">FECHA</th>
-                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">RESIDENTE</th>
-                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">CANAL</th>
-                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">RECEPTOR</th>
-                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">NÚMERO</th>
-                    <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#8A9CC8;letter-spacing:.5px;border-bottom:1.5px solid rgba(4,34,67,.08);">ESTADO</th>
+                    <th style="${thStyle}">FECHA</th><th style="${thStyle}">RESIDENTE</th>
+                    <th style="${thStyle}">CANAL</th><th style="${thStyle}">RECEPTOR</th>
+                    <th style="${thStyle}">NÚMERO</th><th style="${thStyle}">ESTADO</th>
+                    <th style="${thStyle}">DETALLE</th>
                 </tr></thead>
                 <tbody>${filas}</tbody>
-            </table>
-        </div>`;
+            </table></div>`;
+
+        if (pagDiv && totPag > 1) {
+            pagDiv.style.display = 'flex';
+            document.getElementById('panico-log-pag-info').textContent = `Página ${pagina} de ${totPag} · ${total} activaciones`;
+            document.getElementById('panico-log-prev').disabled = pagina <= 1;
+            document.getElementById('panico-log-next').disabled = pagina >= totPag;
+        }
     } catch(e) { cont.innerHTML = `<div style="padding:20px;color:#e53e3e;">Error: ${e.message}</div>`; }
+}
+
+function _panicoExportarCSV() {
+    if (!_panicoLogCSV.length) return;
+    const filas = [['Fecha','Residente','Canal','Receptor','Número','Estado','SID']];
+    _panicoLogCSV.forEach(ev => {
+        const fecha = ev.activado_en ? _panicoFmtFecha(ev.activado_en) : '—';
+        const res   = ev.resultado || {};
+        [...(res.externos||[]), ...(res.directorio||[])].forEach(c => {
+            Object.entries(c.canales||{}).forEach(([tipo, info]) => {
+                filas.push([fecha, ev.nombre_residente||ev.residente_id||'—',
+                    tipo.toUpperCase(), c.nombre||'—', c.numero||'—',
+                    info.estado||'—', info.sid||'']);
+            });
+        });
+    });
+    const csv  = filas.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `log_panico_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
 }
 
 const _PANICO_MSG_IDS   = { sms: 'panico-msg-sms', whatsapp: 'panico-msg-whatsapp', llamada: 'panico-msg-llamada' };
