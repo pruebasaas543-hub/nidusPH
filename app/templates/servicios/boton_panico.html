@@ -597,12 +597,17 @@ const PERM = {
   log:           {{ 'true' if (es_sistema or permisos.log) else 'false' }},
 };
 
-// Ocultar topbar propio cuando se carga dentro del dashboard (iframe)
+// Cuando está embebido en iframe ocultar topbar, toolbar y tabs (el padre los provee)
 (function(){
   if (window.self !== window.top) {
     document.addEventListener('DOMContentLoaded', function(){
-      var tb = document.querySelector('.bp-topbar');
-      if (tb) tb.style.display = 'none';
+      ['.bp-topbar', '.bp-toolbar', '.bp-tabs-wrap'].forEach(function(sel){
+        var el = document.querySelector(sel);
+        if (el) el.style.display = 'none';
+      });
+      // Activar directo el primer pane visible sin necesidad de tabs
+      var primer = document.querySelector('.bp-pane');
+      if (primer) primer.classList.add('active');
     });
   }
 })();
