@@ -716,7 +716,7 @@ function bpTab(id, btn) {
 // ═══════════════════════════════════════════════════════════════
 //  SECCIÓN EMERGENCIA (residente)
 // ═══════════════════════════════════════════════════════════════
-let _externos = [], _externosEditing = [], _directorio = [], _paises = [];
+let _externos = [], _externosEditing = [], _externos_empresa = [], _externos_personales = [], _directorio = [], _paises = [];
 let _holding = false, _holdTimer = null, _animFrame = null, _holdStart = null;
 const HOLD_MS = 3000, CIRCUM = 628.32;
 
@@ -733,13 +733,14 @@ async function init(empresaId) {
   // Config del residente solo aplica cuando hay empresa seleccionada
   const eqDir  = (ES_SISTEMA && !eid) ? '' : (eid ? `&empresa_id=${eid}` : '');
   const eqCfg  = eid ? `&empresa_id=${eid}` : '';
-  const [rP, rDir, rCfg, rHist] = await Promise.all([
+  const [rP, rDir, rCfg, rHist, rMisC] = await Promise.all([
     fetch(`/servicios/boton_panico/paises?_t=${ts}`),
     fetch(`/servicios/boton_panico/directorio?_t=${ts}${eqDir}`),
     eid ? fetch(`/servicios/boton_panico/config?_t=${ts}${eqCfg}`) : Promise.resolve({json:()=>({ok:false,data:{}})}),
     fetch(`/servicios/boton_panico/eventos?_t=${ts}${eqDir}`),
+    fetch(`/servicios/boton_panico/mis-contactos?_t=${ts}`),
   ]);
-  const [dP, dDir, dCfg, dHist] = await Promise.all([rP.json(), rDir.json(), rCfg.json(), rHist.json()]);
+  const [dP, dDir, dCfg, dHist, dMisC] = await Promise.all([rP.json(), rDir.json(), rCfg.json(), rHist.json(), rMisC.json()]);
 
   _paises = dP.ok ? (dP.data||[]) : [{nombre_pais:'Colombia', prefijo:'+57', bandera:'🇨🇴'}];
   const dirContactos = dDir.ok ? (dDir.data||[]) : [];
@@ -752,7 +753,9 @@ async function init(empresaId) {
     habilitado_para_llamar:   savedMap[c._id]?.habilitado_para_llamar   || false,
     habilitado_para_whatsapp: savedMap[c._id]?.habilitado_para_whatsapp || false,
   }));
-  _externos = cfg.contactos_externos || [];
+  _externos_empresa = cfg.contactos_externos || [];
+  _externos_personales = (dMisC.ok && dMisC.data) ? dMisC.data.map(c => ({...c, _es_personal: true})) : [];
+  _externos = [..._externos_empresa, ..._externos_personales];
   _externosEditing = _externos.map(() => false);
   renderExternos(); renderDirectorio();
   renderHistorial(dHist.ok ? (dHist.data||[]) : []);
@@ -773,6 +776,7 @@ function _paisesOpts(selPrefijo='+57'){
 
 function renderExternos(){
   const list = document.getElementById('extList');
+  const badge = (c) => c._es_personal ? '<span style="font-size:.6rem;padding:2px 8px;border-radius:20px;background:rgba(39,135,245,.15);color:#2787F5;font-weight:700;margin-left:8px;">👤 Personal</span>' : '<span style="font-size:.6rem;padding:2px 8px;border-radius:20px;background:rgba(150,150,150,.15);color:#666;font-weight:700;margin-left:8px;">🏢 Empresa</span>';
   list.innerHTML = _externos.map((c,i) => {
     const tipos = c.tipo_notificacion || [];
     const editing = _externosEditing[i];
@@ -795,7 +799,7 @@ function renderExternos(){
       <div class="ext-card readonly">
         <div class="ext-card-header">
           <div class="ext-num-badge">${i+1}</div>
-          <div class="ext-nombre-display">${_esc(c.nombre||'Sin nombre')}</div>
+          <div class="ext-nombre-display">${_esc(c.nombre||'Sin nombre')}${badge(c)}</div>
           <div class="btn-card-actions">
             <button class="btn-edit-card" onclick="editarExterno(${i})" title="Editar">✏️</button>
             <button class="btn-remove" onclick="confirmarEliminar(${i})" title="Eliminar">🗑️</button>
@@ -935,15 +939,39 @@ async function guardarConfig(){
   btn.disabled = true; _mostrarLoading();
   const eid = ES_SISTEMA ? _admEmpresaId : MI_EMPRESA;
   const eq  = ES_SISTEMA && eid ? `?empresa_id=${eid}` : '';
+
+  // Separar: personales (nuevos) vs empresa
+  const nuevosPersonales = _externos_personales.filter(c => !c._id);
+  const personalesModificados = _externos_personales.filter(c => c._id);
+
   const payload = {
-    contactos_externos: _externos.map(c => ({ nombre: c.nombre.trim(), prefijo: c.prefijo||'+57', celular: c.celular.trim(), tipo_notificacion: c.tipo_notificacion||[] })),
+    contactos_externos: _externos_empresa.map(c => ({ nombre: c.nombre.trim(), prefijo: c.prefijo||'+57', celular: c.celular.trim(), tipo_notificacion: c.tipo_notificacion||[] })),
     contactos_directorio: _directorio.map(c => ({ contacto_id: c._id, nombre: c.nombre, habilitado_para_sms: c.habilitado_para_sms, habilitado_para_llamar: c.habilitado_para_llamar, habilitado_para_whatsapp: c.habilitado_para_whatsapp })),
   };
+
   try {
     const r = await fetch(`/servicios/boton_panico/config${eq}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     const d = await r.json();
-    if(d.ok){ _externosEditing = _externos.map(() => false); renderExternos(); _mostrarResultado(true, 'Los cambios han sido aplicados correctamente.'); }
-    else { _mostrarResultado(false, d.error || 'No se pudo guardar la configuración.'); }
+
+    if(!d.ok) { _mostrarResultado(false, d.error || 'No se pudo guardar la configuración.'); return; }
+
+    // Guardar contactos personales nuevos
+    for (const c of nuevosPersonales) {
+      await fetch('/servicios/boton_panico/mis-contactos', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          nombre: c.nombre.trim(),
+          telefono: `${c.prefijo||'+57'}${c.celular}`,
+          descripcion: `Tipo: ${(c.tipo_notificacion||[]).join(', ') || 'SMS'}`,
+          habilitado: true
+        })
+      }).catch(() => {});
+    }
+
+    _externosEditing = _externos.map(() => false);
+    renderExternos();
+    _mostrarResultado(true, 'Los cambios han sido aplicados correctamente.');
   } catch { _mostrarResultado(false, 'Error de conexión. Verifica tu red e intenta de nuevo.'); }
   finally { btn.disabled = false; }
 }
