@@ -37,6 +37,53 @@ def _requiere_sistema(f):
     return decorated
 
 
+def _empresa_admin() -> str:
+    """Empresa para vistas config/log.
+    Sistema: query param empresa_id. Normal: empresa de sesión.
+    """
+    if _es_sistema():
+        return request.args.get("empresa_id", "").strip()
+    return _empresa_id()
+
+
+def _eid_efectivo() -> str:
+    """Empresa para la pestaña Emergencia.
+    Sistema: query param empresa_id (preferido) o empresa de sesión.
+    Normal: empresa de sesión únicamente.
+    """
+    if not _es_sistema():
+        return _empresa_id()
+    return request.args.get("empresa_id", "").strip() or _empresa_id()
+
+
+def _tiene_permiso(accion: str) -> bool:
+    """True si el usuario puede ejecutar la acción del botón de pánico.
+
+    El usuario del sistema siempre puede. Para el resto se consulta permisos_rol.
+    """
+    if _es_sistema():
+        return True
+    from app.servicios.permisos.model import PermisosRolModel
+    perms = PermisosRolModel.obtener_para_sesion(_empresa_id(), session.get("rol", ""), "boton_panico")
+    return bool(perms.get(accion))
+
+
+def _requiere_permiso(accion: str):
+    """Decorador: exige permiso de botón de pánico para la acción dada."""
+    from functools import wraps
+    from flask import jsonify
+    def wrapper(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if not session.get("num_doc"):
+                return jsonify({"ok": False, "error": "No autenticado"}), 401
+            if not _tiene_permiso(accion):
+                return jsonify({"ok": False, "error": "Sin permisos"}), 403
+            return f(*args, **kwargs)
+        return decorated
+    return wrapper
+
+
 # ── Países / prefijos ─────────────────────────────────────────────────────
 
 @panico_bp.route("/paises", methods=["GET"])
@@ -56,7 +103,7 @@ def listar_paises():
 @panico_bp.route("/config", methods=["GET"])
 @requiere_login
 def obtener_config():
-    eid = _empresa_id()
+    eid = _eid_efectivo()
     if not eid:
         return err("No hay empresa en sesión", 400)
     _, cfg = PanicController.obtener_config(eid)
@@ -65,8 +112,9 @@ def obtener_config():
 
 @panico_bp.route("/config", methods=["PUT"])
 @requiere_login
+@_requiere_permiso("emergencia")
 def guardar_config():
-    eid = _empresa_id()
+    eid = _eid_efectivo()
     if not eid:
         return err("No hay empresa en sesión", 400)
     datos = request.get_json(silent=True) or {}
@@ -81,7 +129,7 @@ def guardar_config():
 @panico_bp.route("/directorio", methods=["GET"])
 @requiere_login
 def directorio_panico():
-    eid = _empresa_id()
+    eid = _eid_efectivo()
     if not eid:
         return err("No hay empresa en sesión", 400)
     try:
@@ -103,8 +151,9 @@ def directorio_panico():
 
 @panico_bp.route("/trigger", methods=["POST"])
 @requiere_login
+@_requiere_permiso("emergencia")
 def trigger():
-    eid = _empresa_id()
+    eid = _eid_efectivo()
     if not eid:
         return err("No hay empresa en sesión", 400)
 
@@ -139,7 +188,7 @@ def trigger():
 @panico_bp.route("/eventos", methods=["GET"])
 @requiere_login
 def listar_eventos():
-    eid = _empresa_id()
+    eid = _eid_efectivo()
     if not eid:
         return err("No hay empresa en sesión", 400)
     eventos = PanicEventModel.listar_por_residente(eid, _usuario(), limite=5)
@@ -164,10 +213,11 @@ def admin_empresas():
 
 
 @panico_bp.route("/admin/mensajes", methods=["GET"])
-@_requiere_sistema
+@requiere_login
+@_requiere_permiso("configuracion")
 def admin_obtener_mensajes():
     from app.servicios.boton_panico.controller import MSG_DEFAULT_SMS, MSG_DEFAULT_WHATSAPP, MSG_DEFAULT_LLAMADA
-    eid = request.args.get("empresa_id", "").strip()
+    eid = _empresa_admin()
     if not eid:
         return err("empresa_id requerido", 400)
     try:
@@ -190,13 +240,14 @@ def admin_obtener_mensajes():
 
 
 @panico_bp.route("/admin/mensajes/<tipo>", methods=["PUT"])
-@_requiere_sistema
+@requiere_login
+@_requiere_permiso("configuracion")
 def admin_guardar_mensaje(tipo):
     from app.servicios.boton_panico.controller import MSG_DEFAULT_SMS, MSG_DEFAULT_WHATSAPP, MSG_DEFAULT_LLAMADA
     CAMPOS = {"llamada": "mensaje_llamada", "sms": "mensaje_sms", "whatsapp": "mensaje_whatsapp"}
     if tipo not in CAMPOS:
         return err("Tipo inválido", 400)
-    eid = request.args.get("empresa_id", "").strip()
+    eid = _empresa_admin()
     if not eid:
         return err("empresa_id requerido", 400)
     datos = request.get_json(silent=True) or {}
@@ -211,14 +262,15 @@ def admin_guardar_mensaje(tipo):
 
 
 @panico_bp.route("/admin/mensajes/<tipo>", methods=["DELETE"])
-@_requiere_sistema
+@requiere_login
+@_requiere_permiso("configuracion")
 def admin_restablecer_mensaje(tipo):
     from app.servicios.boton_panico.controller import MSG_DEFAULT_SMS, MSG_DEFAULT_WHATSAPP, MSG_DEFAULT_LLAMADA
     CAMPOS   = {"llamada": "mensaje_llamada", "sms": "mensaje_sms", "whatsapp": "mensaje_whatsapp"}
     DEFAULTS = {"llamada": MSG_DEFAULT_LLAMADA, "sms": MSG_DEFAULT_SMS, "whatsapp": MSG_DEFAULT_WHATSAPP}
     if tipo not in CAMPOS:
         return err("Tipo inválido", 400)
-    eid = request.args.get("empresa_id", "").strip()
+    eid = _empresa_admin()
     if not eid:
         return err("empresa_id requerido", 400)
     try:
@@ -229,9 +281,10 @@ def admin_restablecer_mensaje(tipo):
 
 
 @panico_bp.route("/admin/contactos", methods=["GET"])
-@_requiere_sistema
+@requiere_login
+@_requiere_permiso("configuracion")
 def admin_contactos():
-    eid = request.args.get("empresa_id", "").strip()
+    eid = _empresa_admin()
     if not eid:
         return err("empresa_id requerido", 400)
     try:
@@ -257,9 +310,10 @@ def admin_contactos():
 
 
 @panico_bp.route("/admin/log", methods=["GET"])
-@_requiere_sistema
+@requiere_login
+@_requiere_permiso("log")
 def admin_log():
-    eid         = request.args.get("empresa_id", "").strip()
+    eid         = _empresa_admin()
     fecha_ini   = request.args.get("fecha_ini", "").strip()
     fecha_fin   = request.args.get("fecha_fin", "").strip()
     limite      = min(int(request.args.get("limite", 50)), 200)

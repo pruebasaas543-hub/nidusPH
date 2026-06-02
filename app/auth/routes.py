@@ -235,9 +235,36 @@ _VARS_CSS = {
 
 
 def _tema_efectivo(empresa_id: str) -> tuple:
-    """Devuelve el tema considerando primero la preferencia del usuario en sesión."""
+    """Devuelve el tema considerando primero la preferencia del usuario.
+
+    Prioridad: sesión → preferencia persistida en users → tema de empresa.
+    """
+    if not empresa_id:
+        return _tema_empresa(empresa_id)
+
     prefs = session.get("tema_prefs", {})
-    pref_clave = prefs.get(empresa_id, "") if empresa_id else ""
+    pref_clave = prefs.get(empresa_id, "")
+
+    # Si no está en sesión, intentar recuperar la preferencia guardada del usuario
+    if not pref_clave and session.get("usuario_id"):
+        try:
+            from app import db
+            from bson import ObjectId
+            doc = db["users"].find_one(
+                {"_id": ObjectId(session["usuario_id"])},
+                {"tema_prefs": 1},
+            )
+            guardadas = (doc or {}).get("tema_prefs", {}) or {}
+            pref_clave = guardadas.get(empresa_id, "")
+            if pref_clave:
+                # Cachear en sesión para siguientes solicitudes
+                nuevas = dict(prefs)
+                nuevas[empresa_id] = pref_clave
+                session["tema_prefs"] = nuevas
+                session.modified = True
+        except Exception:
+            pass
+
     if pref_clave:
         try:
             from app import db
@@ -246,6 +273,7 @@ def _tema_efectivo(empresa_id: str) -> tuple:
                 return pref_clave, tema.get("css", ""), _VARS_CSS.get(pref_clave, "")
         except Exception:
             pass
+
     return _tema_empresa(empresa_id)
 
 
@@ -401,10 +429,24 @@ def mi_apariencia_aplicar():
     empresa_id = session.get("empresa_id", "")
     if not clave or not empresa_id:
         return jsonify({"ok": False, "error": "datos incompletos"}), 400
+
+    # 1) Guardar en sesión (acceso rápido)
     prefs = dict(session.get("tema_prefs", {}))
     prefs[empresa_id] = clave
     session["tema_prefs"] = prefs
     session.modified = True
+
+    # 2) Persistir en el usuario (sobrevive cierre de sesión)
+    try:
+        from app import db
+        from bson import ObjectId
+        db["users"].update_one(
+            {"_id": ObjectId(session["usuario_id"])},
+            {"$set": {f"tema_prefs.{empresa_id}": clave}},
+        )
+    except Exception as exc:
+        logger.warning("No se pudo persistir tema_prefs en users: %s", exc)
+
     logger.info("tema_prefs: empresa=%s → clave='%s'", empresa_id, clave)
     return jsonify({"ok": True, "clave": clave})
 

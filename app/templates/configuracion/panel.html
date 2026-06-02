@@ -1781,6 +1781,12 @@
                     <div id="permisos-directorio-tabla" style="display:flex;flex-direction:column;gap:0;"></div>
                 </div>
 
+                <!-- Módulo: Botón de Pánico -->
+                <div style="background:#fff5f5;border:1.5px solid #f0a8a8;border-radius:14px;padding:20px 22px;margin-bottom:20px;">
+                    <div style="font-size:.84rem;font-weight:700;color:#042243;margin-bottom:16px;">🚨 Botón de Pánico</div>
+                    <div id="permisos-panico-tabla" style="display:flex;flex-direction:column;gap:0;"></div>
+                </div>
+
             </div>
         </div>
 
@@ -7022,49 +7028,67 @@ async function _permisosCargar() {
         ]);
         _permisosRoles = (jRoles.ok && Array.isArray(jRoles.data)) ? jRoles.data : [];
         _permisosData  = (jPermisos.ok && jPermisos.data) ? jPermisos.data : {};
-        _permisosRenderDirectorio();
+        _permisosRenderModulo('directorio');
+        _permisosRenderModulo('boton_panico');
     } catch(e) { showToast('Error al cargar permisos', true); }
 }
 
-const _PERMISOS_ACCIONES = ['ver', 'crear', 'editar', 'eliminar'];
-const _PERMISOS_LABELS   = { ver: '👁 Ver', crear: '➕ Crear', editar: '✏️ Editar', eliminar: '🗑 Eliminar' };
+// Acciones y etiquetas por módulo
+const _PERMISOS_MODULOS = {
+    directorio: {
+        tabla:  'permisos-directorio-tabla',
+        col:    '#2563a8',
+        acciones: ['ver', 'crear', 'editar', 'eliminar'],
+        labels: { ver: '👁 Ver', crear: '➕ Crear', editar: '✏️ Editar', eliminar: '🗑 Eliminar' },
+    },
+    boton_panico: {
+        tabla:  'permisos-panico-tabla',
+        col:    '#c0392b',
+        acciones: ['emergencia', 'configuracion', 'log'],
+        labels: { emergencia: '🚨 Emergencia', configuracion: '⚙️ Configuración', log: '📋 Log' },
+    },
+};
 
-function _permisosRenderDirectorio() {
-    const tabla = document.getElementById('permisos-directorio-tabla');
+function bool(v) { return v === true || v === 'true' || v === 1; }
+
+function _permisosRenderModulo(modulo) {
+    const cfg = _PERMISOS_MODULOS[modulo];
+    if (!cfg) return;
+    const tabla = document.getElementById(cfg.tabla);
     if (!tabla) return;
     if (!_permisosRoles.length) {
         tabla.innerHTML = '<span style="font-size:.78rem;color:#6b7280;">No hay roles configurados.</span>';
         return;
     }
+    const n = cfg.acciones.length;
+    const grid = `1fr repeat(${n},100px)`;
 
-    // Cabecera
     const header = `
-        <div style="display:grid;grid-template-columns:1fr repeat(4,90px);gap:8px;align-items:center;
+        <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;
                     padding:8px 12px;background:#e8f0fb;border-radius:8px 8px 0 0;margin-bottom:2px;">
-            <span style="font-size:.72rem;font-weight:700;color:#2563a8;text-transform:uppercase;letter-spacing:.8px;">Rol</span>
-            ${_PERMISOS_ACCIONES.map(a =>
-                `<span style="font-size:.72rem;font-weight:700;color:#2563a8;text-align:center;text-transform:uppercase;letter-spacing:.8px;">${_PERMISOS_LABELS[a]}</span>`
+            <span style="font-size:.72rem;font-weight:700;color:${cfg.col};text-transform:uppercase;letter-spacing:.8px;">Rol</span>
+            ${cfg.acciones.map(a =>
+                `<span style="font-size:.72rem;font-weight:700;color:${cfg.col};text-align:center;text-transform:uppercase;letter-spacing:.5px;">${cfg.labels[a]}</span>`
             ).join('')}
         </div>`;
 
     const filas = _permisosRoles.map((rol, idx) => {
         const rid     = rol._id;
-        const datos   = _permisosData[rid]?.modulos?.directorio || {};
+        const datos   = _permisosData[rid]?.modulos?.[modulo] || {};
         const bgColor = idx % 2 === 0 ? '#fff' : '#f8faff';
-        const toggles = _PERMISOS_ACCIONES.map(accion => {
+        const toggles = cfg.acciones.map(accion => {
             const activo = bool(datos[accion]);
             return `
                 <div style="display:flex;justify-content:center;">
-                    <label class="canal-toggle" title="${_PERMISOS_LABELS[accion]}">
-                        <input type="checkbox" data-rol="${rid}" data-accion="${accion}"
-                               ${activo ? 'checked' : ''}
-                               onchange="_permisosToggle('${rid}','${accion}',this.checked)">
+                    <label class="canal-toggle" title="${cfg.labels[accion]}">
+                        <input type="checkbox" ${activo ? 'checked' : ''}
+                               onchange="_permisosToggle('${rid}','${modulo}','${accion}',this.checked)">
                         <span class="canal-toggle-slider"></span>
                     </label>
                 </div>`;
         }).join('');
         return `
-            <div style="display:grid;grid-template-columns:1fr repeat(4,90px);gap:8px;align-items:center;
+            <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;
                         padding:10px 12px;background:${bgColor};border-bottom:1px solid rgba(4,34,67,.06);">
                 <span style="font-size:.82rem;font-weight:600;color:#042243;">${_esc(rol.nombre)}</span>
                 ${toggles}
@@ -7074,35 +7098,33 @@ function _permisosRenderDirectorio() {
     tabla.innerHTML = header + filas;
 }
 
-function bool(v) { return v === true || v === 'true' || v === 1; }
-
-async function _permisosToggle(rolId, accion, valor) {
+async function _permisosToggle(rolId, modulo, accion, valor) {
     if (!_permisosEmpresaId) return;
-    // Actualiza local primero (optimistic)
+    const cfg = _PERMISOS_MODULOS[modulo];
+    if (!cfg) return;
+    // Optimistic update
     if (!_permisosData[rolId]) _permisosData[rolId] = { modulos: {} };
     if (!_permisosData[rolId].modulos) _permisosData[rolId].modulos = {};
-    if (!_permisosData[rolId].modulos.directorio) _permisosData[rolId].modulos.directorio = {};
-    _permisosData[rolId].modulos.directorio[accion] = valor;
+    if (!_permisosData[rolId].modulos[modulo]) _permisosData[rolId].modulos[modulo] = {};
+    _permisosData[rolId].modulos[modulo][accion] = valor;
 
-    // Construye el objeto completo de acciones para este rol+modulo
     const acciones = Object.fromEntries(
-        _PERMISOS_ACCIONES.map(a => [a, bool(_permisosData[rolId].modulos.directorio[a])])
+        cfg.acciones.map(a => [a, bool(_permisosData[rolId].modulos[modulo][a])])
     );
     try {
         const r = await apiFetch(
             `/config/permisos?propiedad_id=${_permisosEmpresaId}`,
             'PUT',
-            { rol_id: rolId, modulo: 'directorio', acciones }
+            { rol_id: rolId, modulo, acciones }
         );
         if (!r.ok) {
-            // Revertir si falla
-            _permisosData[rolId].modulos.directorio[accion] = !valor;
-            _permisosRenderDirectorio();
+            _permisosData[rolId].modulos[modulo][accion] = !valor;
+            _permisosRenderModulo(modulo);
             showToast(r.error || 'Error al guardar permiso', true);
         }
     } catch {
-        _permisosData[rolId].modulos.directorio[accion] = !valor;
-        _permisosRenderDirectorio();
+        _permisosData[rolId].modulos[modulo][accion] = !valor;
+        _permisosRenderModulo(modulo);
         showToast('Error de conexión', true);
     }
 }

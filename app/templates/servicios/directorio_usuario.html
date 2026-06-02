@@ -170,7 +170,15 @@
     }
     .btn-nuevo:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,212,255,.5); }
     .btn-nuevo:active { transform:translateY(0); }
-    .search-wrap { margin-left:auto; position:relative; }
+    .btn-volver {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:9px 18px; border-radius:10px; cursor:pointer; text-decoration:none;
+      font-family:inherit; font-size:.83rem; font-weight:600;
+      color:var(--text); background:var(--bg2);
+      border:1px solid var(--border); transition:all .2s;
+    }
+    .btn-volver:hover { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, transparent); }
+    .search-wrap { position:relative; }
     .search-wrap input {
       background:rgba(255,255,255,.05); color:var(--text);
       border:1px solid rgba(255,255,255,.1); border-radius:10px;
@@ -187,7 +195,9 @@
     .tabs-wrap {
       padding:14px 28px 0; border-bottom:1px solid rgba(255,255,255,.12);
       background:#0a2d5a; flex-shrink:0; overflow-x:auto;
+      scrollbar-width:none; -ms-overflow-style:none;
     }
+    .tabs-wrap::-webkit-scrollbar { display:none; height:0; }
     .tabs { display:flex; gap:6px; }
     .tab {
       display:flex; align-items:center; gap:7px;
@@ -426,6 +436,46 @@
     #toast.show { opacity:1; transform:translateY(0); }
     #toast.err  { border-color:var(--red); color:var(--red); }
     #toast.ok   { border-color:var(--green); color:var(--green); }
+
+    /* ══════════ RESPONSIVE ══════════ */
+
+    /* Tablet */
+    @media (max-width: 900px) {
+      .topbar  { padding:0 16px; gap:10px; }
+      .toolbar { padding:12px 16px; }
+      .tabs-wrap { padding:12px 16px 0; }
+      .content { padding:20px 16px; }
+      .topbar-sub { display:none; }
+      .contact-card { width:100%; max-width:340px; }
+      .org-row { gap:12px; }
+    }
+
+    /* Móvil */
+    @media (max-width: 600px) {
+      .topbar { gap:8px; padding:0 12px; }
+      .topbar-name { font-size:.92rem; }
+      .topbar-right { display:none; }
+      .topbar-divider { display:none; }
+
+      .toolbar { gap:8px; padding:10px 12px; }
+      .btn-volver { padding:8px 12px; font-size:.8rem; }
+      .btn-nuevo  { padding:8px 14px; font-size:.8rem; margin-left:0 !important; order:3; }
+      .search-wrap { margin-left:auto !important; flex:1; min-width:140px; }
+      .search-wrap input { width:100%; }
+      .search-wrap input:focus { width:100%; }
+
+      .content { padding:16px 12px; }
+      .cards-grid { gap:12px; }
+      .contact-card { width:100%; max-width:none; }
+      .org-section { margin-bottom:28px; }
+      .org-row { gap:10px; }
+      .org-title { font-size:.82rem; letter-spacing:.5px; }
+
+      .modal-box { max-width:100%; border-radius:16px; }
+      .modal-footer { flex-direction:column-reverse; }
+      .btn-footer { width:100%; }
+      #toast { left:12px; right:12px; bottom:16px; text-align:center; }
+    }
   </style>
 </head>
 <body>
@@ -448,10 +498,14 @@
     </div>
   </div>
 
-  <!-- Toolbar: solo visible si tiene permisos de crear -->
+  <!-- Toolbar -->
   {% if permisos.crear %}
   <div class="toolbar">
-    <button class="btn-nuevo" onclick="DC.abrirModal()">
+    <a class="btn-volver" href="{{ url_for('auth.dashboard') }}"
+       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
+      <span style="font-size:1rem;line-height:1;">&#8592;</span> Volver
+    </a>
+    <button class="btn-nuevo" style="margin-left:auto;" onclick="DC.abrirModal()">
       <span style="font-size:1rem;line-height:1;">＋</span> Nuevo Contacto
     </button>
     <div class="search-wrap">
@@ -460,7 +514,11 @@
   </div>
   {% elif permisos.ver %}
   <div class="toolbar">
-    <div class="search-wrap" style="margin-left:0;">
+    <a class="btn-volver" href="{{ url_for('auth.dashboard') }}"
+       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
+      <span style="font-size:1rem;line-height:1;">&#8592;</span> Volver
+    </a>
+    <div class="search-wrap" style="margin-left:auto;">
       <input id="buscador" type="text" placeholder="Buscar contacto..." onInput="DC.filtrar(this.value)" />
     </div>
   </div>

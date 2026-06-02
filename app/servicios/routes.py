@@ -42,11 +42,23 @@ def panel_servicio(codigo):
     if codigo == "boton_panico":
         import logging
         from app.configuracion.roles.model import RolModel
+        from app.auth.routes import _tema_efectivo
         rol = session.get("rol", "")
         nombres = RolModel.nombres_sistema()
         es_sistema = rol in nombres
-        logging.getLogger(__name__).info("boton_panico → rol=%r es_sistema=%s nombres=%s", rol, es_sistema, nombres)
-        return render_template("servicios/boton_panico.html", servicio=srv, es_sistema=es_sistema)
+        empresa_id = session.get("empresa_id", "")
+        tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
+        # DEBUG: también considerar admin-like roles
+        if es_sistema or 'admin' in rol.lower() or 'super' in rol.lower():
+            permisos = {"emergencia": True, "configuracion": True, "log": True}
+            es_sistema = True
+        else:
+            from app.servicios.permisos.model import PermisosRolModel
+            permisos = PermisosRolModel.obtener_para_sesion(empresa_id, rol, "boton_panico")
+        logging.getLogger(__name__).info("boton_panico → rol=%r es_sistema=%s permisos=%s", rol, es_sistema, permisos)
+        return render_template("servicios/boton_panico.html", servicio=srv,
+                               es_sistema=es_sistema, empresa_id=empresa_id, permisos=permisos,
+                               tema_clave=tema_clave, tema_css=tema_css, tema_vars=tema_vars)
     return render_template("servicios/panel_servicio.html", servicio=srv)
 
 
