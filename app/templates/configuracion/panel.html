@@ -1994,7 +1994,7 @@
                             <input type="time" id="panico-log-hora-desde" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
                         </label>
                         <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">🕐 Hora hasta
-                            <input type="time" id="panico-log-hora-hasta" value="23:59" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                            <input type="time" id="panico-log-hora-hasta" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
                         </label>
                         <div style="display:flex;gap:8px;align-self:flex-end;">
                             <button onclick="_panicoBuscarLog(1)" class="btn btn-primary" style="padding:8px 22px;font-size:.82rem;">🔍 Buscar</button>
@@ -7433,7 +7433,7 @@ async function _panicoBuscarLog(pagina) {
     const desde     = document.getElementById('panico-log-desde')?.value      || '';
     const hasta     = document.getElementById('panico-log-hasta')?.value      || '';
     const horaDesde = document.getElementById('panico-log-hora-desde')?.value || '00:00';
-    const horaHasta = document.getElementById('panico-log-hora-hasta')?.value || '23:59';
+    const horaHasta = document.getElementById('panico-log-hora-hasta')?.value || '';  // Vacío = usuario define
     const nombre    = document.getElementById('panico-log-nombre')?.value?.trim() || '';
     const canal     = document.getElementById('panico-log-canal')?.value  || '';
     const estado    = document.getElementById('panico-log-estado')?.value || '';
@@ -7445,7 +7445,7 @@ async function _panicoBuscarLog(pagina) {
 
     let url = `/servicios/boton_panico/admin/log?empresa_id=${_panicoEmpresaId}&pagina=${pagina}`;
     if (desde)  url += `&fecha_ini=${desde}T${horaDesde}:00`;
-    if (hasta)  url += `&fecha_fin=${hasta}T${horaHasta}:59`;
+    if (hasta)  url += `&fecha_fin=${hasta}T${horaHasta || '23:59'}:59`;
     if (nombre) url += `&nombre_res=${encodeURIComponent(nombre)}`;
     if (canal)  url += `&canal=${canal}`;
     if (estado) url += `&estado=${estado}`;
