@@ -826,6 +826,43 @@ def debug_contactos_bd():
         return err(str(e))
 
 
+@panico_bp.route("/debug/evento-raw", methods=["GET"])
+@requiere_login
+def debug_evento_raw():
+    """[DEBUG] Mostrar un evento RAW tal como está en la BD"""
+    try:
+        if not session.get("es_sistema"):
+            return err("Solo superadmin", 400)
+
+        empresa_id = request.args.get("empresa_id")
+        if not empresa_id:
+            # Mostrar empresas disponibles
+            empresas = list(db["panic_events"].distinct("empresa_id"))
+            return ok({
+                "mensaje": "Pasa ?empresa_id=xxx",
+                "empresas_disponibles": [str(e) for e in empresas]
+            })
+
+        # Obtener el último evento
+        ev = db["panic_events"].find_one(
+            {"empresa_id": ObjectId(empresa_id)},
+            sort=[("activado_en", -1)]
+        )
+
+        if not ev:
+            return ok({"mensaje": "No hay eventos en esta empresa"})
+
+        # Convertir ObjectId a string para poder serializarlo
+        ev["_id"] = str(ev["_id"])
+        ev["empresa_id"] = str(ev["empresa_id"])
+        if ev.get("activado_en"):
+            ev["activado_en"] = ev["activado_en"].isoformat()
+
+        return ok({"evento": ev})
+    except Exception as e:
+        return err(f"Error: {str(e)}")
+
+
 @panico_bp.route("/debug/validar-log", methods=["GET"])
 @requiere_login
 def debug_validar_log():
