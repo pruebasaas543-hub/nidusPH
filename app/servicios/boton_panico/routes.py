@@ -12,7 +12,10 @@ from app import db
 from app.configuracion.utils import requiere_login, ok, err, serializar
 from app.configuracion.roles.model import RolModel
 from app.servicios.boton_panico.controller import PanicController
-from app.servicios.boton_panico.model import PanicConfigModel, PanicEventModel, UserPanicContactModel
+from app.servicios.boton_panico.model import (
+    PanicConfigModel, PanicEventModel, UserPanicContactModel,
+    MAPA_ESTADOS, JERARQUIA_ESTADOS, ESTADOS_PENDIENTES, ESTADOS_FINALES
+)
 
 panico_bp = Blueprint("boton_panico", __name__, url_prefix="/servicios/boton_panico")
 
@@ -348,18 +351,6 @@ def admin_contactos():
         return err(str(e))
 
 
-_ESTADOS_PENDIENTES = {"enviado", "sent", "initiated", "iniciado", "queued",
-                       "ringing", "sending", "in-progress"}
-_ESTADOS_FINALES    = {"delivered", "read", "completed", "failed", "undelivered",
-                       "no-answer", "busy", "canceled", "mock", "error"}
-
-# Jerarquía ordenada por canal (para el frontend)
-JERARQUIA_ESTADOS = {
-    "sms":      ["queued", "sending", "sent", "delivered", "undelivered", "failed"],
-    "whatsapp": ["queued", "sending", "sent", "delivered", "read", "failed", "undelivered"],
-    "llamada":  ["queued", "initiated", "ringing", "in-progress", "completed",
-                 "no-answer", "busy", "canceled", "failed"],
-}
 
 
 @panico_bp.route("/jerarquia-estados", methods=["GET"])
@@ -400,20 +391,22 @@ def admin_refresh_lote():
                     for contacto in resultado.get(grupo, []):
                         for tipo, info in list((contacto.get("canales") or {}).items()):
                             sid = info.get("sid", "")
-                            estado_actual = (info.get("estado") or "").lower()
+                            estado_actual = info.get("estado", "")
                             if not sid:
                                 continue
-                            if solo_pendientes and estado_actual not in _ESTADOS_PENDIENTES:
+                            if solo_pendientes and estado_actual not in ESTADOS_PENDIENTES:
                                 continue
                             try:
                                 if tipo in ("sms", "whatsapp"):
-                                    nuevo = cliente.messages(sid).fetch().status
+                                    nuevo_raw = cliente.messages(sid).fetch().status
                                 else:
-                                    nuevo = cliente.calls(sid).fetch().status
-                                if nuevo and nuevo != info.get("estado"):
+                                    nuevo_raw = cliente.calls(sid).fetch().status
+                                # Mapear estado Twilio → estado interno
+                                nuevo = MAPA_ESTADOS.get((nuevo_raw or "").lower(), nuevo_raw)
+                                if nuevo and nuevo != estado_actual:
                                     # Acumular historial en vez de sobreescribir
                                     historial = info.get("historial") or [
-                                        {"estado": info.get("estado",""), "en": "—"}
+                                        {"estado": estado_actual or "", "en": "—"}
                                     ]
                                     # Solo agregar si el estado no está ya en historial
                                     estados_vistos = {h["estado"] for h in historial}
@@ -517,6 +510,8 @@ def admin_log():
         total   = len(todos)
         skip    = (pagina - 1) * por_pagina
         pagina_data = todos[skip: skip + por_pagina]
+        # Migración lazy: mapear estados Twilio → internos
+        pagina_data = [_migrar_evento_lazy(ev) for ev in pagina_data]
         from flask import jsonify
         return jsonify({
             "ok": True,
@@ -531,12 +526,13 @@ def admin_log():
 
 
 def _normalizar_estado(estado: str) -> str:
-    """Normaliza estados de Twilio a categorías simples."""
+    """Normaliza estados a categorías simples (ok, error, mock)."""
     e = (estado or "").lower()
-    if e in ("enviado", "sent", "delivered", "read", "initiated", "iniciado",
-             "completed", "in-progress", "ringing", "queued"):
+    # Mapear estado de Twilio al estado interno primero
+    estado_interno = MAPA_ESTADOS.get(e, e)
+    if estado_interno in ("entregado", "leido", "completado", "recibido", "en_llamada"):
         return "ok"
-    if e in ("mock",):
+    if estado_interno == "mock":
         return "mock"
     return "error"
 
@@ -558,6 +554,28 @@ def _estado_coincide(estado_real: str, filtro: str) -> bool:
         return True
 
     return False
+
+
+def _migrar_evento_lazy(evento: dict) -> dict:
+    """Migración lazy: mapea estados Twilio → estados internos en un evento."""
+    resultado = evento.get("resultado", {})
+
+    # Migrar contactos externos y directorio
+    for grupo in ("externos", "directorio"):
+        for contacto in resultado.get(grupo, []):
+            for tipo, info in contacto.get("canales", {}).items():
+                # Mapear estado principal
+                estado_raw = info.get("estado", "")
+                if estado_raw and estado_raw not in ESTADOS_FINALES and estado_raw not in ESTADOS_PENDIENTES:
+                    info["estado"] = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
+
+                # Mapear estados en historial
+                for h in info.get("historial", []):
+                    estado_h = h.get("estado", "")
+                    if estado_h and estado_h not in ESTADOS_FINALES and estado_h not in ESTADOS_PENDIENTES:
+                        h["estado"] = MAPA_ESTADOS.get(estado_h.lower(), estado_h)
+
+    return evento
 
 
 @panico_bp.route("/admin/refresh-estados", methods=["POST"])
@@ -589,22 +607,26 @@ def admin_refresh_estados():
                 canales = contacto.get("canales", {})
                 for tipo, info in list(canales.items()):
                     sid = info.get("sid", "")
-                    if not sid or info.get("estado") in ("mock", "error"):
+                    estado_actual = info.get("estado", "")
+                    if not sid or estado_actual in ("mock", "fallido"):
                         continue
-                    nuevo_estado = None
+                    nuevo_estado_raw = None
                     try:
                         if tipo in ("sms", "whatsapp"):
                             msg = cliente.messages(sid).fetch()
-                            nuevo_estado = msg.status   # queued/sent/delivered/read/failed/undelivered
+                            nuevo_estado_raw = msg.status
                         elif tipo == "llamada":
                             call = cliente.calls(sid).fetch()
-                            nuevo_estado = call.status  # queued/ringing/in-progress/completed/busy/failed/no-answer/canceled
+                            nuevo_estado_raw = call.status
                     except Exception as e:
-                        nuevo_estado = f"error_twilio: {e}"
+                        nuevo_estado_raw = f"error_twilio: {e}"
 
-                    if nuevo_estado and nuevo_estado != info.get("estado"):
+                    # Mapear estado Twilio → estado interno
+                    nuevo_estado = MAPA_ESTADOS.get((nuevo_estado_raw or "").lower(), nuevo_estado_raw)
+
+                    if nuevo_estado and nuevo_estado != estado_actual:
                         historial = info.get("historial") or [
-                            {"estado": info.get("estado",""), "en": "—"}
+                            {"estado": estado_actual or "", "en": "—"}
                         ]
                         estados_vistos = {h["estado"] for h in historial}
                         if nuevo_estado not in estados_vistos:

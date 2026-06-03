@@ -10,7 +10,9 @@ from xml.sax.saxutils import escape as xml_escape
 from bson import ObjectId
 
 from app import db
-from app.servicios.boton_panico.model import PanicConfigModel, PanicEventModel
+from app.servicios.boton_panico.model import (
+    PanicConfigModel, PanicEventModel, MAPA_ESTADOS
+)
 
 log = logging.getLogger(__name__)
 
@@ -109,13 +111,14 @@ def _enviar_sms(cliente, numero: str, mensaje: str) -> dict:
     try:
         msg = cliente.messages.create(to=numero, from_=TWILIO_FROM, body=mensaje)
         log.info("SMS enviado → %s (SID=%s)", numero, msg.sid)
-        estado_ini = msg.status or "queued"
+        estado_raw = msg.status or "queued"
+        estado_ini = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
         return {"numero": numero, "estado": estado_ini, "sid": msg.sid,
                 "historial": [{"estado": estado_ini, "en": _ts()}]}
     except Exception as e:
         log.error("SMS error → %s: %s", numero, e)
-        return {"numero": numero, "estado": "error", "detalle": str(e),
-                "historial": [{"estado": "error", "en": _ts(), "detalle": str(e)}]}
+        return {"numero": numero, "estado": "fallido", "detalle": str(e),
+                "historial": [{"estado": "fallido", "en": _ts(), "detalle": str(e)}]}
 
 
 def _enviar_llamada(cliente, numero: str, twiml: str) -> dict:
@@ -126,13 +129,14 @@ def _enviar_llamada(cliente, numero: str, twiml: str) -> dict:
     try:
         call = cliente.calls.create(to=numero, from_=TWILIO_FROM, twiml=twiml)
         log.info("Llamada iniciada → %s (SID=%s)", numero, call.sid)
-        estado_ini = call.status or "queued"
+        estado_raw = call.status or "queued"
+        estado_ini = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
         return {"numero": numero, "estado": estado_ini, "sid": call.sid,
                 "historial": [{"estado": estado_ini, "en": _ts()}]}
     except Exception as e:
         log.error("Call error → %s: %s", numero, e)
-        return {"numero": numero, "estado": "error", "detalle": str(e),
-                "historial": [{"estado": "error", "en": _ts(), "detalle": str(e)}]}
+        return {"numero": numero, "estado": "fallido", "detalle": str(e),
+                "historial": [{"estado": "fallido", "en": _ts(), "detalle": str(e)}]}
 
 
 def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
@@ -149,13 +153,14 @@ def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
             kwargs["body"] = cuerpo
         msg = cliente.messages.create(**kwargs)
         log.info("WhatsApp enviado → %s (SID=%s)", numero, msg.sid)
-        estado_ini = msg.status or "queued"
+        estado_raw = msg.status or "queued"
+        estado_ini = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
         return {"numero": numero, "estado": estado_ini, "sid": msg.sid,
                 "historial": [{"estado": estado_ini, "en": _ts()}]}
     except Exception as e:
         log.error("WhatsApp error → %s: %s", numero, e)
-        return {"numero": numero, "estado": "error", "detalle": str(e),
-                "historial": [{"estado": "error", "en": _ts(), "detalle": str(e)}]}
+        return {"numero": numero, "estado": "fallido", "detalle": str(e),
+                "historial": [{"estado": "fallido", "en": _ts(), "detalle": str(e)}]}
 
 
 class PanicController:

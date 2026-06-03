@@ -1252,21 +1252,35 @@ let _logPaginaActual = 1;
 let _logDatosCSV     = [];
 
 const _ESTADO_INFO = {
-  // SMS / WhatsApp
-  enviado:     { label: 'Enviado',       cls: 'a-chip-ok',   icon: '📤', desc: 'El mensaje fue aceptado por el proveedor y está en camino.' },
-  sent:        { label: 'Enviado',       cls: 'a-chip-ok',   icon: '📤', desc: 'El mensaje fue aceptado por el proveedor y está en camino.' },
-  delivered:   { label: 'Entregado',     cls: 'a-chip-ok',   icon: '✅', desc: 'El mensaje llegó al dispositivo del destinatario.' },
-  read:        { label: 'Leído',         cls: 'a-chip-ok',   icon: '👁', desc: 'El destinatario abrió y leyó el mensaje.' },
-  initiated:   { label: 'Iniciado',      cls: 'a-chip-ok',   icon: '📞', desc: 'La llamada fue iniciada correctamente.' },
-  iniciado:    { label: 'Iniciado',      cls: 'a-chip-ok',   icon: '📞', desc: 'La llamada fue iniciada correctamente.' },
-  completed:   { label: 'Contestó',      cls: 'a-chip-ok',   icon: '✅', desc: 'La llamada fue contestada por el destinatario.' },
-  mock:        { label: 'Mock',          cls: 'a-chip-mock',  icon: '🟡', desc: 'Modo de prueba — no se envió realmente.' },
+  // Estados en español
+  en_cola:     { label: 'En Cola',       cls: 'a-chip-ok',   icon: '⏳', desc: 'El mensaje/llamada está en cola esperando envío.' },
+  enviando:    { label: 'Enviando',      cls: 'a-chip-ok',   icon: '📤', desc: 'El mensaje/llamada se está enviando.' },
+  sonando:     { label: 'Sonando',       cls: 'a-chip-ok',   icon: '📳', desc: 'El teléfono está sonando.' },
+  recibido:    { label: 'Recibido',      cls: 'a-chip-ok',   icon: '📨', desc: 'El mensaje fue recibido.' },
+  entregado:   { label: 'Entregado',     cls: 'a-chip-ok',   icon: '✅', desc: 'El mensaje llegó al dispositivo del destinatario.' },
+  en_llamada:  { label: 'En Llamada',    cls: 'a-chip-ok',   icon: '📞', desc: 'La llamada está en progreso.' },
+  leido:       { label: 'Leído',         cls: 'a-chip-ok',   icon: '👁️', desc: 'El mensaje fue leído.' },
+  completado:  { label: 'Completado',    cls: 'a-chip-ok',   icon: '✅', desc: 'La llamada se completó.' },
+  ocupado:     { label: 'Ocupado',       cls: 'a-chip-err',  icon: '🔴', desc: 'El destinatario estaba ocupado.' },
+  no_contesto: { label: 'No Contestó',   cls: 'a-chip-err',  icon: '📵', desc: 'La llamada no fue contestada.' },
+  cancelado:   { label: 'Cancelado',     cls: 'a-chip-err',  icon: '🚫', desc: 'Se canceló el envío/llamada.' },
+  no_entregado:{ label: 'No Entregado',  cls: 'a-chip-err',  icon: '❌', desc: 'El mensaje no pudo ser entregado.' },
+  fallido:     { label: 'Fallido',       cls: 'a-chip-err',  icon: '❌', desc: 'Error técnico al enviar.' },
+  mock:        { label: 'Simulado',      cls: 'a-chip-mock',  icon: '🟡', desc: 'Modo de prueba — no se envió realmente.' },
+  // Compatibilidad con estados antiguos en inglés
+  enviado:     { label: 'Enviado',       cls: 'a-chip-ok',   icon: '📤', desc: 'El mensaje fue aceptado por el proveedor.' },
+  sent:        { label: 'Enviado',       cls: 'a-chip-ok',   icon: '📤', desc: 'El mensaje fue aceptado por el proveedor.' },
+  delivered:   { label: 'Entregado',     cls: 'a-chip-ok',   icon: '✅', desc: 'El mensaje llegó al dispositivo.' },
+  read:        { label: 'Leído',         cls: 'a-chip-ok',   icon: '👁', desc: 'El mensaje fue leído.' },
+  initiated:   { label: 'Iniciado',      cls: 'a-chip-ok',   icon: '📞', desc: 'La llamada fue iniciada.' },
+  iniciado:    { label: 'Iniciado',      cls: 'a-chip-ok',   icon: '📞', desc: 'La llamada fue iniciada.' },
+  completed:   { label: 'Contestó',      cls: 'a-chip-ok',   icon: '✅', desc: 'La llamada fue contestada.' },
   'no-answer': { label: 'No contestó',   cls: 'a-chip-err',  icon: '📵', desc: 'La llamada no fue contestada.' },
   busy:        { label: 'Ocupado',       cls: 'a-chip-err',  icon: '🔴', desc: 'El destinatario estaba en otra llamada.' },
-  canceled:    { label: 'Cancelada',     cls: 'a-chip-err',  icon: '🚫', desc: 'La llamada fue cancelada antes de conectar.' },
-  failed:      { label: 'Fallido',       cls: 'a-chip-err',  icon: '❌', desc: 'Error técnico al intentar el envío o llamada.' },
-  undelivered: { label: 'No entregado',  cls: 'a-chip-err',  icon: '❌', desc: 'El mensaje no pudo ser entregado al destinatario.' },
-  error:       { label: 'Error',         cls: 'a-chip-err',  icon: '❌', desc: 'Ocurrió un error durante el envío.' },
+  canceled:    { label: 'Cancelada',     cls: 'a-chip-err',  icon: '🚫', desc: 'La llamada fue cancelada.' },
+  failed:      { label: 'Fallido',       cls: 'a-chip-err',  icon: '❌', desc: 'Error técnico.' },
+  undelivered: { label: 'No entregado',  cls: 'a-chip-err',  icon: '❌', desc: 'No se pudo entregar.' },
+  error:       { label: 'Error',         cls: 'a-chip-err',  icon: '❌', desc: 'Ocurrió un error.' },
 };
 function _estadoInfo(e) {
   return _ESTADO_INFO[(e||'').toLowerCase()] || { label: e||'—', cls:'a-chip-err', icon:'❓', desc: `Estado: ${e||'desconocido'}` };
@@ -1475,7 +1489,7 @@ async function logRefrescarEstado(eventoId, rowId) {
   if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
 }
 
-const _ESTADOS_PEND = new Set(['enviado','sent','initiated','iniciado','queued','ringing','sending','in-progress']);
+const _ESTADOS_PEND = new Set(['en_cola','enviando','sonando','en_llamada','recibido']);
 let _logJerarquia = {};
 let _logPollingTimer = null;
 (async () => {

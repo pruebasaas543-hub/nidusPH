@@ -15,6 +15,51 @@ from datetime import datetime
 from bson import ObjectId
 
 
+# Mapeo de estados Twilio → estados internos en español
+MAPA_ESTADOS = {
+    "queued":       "en_cola",
+    "sending":      "enviando",
+    "sent":         "recibido",
+    "delivered":    "entregado",
+    "undelivered":  "no_entregado",
+    "read":         "leido",
+    "initiated":    "en_cola",
+    "ringing":      "sonando",
+    "in-progress":  "en_llamada",
+    "completed":    "completado",
+    "no-answer":    "no_contesto",
+    "busy":         "ocupado",
+    "canceled":     "cancelado",
+    "failed":       "fallido",
+    "error":        "fallido",
+    "mock":         "mock",
+}
+
+# Jerarquía ordenada de estados por canal (en español)
+JERARQUIA_ESTADOS = {
+    "sms": [
+        "en_cola", "enviando", "recibido", "entregado",
+        "no_entregado", "fallido"
+    ],
+    "whatsapp": [
+        "en_cola", "enviando", "recibido", "entregado",
+        "leido", "no_entregado", "fallido"
+    ],
+    "llamada": [
+        "en_cola", "enviando", "sonando", "en_llamada",
+        "completado", "ocupado", "no_contesto", "cancelado", "fallido"
+    ],
+}
+
+ESTADOS_PENDIENTES = {
+    "en_cola", "enviando", "sonando", "en_llamada", "recibido"
+}
+ESTADOS_FINALES = {
+    "entregado", "leido", "completado",
+    "no_entregado", "ocupado", "no_contesto", "cancelado", "fallido", "mock"
+}
+
+
 def _configs():      return db["panic_configurations"]
 def _eventos():      return db["panic_events"]
 def _user_contacts(): return db["user_panic_contacts"]

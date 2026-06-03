@@ -7299,20 +7299,35 @@ let _panicoPollingTimer = null;
 })();
 
 const _PANICO_ESTADO_INFO = {
-    enviado:     { label:'Enviado',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje fue aceptado por el proveedor y está en camino.' },
-    sent:        { label:'Enviado',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje fue aceptado por el proveedor y está en camino.' },
-    delivered:   { label:'Entregado',    color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'El mensaje llegó al dispositivo del destinatario.' },
-    read:        { label:'Leído',        color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'👁', desc:'El destinatario abrió y leyó el mensaje.' },
-    initiated:   { label:'Iniciado',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📞', desc:'La llamada fue iniciada correctamente.' },
-    iniciado:    { label:'Iniciado',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📞', desc:'La llamada fue iniciada correctamente.' },
-    completed:   { label:'Contestó',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'La llamada fue contestada por el destinatario.' },
-    mock:        { label:'Mock',         color:'#b7791f', bg:'rgba(183,121,31,.1)', icon:'🟡', desc:'Modo de prueba — no se envió realmente.' },
+    // Estados en español
+    en_cola:     { label:'En Cola',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'⏳', desc:'El mensaje/llamada está en cola esperando envío.' },
+    enviando:    { label:'Enviando',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje/llamada se está enviando.' },
+    sonando:     { label:'Sonando',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📳', desc:'El teléfono está sonando.' },
+    recibido:    { label:'Recibido',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📨', desc:'El mensaje fue recibido.' },
+    entregado:   { label:'Entregado',    color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'El mensaje llegó al dispositivo del destinatario.' },
+    en_llamada:  { label:'En Llamada',   color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📞', desc:'La llamada está en progreso.' },
+    leido:       { label:'Leído',        color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'👁️', desc:'El mensaje fue leído.' },
+    completado:  { label:'Completado',   color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'La llamada se completó.' },
+    ocupado:     { label:'Ocupado',      color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'🔴', desc:'El destinatario estaba ocupado.' },
+    no_contesto: { label:'No Contestó',  color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'📵', desc:'La llamada no fue contestada.' },
+    cancelado:   { label:'Cancelado',    color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'🚫', desc:'Se canceló el envío/llamada.' },
+    no_entregado:{ label:'No Entregado', color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'El mensaje no pudo ser entregado.' },
+    fallido:     { label:'Fallido',      color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'Error técnico al enviar.' },
+    mock:        { label:'Simulado',     color:'#b7791f', bg:'rgba(183,121,31,.1)', icon:'🟡', desc:'Modo de prueba — no se envió realmente.' },
+    // Compatibilidad con estados antiguos
+    enviado:     { label:'Enviado',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje fue aceptado por el proveedor.' },
+    sent:        { label:'Enviado',      color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📤', desc:'El mensaje fue aceptado por el proveedor.' },
+    delivered:   { label:'Entregado',    color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'El mensaje llegó al dispositivo.' },
+    read:        { label:'Leído',        color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'👁', desc:'El mensaje fue leído.' },
+    initiated:   { label:'Iniciado',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📞', desc:'La llamada fue iniciada.' },
+    iniciado:    { label:'Iniciado',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'📞', desc:'La llamada fue iniciada.' },
+    completed:   { label:'Contestó',     color:'#276749', bg:'rgba(39,103,73,.1)',  icon:'✅', desc:'La llamada fue contestada.' },
     'no-answer': { label:'No contestó',  color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'📵', desc:'La llamada no fue contestada.' },
     busy:        { label:'Ocupado',      color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'🔴', desc:'El destinatario estaba en otra llamada.' },
-    canceled:    { label:'Cancelada',    color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'🚫', desc:'La llamada fue cancelada antes de conectar.' },
-    failed:      { label:'Fallido',      color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'Error técnico al intentar el envío o llamada.' },
-    undelivered: { label:'No entregado', color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'El mensaje no pudo ser entregado al destinatario.' },
-    error:       { label:'Error',        color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'Ocurrió un error durante el envío.' },
+    canceled:    { label:'Cancelada',    color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'🚫', desc:'La llamada fue cancelada.' },
+    failed:      { label:'Fallido',      color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'Error técnico.' },
+    undelivered: { label:'No entregado', color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'No se pudo entregar.' },
+    error:       { label:'Error',        color:'#c53030', bg:'rgba(229,62,62,.1)',  icon:'❌', desc:'Ocurrió un error.' },
 };
 function _panicoEstadoInfo(e) {
     return _PANICO_ESTADO_INFO[(e||'').toLowerCase()]
@@ -7352,7 +7367,7 @@ function _panicoMostrarPopup(json) {
         const logH  = histMap[est];
         const pasado = logH != null;
         const esActual = est === estadoActual;
-        const esFinal = !['queued','sending','sent','initiated','ringing','in-progress'].includes(est);
+        const esFinal = !['en_cola','enviando','sonando','en_llamada','recibido','queued','sending','sent','initiated','ringing','in-progress'].includes(est);
 
         let lineColor = '#e2e8f0'; // gris por defecto
         let dotBg     = '#e2e8f0';
@@ -7494,7 +7509,9 @@ async function _panicoBuscarLog(pagina) {
                 // Si hay filtro de estado, excluir estados que no coincidan
                 if (estadoFil) {
                     const estadoReal = (info.estado || '').toLowerCase();
-                    const estadoNorm = (estadoReal === 'sent' || estadoReal === 'delivered' || estadoReal === 'read' || estadoReal === 'completed' || estadoReal === 'in-progress' || estadoReal === 'ringing' || estadoReal === 'queued' || estadoReal === 'sending' || estadoReal === 'initiated') ? 'ok' : (estadoReal === 'mock' ? 'mock' : 'error');
+                    // Estados normalizados a "ok"
+                    const estadosOk = new Set(['en_cola','enviando','sonando','en_llamada','recibido','sent','delivered','read','completed','in-progress','ringing','queued','sending','initiated']);
+                    const estadoNorm = estadosOk.has(estadoReal) ? 'ok' : (estadoReal === 'mock' ? 'mock' : 'error');
                     if (estadoFil !== 'ok' && estadoFil !== 'error' && estadoFil !== 'mock' && estadoNorm !== estadoFil && estadoReal !== estadoFil) return [];
                     if ((estadoFil === 'ok' || estadoFil === 'error' || estadoFil === 'mock') && estadoNorm !== estadoFil) return [];
                 }
@@ -7502,7 +7519,7 @@ async function _panicoBuscarLog(pagina) {
                 const icon = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
                 const ei   = _panicoEstadoInfo(info.estado);
                 const rowId = `prow-${ev._id}-${ci}-${ii}`;
-                const canRef = info.sid && !['mock','error'].includes((info.estado||'').toLowerCase());
+                const canRef = info.sid && !['mock','fallido','error'].includes((info.estado||'').toLowerCase());
                 const popData = encodeURIComponent(JSON.stringify({
                     estado: info.estado, canal: tipo, receptor: c.nombre||'',
                     sid: info.sid||'', detalle: info.detalle||'',
@@ -7547,7 +7564,7 @@ async function _panicoBuscarLog(pagina) {
 }
 
 // Estados que aún pueden cambiar en Twilio
-const _ESTADOS_PENDIENTES_PAN = new Set(['enviado','sent','initiated','iniciado','queued','ringing']);
+const _ESTADOS_PENDIENTES_PAN = new Set(['en_cola','enviando','sonando','en_llamada','recibido']);
 
 async function _panicoRefrescarTodos(soloMostrarBtn) {
     if (soloMostrarBtn) {
