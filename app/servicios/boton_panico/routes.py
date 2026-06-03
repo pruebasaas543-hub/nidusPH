@@ -826,6 +826,177 @@ def debug_contactos_bd():
         return err(str(e))
 
 
+@panico_bp.route("/debug/validar-log", methods=["GET"])
+@requiere_login
+def debug_validar_log():
+    """[DEBUG] Validar que los eventos se almacenan correctamente y probar filtros"""
+    try:
+        # Verificar que sea del sistema
+        if not session.get("es_sistema"):
+            return err("Solo superadmin", 400)
+
+        empresa_id = request.args.get("empresa_id")
+        if not empresa_id:
+            return err("Necesita ?empresa_id=xxx", 400)
+
+        # Obtener últimos 5 eventos
+        eventos = list(db["panic_events"].find(
+            {"empresa_id": ObjectId(empresa_id)}
+        ).sort("activado_en", -1).limit(5))
+
+        if not eventos:
+            return ok({"mensaje": "No hay eventos", "empresa_id": empresa_id})
+
+        resultado = {
+            "total_eventos": db["panic_events"].count_documents({"empresa_id": ObjectId(empresa_id)}),
+            "últimos_eventos": []
+        }
+
+        for ev in eventos:
+            res = ev.get("resultado", {})
+            externos = res.get("externos", [])
+            directorio = res.get("directorio", [])
+
+            evento_info = {
+                "evento_id": str(ev.get("_id")),
+                "fecha": ev.get("activado_en"),
+                "nombre_residente": ev.get("nombre_residente"),
+                "bloqueado": res.get("bloqueado", False),
+                "contactos_externos": [],
+                "contactos_directorio": [],
+                "canales_encontrados": set()
+            }
+
+            # Analizar externos
+            for c in externos:
+                canales = c.get("canales", {})
+                contacto_info = {
+                    "nombre": c.get("nombre"),
+                    "numero": c.get("numero"),
+                    "canales": {}
+                }
+                for tipo, data in canales.items():
+                    contacto_info["canales"][tipo] = {
+                        "estado": data.get("estado"),
+                        "sid": data.get("sid", "—")
+                    }
+                    evento_info["canales_encontrados"].add(tipo)
+                evento_info["contactos_externos"].append(contacto_info)
+
+            # Analizar directorio
+            for c in directorio:
+                canales = c.get("canales", {})
+                contacto_info = {
+                    "nombre": c.get("nombre"),
+                    "numero": c.get("numero"),
+                    "canales": {}
+                }
+                for tipo, data in canales.items():
+                    contacto_info["canales"][tipo] = {
+                        "estado": data.get("estado"),
+                        "sid": data.get("sid", "—")
+                    }
+                    evento_info["canales_encontrados"].add(tipo)
+                evento_info["contactos_directorio"].append(contacto_info)
+
+            evento_info["canales_encontrados"] = list(evento_info["canales_encontrados"])
+            resultado["últimos_eventos"].append(evento_info)
+
+        return ok(resultado)
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_bp.route("/debug/probar-filtros", methods=["GET"])
+@requiere_login
+def debug_probar_filtros():
+    """[DEBUG] Probar filtros manualmente"""
+    try:
+        if not session.get("es_sistema"):
+            return err("Solo superadmin", 400)
+
+        empresa_id = request.args.get("empresa_id")
+        canal_fil = request.args.get("canal", "").strip().lower()
+
+        if not empresa_id:
+            return err("Necesita ?empresa_id=xxx", 400)
+
+        # Obtener TODOS los eventos
+        todos = list(db["panic_events"].find(
+            {"empresa_id": ObjectId(empresa_id)}
+        ).sort("activado_en", -1))
+
+        resultado = {
+            "total_sin_filtro": len(todos),
+            "filtro_aplicado": f"canal={canal_fil}" if canal_fil else "sin filtro",
+            "eventos_sin_filtro": [],
+            "eventos_con_filtro": [],
+            "detalles_filtrado": []
+        }
+
+        # Mostrar estructura de primeros 2 eventos sin filtro
+        for ev in todos[:2]:
+            res = ev.get("resultado", {})
+            resultado["eventos_sin_filtro"].append({
+                "evento_id": str(ev.get("_id")),
+                "nombre_residente": ev.get("nombre_residente"),
+                "canales": []
+            })
+
+            externos = res.get("externos", [])
+            directorio = res.get("directorio", [])
+            for c in externos + directorio:
+                for tipo in (c.get("canales") or {}).keys():
+                    resultado["eventos_sin_filtro"][-1]["canales"].append(tipo)
+
+        # Aplicar filtro si existe
+        if canal_fil:
+            filtrados = []
+            for ev in todos:
+                res = ev.get("resultado", {})
+                externos = res.get("externos", [])
+                directorio = res.get("directorio", [])
+
+                evento_coincide = False
+                detalles = {
+                    "evento_id": str(ev.get("_id")),
+                    "contactos_revisados": []
+                }
+
+                for c in externos + directorio:
+                    canales = c.get("canales", {})
+                    for tipo, data in canales.items():
+                        detalle = {
+                            "nombre": c.get("nombre"),
+                            "canal": tipo,
+                            "canal.lower()": tipo.lower(),
+                            "canal_fil": canal_fil,
+                            "coincide": tipo.lower() == canal_fil,
+                            "estado": data.get("estado")
+                        }
+                        detalles["contactos_revisados"].append(detalle)
+
+                        if tipo.lower() == canal_fil:
+                            evento_coincide = True
+
+                if evento_coincide:
+                    filtrados.append(ev)
+                    resultado["detalles_filtrado"].append(detalles)
+
+            resultado["eventos_con_filtro"] = [
+                {
+                    "evento_id": str(ev.get("_id")),
+                    "nombre_residente": ev.get("nombre_residente")
+                }
+                for ev in filtrados
+            ]
+            resultado["total_con_filtro"] = len(filtrados)
+
+        return ok(resultado)
+    except Exception as e:
+        return err(str(e))
+
+
 @panico_bp.route("/debug/estructura-evento", methods=["GET"])
 @requiere_login
 def debug_estructura_evento():
