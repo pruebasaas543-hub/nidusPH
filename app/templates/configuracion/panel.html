@@ -7479,6 +7479,9 @@ async function _panicoBuscarLog(pagina) {
         const filas = lista.flatMap(ev => {
             const fecha = ev.activado_en ? _panicoFmtFecha(ev.activado_en) : '—';
             const res   = ev.resultado || {};
+            const canalFil = document.getElementById('panico-log-canal')?.value?.trim().toLowerCase() || '';
+            const estadoFil = document.getElementById('panico-log-estado')?.value?.trim().toLowerCase() || '';
+
             const todos = [...(res.externos||[]), ...(res.directorio||[])];
             if (!todos.length) return [`<tr>
                 <td style="${tdStyle}white-space:nowrap;">${fecha}</td>
@@ -7486,6 +7489,16 @@ async function _panicoBuscarLog(pagina) {
                 <td colspan="4" style="${tdStyle}color:#8A9CC8;">Sin destinatarios</td>
                 <td style="${tdStyle}">—</td></tr>`];
             return todos.flatMap((c, ci) => Object.entries(c.canales||{}).map(([tipo, info], ii) => {
+                // Si hay filtro de canal, excluir canales que no coincidan
+                if (canalFil && tipo.toLowerCase() !== canalFil) return [];
+                // Si hay filtro de estado, excluir estados que no coincidan
+                if (estadoFil) {
+                    const estadoReal = (info.estado || '').toLowerCase();
+                    const estadoNorm = (estadoReal === 'sent' || estadoReal === 'delivered' || estadoReal === 'read' || estadoReal === 'completed' || estadoReal === 'in-progress' || estadoReal === 'ringing' || estadoReal === 'queued' || estadoReal === 'sending' || estadoReal === 'initiated') ? 'ok' : (estadoReal === 'mock' ? 'mock' : 'error');
+                    if (estadoFil !== 'ok' && estadoFil !== 'error' && estadoFil !== 'mock' && estadoNorm !== estadoFil && estadoReal !== estadoFil) return [];
+                    if ((estadoFil === 'ok' || estadoFil === 'error' || estadoFil === 'mock') && estadoNorm !== estadoFil) return [];
+                }
+
                 const icon = tipo==='sms'?'📱':tipo==='llamada'?'☎️':'💬';
                 const ei   = _panicoEstadoInfo(info.estado);
                 const rowId = `prow-${ev._id}-${ci}-${ii}`;
