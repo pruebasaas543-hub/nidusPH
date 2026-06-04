@@ -761,12 +761,14 @@ def crear_mi_contacto():
     exito, resultado = UserPanicContactModel.crear(
         usuario_id, empresa_id,
         datos.get("nombre", ""),
-        datos.get("telefono", ""),
-        datos.get("descripcion", ""),
-        datos.get("habilitado", True),
-        datos.get("habilitado_para_sms", False),
-        datos.get("habilitado_para_whatsapp", False),
-        datos.get("habilitado_para_llamada", False)
+        telefono=datos.get("telefono"),
+        descripcion=datos.get("descripcion", ""),
+        habilitado=datos.get("habilitado", True),
+        habilitado_para_sms=datos.get("habilitado_para_sms", False),
+        habilitado_para_whatsapp=datos.get("habilitado_para_whatsapp", False),
+        habilitado_para_llamada=datos.get("habilitado_para_llamada", False),
+        prefijo=datos.get("prefijo"),
+        celular=datos.get("celular")
     )
     if not exito:
         return err(resultado)

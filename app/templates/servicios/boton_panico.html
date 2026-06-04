@@ -754,7 +754,26 @@ async function init(empresaId) {
     habilitado_para_whatsapp: savedMap[c._id]?.habilitado_para_whatsapp || false,
   }));
   _externos_empresa = cfg.contactos_externos || [];
-  _externos_personales = (dMisC.ok && dMisC.data) ? dMisC.data.map(c => ({...c, _es_personal: true})) : [];
+  _externos_personales = (dMisC.ok && dMisC.data) ? dMisC.data.map(c => {
+    // Separar teléfono en prefijo y celular si aún está combinado
+    let prefijo = c.prefijo || '+57';
+    let celular = c.celular || '';
+    if(!celular && c.telefono) {
+      const tel = String(c.telefono).trim();
+      const match = tel.match(/^(\+?\d{1,3})(.*)/);
+      if(match) {
+        prefijo = match[1] || '+57';
+        celular = match[2].replace(/^\d/, '') || match[2];
+      }
+    }
+    return {
+      ...c,
+      _es_personal: true,
+      prefijo: prefijo,
+      celular: celular,
+      tipo_notificacion: c.tipo_notificacion || []
+    };
+  }) : [];
   _externos = [..._externos_empresa, ..._externos_personales];
   _externosEditing = _externos.map(() => false);
   renderExternos(); renderDirectorio();
@@ -794,8 +813,13 @@ function renderExternos(){
         </label>
       </div>`;
     if(!editing){
-      // Soportar ambos formatos: personales (c.telefono) y empresa (c.prefijo + c.celular)
-      const telDisplay = c.telefono ? c.telefono : (c.celular ? `${c.prefijo||'+57'}${c.celular}` : '—');
+      const telDisplay = `${c.prefijo||'+57'}${c.celular||''}`;
+      // Mostrar qué tipos de notificación están habilitados
+      const tiposActivos = [];
+      if(c.habilitado_para_sms) tiposActivos.push('📱 SMS');
+      if(c.habilitado_para_whatsapp) tiposActivos.push('💬 WhatsApp');
+      if(c.habilitado_para_llamada) tiposActivos.push('☎️ Llamada');
+      const tiposDisplay = tiposActivos.length > 0 ? tiposActivos.join(' • ') : '(Sin notificaciones configuradas)';
       return `
       <div class="ext-card readonly">
         <div class="ext-card-header">
@@ -807,13 +831,12 @@ function renderExternos(){
           </div>
         </div>
         <div class="ext-tel-display">📞 ${_esc(telDisplay)}</div>
+        <div style="font-size:0.85rem;color:#666;margin:8px 0;">Activo en: ${tiposDisplay}</div>
         ${chipsHtml}
       </div>`;
     }
-    // En modo edición, si es personal, mostrar teléfono combinado; si es empresa, mostrar prefijo+celular
-    const telInput = c._es_personal
-      ? `<input class="cel-input" type="tel" placeholder="+57..." value="${_esc(c.telefono||'')}" oninput="_externos[${i}].telefono=this.value; _externos[${i}].celular=undefined;">`
-      : `<select class="pais-sel" onchange="_externos[${i}].prefijo=this.value">${_paisesOpts(c.prefijo||'+57')}</select><input class="cel-input" type="tel" placeholder="Número celular" value="${_esc(c.celular||'')}" oninput="_externos[${i}].celular=this.value">`;
+    // En modo edición, usar prefijo + celular para todos (personales y empresa)
+    const telInput = `<select class="pais-sel" onchange="_externos[${i}].prefijo=this.value">${_paisesOpts(c.prefijo||'+57')}</select><input class="cel-input" type="tel" placeholder="Número celular" value="${_esc(c.celular||'')}" oninput="_externos[${i}].celular=this.value">`;
 
     return `
     <div class="ext-card">
@@ -970,7 +993,8 @@ async function guardarConfig(){
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           nombre: c.nombre.trim(),
-          telefono: c.telefono,
+          prefijo: c.prefijo||'+57',
+          celular: c.celular.trim(),
           habilitado_para_sms: (c.tipo_notificacion||[]).includes('sms'),
           habilitado_para_whatsapp: (c.tipo_notificacion||[]).includes('whatsapp'),
           habilitado_para_llamada: (c.tipo_notificacion||[]).includes('llamada'),
@@ -986,7 +1010,8 @@ async function guardarConfig(){
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           nombre: c.nombre.trim(),
-          telefono: c.telefono,
+          prefijo: c.prefijo||'+57',
+          celular: c.celular.trim(),
           habilitado_para_sms: (c.tipo_notificacion||[]).includes('sms'),
           habilitado_para_whatsapp: (c.tipo_notificacion||[]).includes('whatsapp'),
           habilitado_para_llamada: (c.tipo_notificacion||[]).includes('llamada'),

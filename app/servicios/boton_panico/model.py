@@ -226,17 +226,22 @@ class UserPanicContactModel:
     """Contactos externos personales por usuario (normalizado)."""
 
     @staticmethod
-    def crear(usuario_id: str, empresa_id: str, nombre: str, telefono: str,
+    def crear(usuario_id: str, empresa_id: str, nombre: str, telefono: str = None,
               descripcion: str = "", habilitado: bool = True, habilitado_para_sms: bool = False,
-              habilitado_para_whatsapp: bool = False, habilitado_para_llamada: bool = False) -> tuple:
+              habilitado_para_whatsapp: bool = False, habilitado_para_llamada: bool = False,
+              prefijo: str = None, celular: str = None) -> tuple:
         """Crear contacto personal."""
         try:
             ahora = datetime.utcnow()
+            # Si viene prefijo+celular, combinar en telefono; si viene telefono, mantener como está
+            tel_completo = telefono or f"{prefijo or '+57'}{celular or ''}"
             doc = {
                 "usuario_id":               ObjectId(usuario_id),
                 "empresa_id":               ObjectId(empresa_id),
                 "nombre":                   str(nombre).strip(),
-                "telefono":                 str(telefono).strip(),
+                "prefijo":                  str(prefijo or '+57').strip(),
+                "celular":                  str(celular or '').strip(),
+                "telefono":                 str(tel_completo).strip(),
                 "descripcion":              str(descripcion).strip(),
                 "habilitado":               bool(habilitado),
                 "habilitado_para_sms":      bool(habilitado_para_sms),
@@ -264,10 +269,17 @@ class UserPanicContactModel:
         """Actualizar contacto."""
         try:
             actualizables = {"nombre", "telefono", "descripcion", "habilitado",
-                           "habilitado_para_sms", "habilitado_para_whatsapp", "habilitado_para_llamada"}
+                           "habilitado_para_sms", "habilitado_para_whatsapp", "habilitado_para_llamada",
+                           "prefijo", "celular"}
             update_data = {k: v for k, v in datos.items() if k in actualizables}
             if not update_data:
                 return False, "Sin cambios"
+            # Si se actualiza prefijo o celular, regenerar telefono completo
+            if "prefijo" in update_data or "celular" in update_data:
+                contacto_actual = _user_contacts().find_one({"_id": ObjectId(contacto_id)}) or {}
+                prefijo = update_data.get("prefijo", contacto_actual.get("prefijo", "+57"))
+                celular = update_data.get("celular", contacto_actual.get("celular", ""))
+                update_data["telefono"] = f"{prefijo}{celular}"
             update_data["actualizado_en"] = datetime.utcnow()
             result = _user_contacts().update_one(
                 {"_id": ObjectId(contacto_id)},
