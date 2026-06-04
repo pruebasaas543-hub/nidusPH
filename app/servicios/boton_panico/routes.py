@@ -763,7 +763,10 @@ def crear_mi_contacto():
         datos.get("nombre", ""),
         datos.get("telefono", ""),
         datos.get("descripcion", ""),
-        datos.get("habilitado", True)
+        datos.get("habilitado", True),
+        datos.get("habilitado_para_sms", False),
+        datos.get("habilitado_para_whatsapp", False),
+        datos.get("habilitado_para_llamada", False)
     )
     if not exito:
         return err(resultado)

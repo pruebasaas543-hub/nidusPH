@@ -227,19 +227,23 @@ class UserPanicContactModel:
 
     @staticmethod
     def crear(usuario_id: str, empresa_id: str, nombre: str, telefono: str,
-              descripcion: str = "", habilitado: bool = True) -> tuple:
+              descripcion: str = "", habilitado: bool = True, habilitado_para_sms: bool = False,
+              habilitado_para_whatsapp: bool = False, habilitado_para_llamada: bool = False) -> tuple:
         """Crear contacto personal."""
         try:
             ahora = datetime.utcnow()
             doc = {
-                "usuario_id":    ObjectId(usuario_id),
-                "empresa_id":    ObjectId(empresa_id),
-                "nombre":        str(nombre).strip(),
-                "telefono":      str(telefono).strip(),
-                "descripcion":   str(descripcion).strip(),
-                "habilitado":    bool(habilitado),
-                "creado_en":     ahora,
-                "actualizado_en": ahora,
+                "usuario_id":               ObjectId(usuario_id),
+                "empresa_id":               ObjectId(empresa_id),
+                "nombre":                   str(nombre).strip(),
+                "telefono":                 str(telefono).strip(),
+                "descripcion":              str(descripcion).strip(),
+                "habilitado":               bool(habilitado),
+                "habilitado_para_sms":      bool(habilitado_para_sms),
+                "habilitado_para_whatsapp": bool(habilitado_para_whatsapp),
+                "habilitado_para_llamada":  bool(habilitado_para_llamada),
+                "creado_en":                ahora,
+                "actualizado_en":           ahora,
             }
             result = _user_contacts().insert_one(doc)
             doc["_id"] = result.inserted_id
@@ -259,7 +263,8 @@ class UserPanicContactModel:
     def actualizar(contacto_id: str, datos: dict) -> tuple:
         """Actualizar contacto."""
         try:
-            actualizables = {"nombre", "telefono", "descripcion", "habilitado"}
+            actualizables = {"nombre", "telefono", "descripcion", "habilitado",
+                           "habilitado_para_sms", "habilitado_para_whatsapp", "habilitado_para_llamada"}
             update_data = {k: v for k, v in datos.items() if k in actualizables}
             if not update_data:
                 return False, "Sin cambios"

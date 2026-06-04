@@ -784,13 +784,13 @@ function renderExternos(){
       <div class="notif-label">TIPO DE NOTIFICACIÓN</div>
       <div class="notif-opts">
         <label class="notif-chip ${tipos.includes('sms')?'checked-sms':''}">
-          <input type="checkbox" ${tipos.includes('sms')?'checked':''} ${editing?`onchange="_toggleTipo(${i},'sms',this.checked)"`:'disabled'}> 📱 SMS
+          <input type="checkbox" ${tipos.includes('sms')?'checked':''} ${editing?`onchange="_toggleTipo(${i},'sms',event.target.checked)"`:'disabled'}> 📱 SMS
         </label>
         <label class="notif-chip ${tipos.includes('llamada')?'checked-llamada':''}">
-          <input type="checkbox" ${tipos.includes('llamada')?'checked':''} ${editing?`onchange="_toggleTipo(${i},'llamada',this.checked)"`:'disabled'}> ☎️ Llamada
+          <input type="checkbox" ${tipos.includes('llamada')?'checked':''} ${editing?`onchange="_toggleTipo(${i},'llamada',event.target.checked)"`:'disabled'}> ☎️ Llamada
         </label>
         <label class="notif-chip ${tipos.includes('whatsapp')?'checked-whatsapp':''}">
-          <input type="checkbox" ${tipos.includes('whatsapp')?'checked':''} ${editing?`onchange="_toggleTipo(${i},'whatsapp',this.checked)"`:'disabled'}> 💬 WhatsApp
+          <input type="checkbox" ${tipos.includes('whatsapp')?'checked':''} ${editing?`onchange="_toggleTipo(${i},'whatsapp',event.target.checked)"`:'disabled'}> 💬 WhatsApp
         </label>
       </div>`;
     if(!editing){
@@ -838,10 +838,13 @@ function editarExterno(i){
   setTimeout(() => { const inputs = document.querySelectorAll('.ext-nombre-input'); if(inputs[i]) inputs[i].focus(); }, 50);
 }
 function _toggleTipo(i, tipo, checked){
-  const tipos = _externos[i].tipo_notificacion || [];
-  if(checked && !tipos.includes(tipo)) tipos.push(tipo);
-  if(!checked) _externos[i].tipo_notificacion = tipos.filter(t => t!==tipo);
-  else _externos[i].tipo_notificacion = tipos;
+  let tipos = _externos[i].tipo_notificacion || [];
+  if(checked) {
+    if(!tipos.includes(tipo)) tipos.push(tipo);
+  } else {
+    tipos = tipos.filter(t => t !== tipo);
+  }
+  _externos[i].tipo_notificacion = tipos;
   renderExternos();
 }
 function agregarExterno(){
@@ -967,8 +970,26 @@ async function guardarConfig(){
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           nombre: c.nombre.trim(),
-          telefono: `${c.prefijo||'+57'}${c.celular}`,
-          descripcion: `Tipo: ${(c.tipo_notificacion||[]).join(', ') || 'SMS'}`,
+          telefono: c.telefono,
+          habilitado_para_sms: (c.tipo_notificacion||[]).includes('sms'),
+          habilitado_para_whatsapp: (c.tipo_notificacion||[]).includes('whatsapp'),
+          habilitado_para_llamada: (c.tipo_notificacion||[]).includes('llamada'),
+          habilitado: true
+        })
+      }).catch(() => {});
+    }
+
+    // Guardar cambios en contactos personales existentes
+    for (const c of personalesModificados) {
+      await fetch(`/servicios/boton_panico/mis-contactos/${c._id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          nombre: c.nombre.trim(),
+          telefono: c.telefono,
+          habilitado_para_sms: (c.tipo_notificacion||[]).includes('sms'),
+          habilitado_para_whatsapp: (c.tipo_notificacion||[]).includes('whatsapp'),
+          habilitado_para_llamada: (c.tipo_notificacion||[]).includes('llamada'),
           habilitado: true
         })
       }).catch(() => {});
