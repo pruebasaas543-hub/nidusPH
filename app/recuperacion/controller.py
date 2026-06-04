@@ -10,7 +10,7 @@ import secrets
 import os
 
 from app.recuperacion.model import RecuperacionModel
-from app.auth.model import SIGLAS_VALIDAS
+from app.autenticacion.model import SIGLAS_VALIDAS
 
 logger = logging.getLogger(__name__)
 

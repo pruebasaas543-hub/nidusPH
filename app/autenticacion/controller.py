@@ -6,7 +6,7 @@ Lógica de autenticación.
 
 import re
 from flask import session
-from app.auth.model import UserModel, SIGLAS_VALIDAS
+from app.autenticacion.model import UserModel, SIGLAS_VALIDAS
 from datetime import datetime, timedelta
 
 _RE_OBJECT_ID = re.compile(r'^[0-9a-f]{24}$', re.I)

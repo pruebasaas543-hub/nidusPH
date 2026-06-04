@@ -143,7 +143,7 @@ class CatalogoModel:
             return [{"id": str(d["_id"]), "codigo": d["id_sigla"], "nombre": d["nombre"]}
                     for d in docs if d.get("id_sigla")]
         # Fallback: leer de TIPOS_DOCUMENTO en memoria (ya cargado desde MongoDB al iniciar)
-        from app.auth.model import TIPOS_DOCUMENTO
+        from app.autenticacion.model import TIPOS_DOCUMENTO
         return sorted(
             [{"codigo": sigla, "nombre": info["nombre"]} for sigla, info in TIPOS_DOCUMENTO.items()],
             key=lambda x: x["nombre"]

@@ -77,7 +77,7 @@ def create_app():
     app.logger.info("Conectado a MongoDB: '%s'", app.config["DB_NAME"])
 
     # Tipos de documento desde MongoDB (debe ir antes de registrar blueprints)
-    from app.auth.model import reload_tipos_documento
+    from app.autenticacion.model import reload_tipos_documento
     reload_tipos_documento()
 
     # Índices
@@ -102,7 +102,7 @@ def create_app():
     db["panic_events"].create_index([("empresa_id", 1), ("residente_id", 1), ("activado_en", -1)])
 
     # ── Blueprints ─────────────────────────────────────────────────────────
-    from app.auth.routes            import auth_bp
+    from app.autenticacion.routes            import auth_bp
     from app.recuperacion.routes    import recuperacion_bp
     from app.slug.routes            import slug_bp
     from app.configuracion          import register_config_blueprints

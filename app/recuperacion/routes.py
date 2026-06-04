@@ -43,7 +43,7 @@ def _tipos_documento() -> list:
         {}, {"_id": 0, "id_sigla": 1, "nombre": 1, "tipo_persona": 1}
     ).sort("codigo_dian", 1))
     if not tipos:
-        from app.auth.model import TIPOS_DOCUMENTO
+        from app.autenticacion.model import TIPOS_DOCUMENTO
         tipos = [
             {"id_sigla": k, "nombre": v["nombre"], "tipo_persona": v.get("tipo_persona", "Natural")}
             for k, v in TIPOS_DOCUMENTO.items()

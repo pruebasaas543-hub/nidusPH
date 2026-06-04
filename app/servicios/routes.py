@@ -25,7 +25,7 @@ def panel_servicio(codigo):
     if codigo == "directorio":
         es_sistema = session.get("es_sistema", False)
         empresa_id = session.get("empresa_id", "")
-        from app.auth.routes import _tema_efectivo
+        from app.autenticacion.routes import _tema_efectivo
         tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
         if not es_sistema:
             from app.servicios.permisos.model import PermisosRolModel
@@ -42,7 +42,7 @@ def panel_servicio(codigo):
     if codigo == "boton_panico":
         import logging
         from app.configuracion.roles.model import RolModel
-        from app.auth.routes import _tema_efectivo
+        from app.autenticacion.routes import _tema_efectivo
         rol = session.get("rol", "")
         nombres = RolModel.nombres_sistema()
         es_sistema = rol in nombres

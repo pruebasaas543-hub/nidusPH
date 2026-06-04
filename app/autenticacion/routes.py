@@ -11,7 +11,7 @@ Flujo post-login:
 
 import logging
 from flask import Blueprint, render_template, request, redirect, url_for, session
-from app.auth.controller import AuthController
+from app.autenticacion.controller import AuthController
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def _tipos_documento() -> list:
         {}, {"_id": 0, "id_sigla": 1, "nombre": 1, "tipo_persona": 1}
     ).sort("codigo_dian", 1))
     if not tipos:
-        from app.auth.model import TIPOS_DOCUMENTO
+        from app.autenticacion.model import TIPOS_DOCUMENTO
         tipos = [
             {"id_sigla": k, "nombre": v["nombre"], "tipo_persona": v.get("tipo_persona", "Natural")}
             for k, v in TIPOS_DOCUMENTO.items()
@@ -101,7 +101,7 @@ def login_get():
         if session.get("pendiente_seleccion"):
             return redirect(url_for("auth.seleccionar_empresa"))
         return _redirigir_segun_rol(session.get("rol", ""))
-    return render_template("auth/login.html", tipos_doc=_tipos_documento())
+    return render_template("autenticacion/login.html", tipos_doc=_tipos_documento())
 
 
 @auth_bp.route("/login", methods=["POST"])
@@ -128,7 +128,7 @@ def login_post():
                     branding = SlugController.contexto_branding(emp["slug"])
             except Exception:
                 pass
-        return render_template("auth/login.html",
+        return render_template("autenticacion/login.html",
                                error=resultado,
                                branding=branding,
                                tipos_doc=_tipos_documento(),
@@ -153,7 +153,7 @@ def seleccionar_empresa():
     if not opciones:
         return redirect(url_for("auth.dashboard"))
     return render_template(
-        "auth/seleccionar_empresa.html",
+        "autenticacion/seleccionar_empresa.html",
         opciones=opciones,
         nombres=session.get("nombres", ""),
     )
@@ -336,7 +336,7 @@ def dashboard():
         return redirect(url_for("auth.seleccionar_empresa"))
     empresa_id = session.get("empresa_id", "")
     tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
-    return render_template("auth/dashboard.html",
+    return render_template("autenticacion/dashboard.html",
                            nombres=session.get("nombres", ""),
                            rol=session.get("rol", ""),
                            empresa_nombre=session.get("empresa_nombre", ""),
@@ -374,7 +374,7 @@ def mi_apariencia():
         except Exception:
             pass
 
-    return render_template("auth/mi_apariencia.html",
+    return render_template("autenticacion/mi_apariencia.html",
                            nombres=session.get("nombres", ""),
                            rol=session.get("rol", ""),
                            empresa_nombre=session.get("empresa_nombre", ""),
@@ -404,7 +404,7 @@ def modulo_usuario(codigo):
     if not modulo_actual:
         return redirect(url_for("auth.dashboard"))
 
-    return render_template("auth/usuario_modulo.html",
+    return render_template("autenticacion/usuario_modulo.html",
                            nombres=session.get("nombres", ""),
                            rol=session.get("rol", ""),
                            empresa_nombre=session.get("empresa_nombre", ""),

@@ -3,7 +3,7 @@ app/configuracion/usuarios/controller.py
 """
 
 from app.configuracion.usuarios.model import UsuarioConfigModel
-from app.auth.model import UserModel, SIGLAS_VALIDAS
+from app.autenticacion.model import UserModel, SIGLAS_VALIDAS
 from app.configuracion.utils import email_ok
 
 
