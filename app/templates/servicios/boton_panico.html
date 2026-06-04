@@ -766,12 +766,18 @@ async function init(empresaId) {
         celular = match[2].replace(/^\d/, '') || match[2];
       }
     }
+    // Convertir campos booleanos a array tipo_notificacion
+    const tipo_notificacion = [
+      ...(c.habilitado_para_sms ? ['sms'] : []),
+      ...(c.habilitado_para_whatsapp ? ['whatsapp'] : []),
+      ...(c.habilitado_para_llamada ? ['llamada'] : [])
+    ];
     return {
       ...c,
       _es_personal: true,
       prefijo: prefijo,
       celular: celular,
-      tipo_notificacion: c.tipo_notificacion || []
+      tipo_notificacion: tipo_notificacion
     };
   }) : [];
   _externos = [..._externos_empresa, ..._externos_personales];
@@ -814,12 +820,6 @@ function renderExternos(){
       </div>`;
     if(!editing){
       const telDisplay = `${c.prefijo||'+57'}${c.celular||''}`;
-      // Mostrar qué tipos de notificación están habilitados
-      const tiposActivos = [];
-      if(c.habilitado_para_sms) tiposActivos.push('📱 SMS');
-      if(c.habilitado_para_whatsapp) tiposActivos.push('💬 WhatsApp');
-      if(c.habilitado_para_llamada) tiposActivos.push('☎️ Llamada');
-      const tiposDisplay = tiposActivos.length > 0 ? tiposActivos.join(' • ') : '(Sin notificaciones configuradas)';
       return `
       <div class="ext-card readonly">
         <div class="ext-card-header">
@@ -831,7 +831,6 @@ function renderExternos(){
           </div>
         </div>
         <div class="ext-tel-display">📞 ${_esc(telDisplay)}</div>
-        <div style="font-size:0.85rem;color:#666;margin:8px 0;">Activo en: ${tiposDisplay}</div>
         ${chipsHtml}
       </div>`;
     }
