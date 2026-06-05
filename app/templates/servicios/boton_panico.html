@@ -753,7 +753,6 @@ async function init(empresaId) {
     habilitado_para_llamar:   savedMap[c._id]?.habilitado_para_llamar   || false,
     habilitado_para_whatsapp: savedMap[c._id]?.habilitado_para_whatsapp || false,
   }));
-  _externos_empresa = cfg.contactos_externos || [];
   _externos_personales = (dMisC.ok && dMisC.data) ? dMisC.data.map(c => {
     // Separar teléfono en prefijo y celular si aún está combinado
     let prefijo = c.prefijo || '+57';
@@ -975,7 +974,6 @@ async function guardarConfig(){
   const personalesModificados = _externos_personales.filter(c => c._id);
 
   const payload = {
-    contactos_externos: _externos_empresa.map(c => ({ nombre: c.nombre.trim(), prefijo: c.prefijo||'+57', celular: c.celular.trim(), tipo_notificacion: c.tipo_notificacion||[] })),
     contactos_directorio: _directorio.map(c => ({ contacto_id: c._id, nombre: c.nombre, habilitado_para_sms: c.habilitado_para_sms, habilitado_para_llamar: c.habilitado_para_llamar, habilitado_para_whatsapp: c.habilitado_para_whatsapp })),
   };
 

@@ -684,9 +684,7 @@ def admin_buscar_usuario():
             {"nombres": 1, "apellidos": 1, "numero_documento": 1, "tipo_documento": 1},
         ).limit(15))
 
-        # Config de pánico de esta empresa (única)
-        cfg_emp = db["panic_configurations"].find_one({"empresa_id": ObjectId(empresa_id)}) or {}
-        externos_empresa = cfg_emp.get("contactos_externos", [])
+        # Datos de empresa
         emp_doc = db["empresas"].find_one({"_id": ObjectId(empresa_id)}, {"razon_social": 1})
         emp_nombre = (emp_doc or {}).get("razon_social", empresa_id)
 
@@ -703,14 +701,6 @@ def admin_buscar_usuario():
             }).sort("nombre", 1))
 
             externos_grupo = []
-
-            # Agregar contactos de empresa si existen
-            if externos_empresa:
-                externos_grupo.append({
-                    "empresa_nombre": emp_nombre,
-                    "tipo": "empresa",
-                    "contactos": externos_empresa,
-                })
 
             # Agregar contactos personales si existen
             if contactos_personales:

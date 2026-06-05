@@ -168,21 +168,10 @@ class PanicController:
     @staticmethod
     def obtener_config(empresa_id: str):
         cfg = PanicConfigModel.obtener(empresa_id)
-        return True, cfg or {"contactos_externos": [], "contactos_directorio": []}
+        return True, cfg or {"contactos_directorio": []}
 
     @staticmethod
     def guardar_config(empresa_id: str, datos: dict):
-        externos = datos.get("contactos_externos", [])
-        if len(externos) > 2:
-            return False, "Máximo 2 contactos externos permitidos"
-        for c in externos:
-            if not str(c.get("nombre", "")).strip():
-                return False, "Cada contacto externo debe tener nombre"
-            if not str(c.get("celular", "")).strip():
-                return False, "Cada contacto externo debe tener celular"
-            if not c.get("tipo_notificacion"):
-                return False, f"Define al menos un tipo de notificación para '{c.get('nombre')}'"
-
         directorio = [
             {
                 "contacto_id":              str(c.get("contacto_id", "")),
@@ -194,7 +183,7 @@ class PanicController:
             for c in datos.get("contactos_directorio", [])
         ]
 
-        PanicConfigModel.guardar_contactos(empresa_id, externos, directorio)
+        PanicConfigModel.guardar_contactos(empresa_id, directorio)
         return True, "Configuración guardada"
 
     @staticmethod
@@ -203,8 +192,8 @@ class PanicController:
                 torre: str = "", apartamento: str = ""):
 
         cfg = PanicConfigModel.obtener(empresa_id)
-        if not cfg or (not cfg.get("contactos_externos") and not cfg.get("contactos_directorio")):
-            return False, "Sin configuración de pánico. Configura los contactos primero."
+        if not cfg or not cfg.get("contactos_directorio"):
+            return False, "Sin configuración de pánico. Configura los contactos del directorio primero."
 
         # Cooldown: límite de activaciones por usuario dentro de una ventana de tiempo
         cooldown_max = int(cfg.get("cooldown_max", 2))
@@ -240,22 +229,30 @@ class PanicController:
 
         twiml_conf = _construir_twiml(texto_llamada) if canal_call_on else None
 
-        # ── Contactos externos ────────────────────────────────────────────
-        for c in cfg.get("contactos_externos", []):
-            numero = _numero_completo(c.get("prefijo", "+57"), c.get("celular", ""))
-            if not numero:
-                continue
-            tipos  = c.get("tipo_notificacion", [])
-            entry  = {"nombre": c.get("nombre", ""), "numero": numero, "canales": {}}
+        # ── Contactos personales del usuario ──────────────────────────────
+        try:
+            contactos_personales = list(db["user_panic_contacts"].find({
+                "usuario_id": ObjectId(residente_id),
+                "empresa_id": ObjectId(empresa_id),
+                "habilitado": True
+            }))
+            for c in contactos_personales:
+                numero = _numero_completo(c.get("prefijo", "+57"), c.get("celular", ""))
+                if not numero:
+                    continue
+                entry = {"nombre": c.get("nombre", ""), "numero": numero, "canales": {}}
 
-            if "sms" in tipos and canal_sms_on:
-                entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms)
-            if "llamada" in tipos and canal_call_on and twiml_conf:
-                entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
-            if "whatsapp" in tipos and canal_wa_on:
-                entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
+                if c.get("habilitado_para_sms") and canal_sms_on:
+                    entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms)
+                if c.get("habilitado_para_llamada") and canal_call_on and twiml_conf:
+                    entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
+                if c.get("habilitado_para_whatsapp") and canal_wa_on:
+                    entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
 
-            resultado["externos"].append(entry)
+                if entry.get("canales"):
+                    resultado["externos"].append(entry)
+        except Exception as e:
+            log.warning("Error procesando contactos personales: %s", e)
 
         # ── Contactos del directorio ──────────────────────────────────────
         for c in cfg.get("contactos_directorio", []):

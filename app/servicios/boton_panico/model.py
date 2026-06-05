@@ -141,18 +141,17 @@ class PanicConfigModel:
 
     @staticmethod
     def guardar_contactos(empresa_id: str,
-                          contactos_externos: list,
                           contactos_directorio: list):
         ahora = datetime.utcnow()
         _configs().update_one(
             PanicConfigModel._q(empresa_id),
             {
                 "$set": {
-                    "contactos_externos":   contactos_externos,
                     "contactos_directorio": contactos_directorio,
                     "actualizado_en":       ahora,
                 },
                 "$setOnInsert": {"creado_en": ahora},
+                "$unset": {"contactos_externos": ""}
             },
             upsert=True,
         )
