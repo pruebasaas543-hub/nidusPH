@@ -11,7 +11,7 @@ from bson import ObjectId
 
 from app import db
 from app.servicios.boton_panico.model import (
-    PanicConfigModel, PanicEventModel, MAPA_ESTADOS
+    PanicConfigModel, PanicEventModel, NotificationStateModel, MAPA_ESTADOS
 )
 
 log = logging.getLogger(__name__)
@@ -103,7 +103,8 @@ def _ts() -> str:
     return datetime.utcnow().isoformat()
 
 
-def _enviar_sms(cliente, numero: str, mensaje: str) -> dict:
+def _enviar_sms(cliente, numero: str, mensaje: str, contacto_nombre: str = "", evento_id: str = "",
+                usuario: str = "", empresa: str = "", activado_en: str = "") -> dict:
     if not cliente or not TWILIO_FROM:
         log.info("[MOCK] SMS → %s", numero)
         return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
@@ -112,16 +113,40 @@ def _enviar_sms(cliente, numero: str, mensaje: str) -> dict:
         msg = cliente.messages.create(to=numero, from_=TWILIO_FROM, body=mensaje)
         log.info("SMS enviado → %s (SID=%s)", numero, msg.sid)
         estado_raw = msg.status or "queued"
-        estado_ini = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
+        # Obtener estado desde BD en lugar de mapeo hardcodeado
+        estado_ini = NotificationStateModel.obtener_nombre_espanol("sms", estado_raw.lower())
+        razon = NotificationStateModel.obtener_razon_terminacion("sms", estado_raw.lower())
+
+        # Registrar en Twilio log
+        if evento_id:
+            from app.servicios.boton_panico.model import TwilioRequestLogModel
+            log_id = TwilioRequestLogModel.registrar_peticion(
+                evento_id, "sms", contacto_nombre, numero,
+                {"to": numero, "from": TWILIO_FROM, "body": mensaje},
+                {"sid": msg.sid, "status": estado_raw, "timestamp": _ts()},
+                usuario, empresa, activado_en
+            )
+            TwilioRequestLogModel.agregar_transicion(log_id, estado_ini, _ts(), razon or "")
+
         return {"numero": numero, "estado": estado_ini, "sid": msg.sid,
-                "historial": [{"estado": estado_ini, "en": _ts()}]}
+                "historial": [{"estado": estado_ini, "en": _ts(), "razon": razon if razon else None}]}
     except Exception as e:
         log.error("SMS error → %s: %s", numero, e)
+        if evento_id:
+            from app.servicios.boton_panico.model import TwilioRequestLogModel
+            log_id = TwilioRequestLogModel.registrar_peticion(
+                evento_id, "sms", contacto_nombre, numero,
+                {"to": numero, "from": TWILIO_FROM, "body": mensaje},
+                {"error": str(e)},
+                usuario, empresa, activado_en
+            )
+            TwilioRequestLogModel.registrar_error(log_id, str(e))
         return {"numero": numero, "estado": "fallido", "detalle": str(e),
                 "historial": [{"estado": "fallido", "en": _ts(), "detalle": str(e)}]}
 
 
-def _enviar_llamada(cliente, numero: str, twiml: str) -> dict:
+def _enviar_llamada(cliente, numero: str, twiml: str, contacto_nombre: str = "", evento_id: str = "",
+                    usuario: str = "", empresa: str = "", activado_en: str = "") -> dict:
     if not cliente or not TWILIO_FROM:
         log.info("[MOCK] CALL → %s", numero)
         return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
@@ -130,16 +155,40 @@ def _enviar_llamada(cliente, numero: str, twiml: str) -> dict:
         call = cliente.calls.create(to=numero, from_=TWILIO_FROM, twiml=twiml)
         log.info("Llamada iniciada → %s (SID=%s)", numero, call.sid)
         estado_raw = call.status or "queued"
-        estado_ini = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
+        # Obtener estado desde BD en lugar de mapeo hardcodeado
+        estado_ini = NotificationStateModel.obtener_nombre_espanol("llamada", estado_raw.lower())
+        razon = NotificationStateModel.obtener_razon_terminacion("llamada", estado_raw.lower())
+
+        # Registrar en Twilio log
+        if evento_id:
+            from app.servicios.boton_panico.model import TwilioRequestLogModel
+            log_id = TwilioRequestLogModel.registrar_peticion(
+                evento_id, "llamada", contacto_nombre, numero,
+                {"to": numero, "from": TWILIO_FROM},
+                {"sid": call.sid, "status": estado_raw, "timestamp": _ts()},
+                usuario, empresa, activado_en
+            )
+            TwilioRequestLogModel.agregar_transicion(log_id, estado_ini, _ts(), razon or "")
+
         return {"numero": numero, "estado": estado_ini, "sid": call.sid,
-                "historial": [{"estado": estado_ini, "en": _ts()}]}
+                "historial": [{"estado": estado_ini, "en": _ts(), "razon": razon if razon else None}]}
     except Exception as e:
         log.error("Call error → %s: %s", numero, e)
+        if evento_id:
+            from app.servicios.boton_panico.model import TwilioRequestLogModel
+            log_id = TwilioRequestLogModel.registrar_peticion(
+                evento_id, "llamada", contacto_nombre, numero,
+                {"to": numero, "from": TWILIO_FROM},
+                {"error": str(e)},
+                usuario, empresa, activado_en
+            )
+            TwilioRequestLogModel.registrar_error(log_id, str(e))
         return {"numero": numero, "estado": "fallido", "detalle": str(e),
                 "historial": [{"estado": "fallido", "en": _ts(), "detalle": str(e)}]}
 
 
-def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
+def _enviar_whatsapp(cliente, numero: str, cuerpo: str, contacto_nombre: str = "", evento_id: str = "",
+                     usuario: str = "", empresa: str = "", activado_en: str = "") -> dict:
     if not cliente or not TWILIO_WA_FROM:
         log.info("[MOCK] WhatsApp → %s", numero)
         return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
@@ -154,11 +203,34 @@ def _enviar_whatsapp(cliente, numero: str, cuerpo: str) -> dict:
         msg = cliente.messages.create(**kwargs)
         log.info("WhatsApp enviado → %s (SID=%s)", numero, msg.sid)
         estado_raw = msg.status or "queued"
-        estado_ini = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
+        # Obtener estado desde BD en lugar de mapeo hardcodeado
+        estado_ini = NotificationStateModel.obtener_nombre_espanol("whatsapp", estado_raw.lower())
+        razon = NotificationStateModel.obtener_razon_terminacion("whatsapp", estado_raw.lower())
+
+        # Registrar en Twilio log
+        if evento_id:
+            from app.servicios.boton_panico.model import TwilioRequestLogModel
+            log_id = TwilioRequestLogModel.registrar_peticion(
+                evento_id, "whatsapp", contacto_nombre, numero,
+                {"to": f"whatsapp:{numero}", "from": TWILIO_WA_FROM, "body": cuerpo},
+                {"sid": msg.sid, "status": estado_raw, "timestamp": _ts()},
+                usuario, empresa, activado_en
+            )
+            TwilioRequestLogModel.agregar_transicion(log_id, estado_ini, _ts(), razon or "")
+
         return {"numero": numero, "estado": estado_ini, "sid": msg.sid,
-                "historial": [{"estado": estado_ini, "en": _ts()}]}
+                "historial": [{"estado": estado_ini, "en": _ts(), "razon": razon if razon else None}]}
     except Exception as e:
         log.error("WhatsApp error → %s: %s", numero, e)
+        if evento_id:
+            from app.servicios.boton_panico.model import TwilioRequestLogModel
+            log_id = TwilioRequestLogModel.registrar_peticion(
+                evento_id, "whatsapp", contacto_nombre, numero,
+                {"to": f"whatsapp:{numero}", "from": TWILIO_WA_FROM},
+                {"error": str(e)},
+                usuario, empresa, activado_en
+            )
+            TwilioRequestLogModel.registrar_error(log_id, str(e))
         return {"numero": numero, "estado": "fallido", "detalle": str(e),
                 "historial": [{"estado": "fallido", "en": _ts(), "detalle": str(e)}]}
 
@@ -243,11 +315,14 @@ class PanicController:
                 entry = {"nombre": c.get("nombre", ""), "numero": numero, "canales": {}}
 
                 if c.get("habilitado_para_sms") and canal_sms_on:
-                    entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms)
+                    entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms, c.get("nombre"), "",
+                                                          nombre_residente, nombre_empresa, _ts())
                 if c.get("habilitado_para_llamada") and canal_call_on and twiml_conf:
-                    entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
+                    entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf, c.get("nombre"), "",
+                                                                  nombre_residente, nombre_empresa, _ts())
                 if c.get("habilitado_para_whatsapp") and canal_wa_on:
-                    entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
+                    entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp, c.get("nombre"), "",
+                                                                    nombre_residente, nombre_empresa, _ts())
 
                 if entry.get("canales"):
                     resultado["externos"].append(entry)
@@ -271,11 +346,14 @@ class PanicController:
             entry  = {"nombre": c.get("nombre", ""), "numero": numero, "canales": {}}
 
             if necesita_sms:
-                entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms)
+                entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms, c.get("nombre"), "",
+                                                      nombre_residente, nombre_empresa, _ts())
             if necesita_llamar and twiml_conf:
-                entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf)
+                entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf, c.get("nombre"), "",
+                                                              nombre_residente, nombre_empresa, _ts())
             if necesita_whatsapp:
-                entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp)
+                entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp, c.get("nombre"), "",
+                                                                nombre_residente, nombre_empresa, _ts())
 
             resultado["directorio"].append(entry)
 

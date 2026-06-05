@@ -13,7 +13,7 @@ from app.configuracion.utils import requiere_login, ok, err, serializar
 from app.configuracion.roles.model import RolModel
 from app.servicios.boton_panico.controller import PanicController
 from app.servicios.boton_panico.model import (
-    PanicConfigModel, PanicEventModel, UserPanicContactModel,
+    PanicConfigModel, PanicEventModel, UserPanicContactModel, NotificationStateModel,
     MAPA_ESTADOS, JERARQUIA_ESTADOS, ESTADOS_PENDIENTES, ESTADOS_FINALES
 )
 
@@ -394,15 +394,15 @@ def admin_refresh_lote():
                             estado_actual = info.get("estado", "")
                             if not sid:
                                 continue
-                            if solo_pendientes and estado_actual not in ESTADOS_PENDIENTES:
+                            if solo_pendientes and not NotificationStateModel.es_estado_pendiente(tipo, estado_actual):
                                 continue
                             try:
                                 if tipo in ("sms", "whatsapp"):
                                     nuevo_raw = cliente.messages(sid).fetch().status
                                 else:
                                     nuevo_raw = cliente.calls(sid).fetch().status
-                                # Mapear estado Twilio → estado interno
-                                nuevo = MAPA_ESTADOS.get((nuevo_raw or "").lower(), nuevo_raw)
+                                # Obtener estado desde BD en lugar de mapeo hardcodeado
+                                nuevo = NotificationStateModel.obtener_nombre_espanol(tipo, (nuevo_raw or "").lower())
                                 if nuevo and nuevo != estado_actual:
                                     # Acumular historial en vez de sobreescribir
                                     historial = info.get("historial") or [
@@ -472,6 +472,9 @@ def admin_log():
         # Post-filtro por canal / estado (están anidados en resultado.externos/directorio)
         if canal_fil or estado_fil:
             filtrados = []
+            # Obtener estados válidos para el canal si se especificó
+            estados_validos_canal = _obtener_estados_canal(canal_fil) if canal_fil else None
+
             for ev in todos:
                 res = ev.get("resultado", {})
 
@@ -493,9 +496,17 @@ def admin_log():
                         # Verificar canal
                         if canal_fil and tipo_canal.lower() != canal_fil.lower():
                             continue  # Este canal no coincide, próximo
-                        # Verificar estado
-                        if estado_fil and not _estado_coincide(info_canal.get("estado", ""), estado_fil):
+
+                        estado_actual = info_canal.get("estado", "")
+
+                        # Validar que el estado sea válido para el canal seleccionado
+                        if canal_fil and estados_validos_canal and estado_actual not in estados_validos_canal:
+                            continue  # Estado no válido para este canal, próximo
+
+                        # Verificar estado (si hay filtro)
+                        if estado_fil and not _estado_coincide(estado_actual, estado_fil):
                             continue  # Este estado no coincide, próximo
+
                         # Ambos coinciden (o no hay filtro para ellos)
                         evento_coincide = True
                         break
@@ -512,6 +523,14 @@ def admin_log():
         pagina_data = todos[skip: skip + por_pagina]
         # Migración lazy: mapear estados Twilio → internos
         pagina_data = [_migrar_evento_lazy(ev) for ev in pagina_data]
+
+        # Obtener estados válidos por canal para el frontend
+        estados_por_canal = {
+            "sms": _obtener_estados_canal("sms"),
+            "whatsapp": _obtener_estados_canal("whatsapp"),
+            "llamada": _obtener_estados_canal("llamada"),
+        }
+
         from flask import jsonify
         return jsonify({
             "ok": True,
@@ -520,6 +539,7 @@ def admin_log():
             "pagina": pagina,
             "por_pagina": por_pagina,
             "total_paginas": max(1, -(-total // por_pagina)),
+            "estados_por_canal": estados_por_canal,
         })
     except Exception as e:
         return err(str(e))
@@ -556,6 +576,19 @@ def _estado_coincide(estado_real: str, filtro: str) -> bool:
     return False
 
 
+def _obtener_estados_canal(canal: str) -> list:
+    """Obtiene todos los estados válidos para un canal desde la BD.
+
+    Args:
+        canal: "sms", "whatsapp" o "llamada"
+
+    Returns:
+        Lista de nombres en español de los estados válidos
+    """
+    estados_docs = NotificationStateModel.obtener_estados_por_tipo(canal)
+    return [doc.get("nombreEspanol") for doc in estados_docs]
+
+
 def _migrar_evento_lazy(evento: dict) -> dict:
     """Migración lazy: mapea estados Twilio → estados internos en un evento."""
     resultado = evento.get("resultado", {})
@@ -564,16 +597,16 @@ def _migrar_evento_lazy(evento: dict) -> dict:
     for grupo in ("externos", "directorio"):
         for contacto in resultado.get(grupo, []):
             for tipo, info in contacto.get("canales", {}).items():
-                # Mapear estado principal
+                # Mapear estado principal - obtener desde BD en lugar de mapeo hardcodeado
                 estado_raw = info.get("estado", "")
                 if estado_raw and estado_raw not in ESTADOS_FINALES and estado_raw not in ESTADOS_PENDIENTES:
-                    info["estado"] = MAPA_ESTADOS.get(estado_raw.lower(), estado_raw)
+                    info["estado"] = NotificationStateModel.obtener_nombre_espanol(tipo, estado_raw.lower())
 
                 # Mapear estados en historial
                 for h in info.get("historial", []):
                     estado_h = h.get("estado", "")
                     if estado_h and estado_h not in ESTADOS_FINALES and estado_h not in ESTADOS_PENDIENTES:
-                        h["estado"] = MAPA_ESTADOS.get(estado_h.lower(), estado_h)
+                        h["estado"] = NotificationStateModel.obtener_nombre_espanol(tipo, estado_h.lower())
 
     return evento
 
@@ -621,8 +654,8 @@ def admin_refresh_estados():
                     except Exception as e:
                         nuevo_estado_raw = f"error_twilio: {e}"
 
-                    # Mapear estado Twilio → estado interno
-                    nuevo_estado = MAPA_ESTADOS.get((nuevo_estado_raw or "").lower(), nuevo_estado_raw)
+                    # Obtener estado desde BD en lugar de mapeo hardcodeado
+                    nuevo_estado = NotificationStateModel.obtener_nombre_espanol(tipo, (nuevo_estado_raw or "").lower())
 
                     if nuevo_estado and nuevo_estado != estado_actual:
                         historial = info.get("historial") or [
@@ -800,6 +833,86 @@ def admin_migrar_contactos():
     if not exito:
         return err(count)
     return ok({"migrados": count})
+
+
+# ═══════════════════════════════════════════════════════════════
+# Traza de Twilio - Auditoría completa de peticiones
+# ═══════════════════════════════════════════════════════════════
+
+@panico_bp.route("/traza/<evento_id>", methods=["GET"])
+@requiere_login
+def obtener_traza_evento(evento_id):
+    """Obtiene la traza completa de peticiones a Twilio para un evento.
+
+    Formato: /traza/<evento_id>
+    Retorna: Lista de todas las peticiones SMS, WhatsApp y Llamadas para ese evento
+    """
+    try:
+        trazas = TwilioRequestLogModel.obtener_traza(evento_id)
+        return ok(serializar(trazas))
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_bp.route("/traza/imprimir/<evento_id>", methods=["GET"])
+@requiere_login
+def imprimir_traza_evento(evento_id):
+    """Imprime la traza en formato HTML legible."""
+    try:
+        trazas = TwilioRequestLogModel.obtener_traza(evento_id)
+        if not trazas:
+            return err("No hay trazas para este evento", 404)
+
+        html = "<html><head><meta charset='utf-8'><style>"
+        html += "body { font-family: Arial; margin: 20px; } "
+        html += ".traza { border: 1px solid #ddd; margin: 20px 0; padding: 15px; background: #f9f9f9; } "
+        html += ".tipo { font-weight: bold; color: #2787F5; font-size: 14px; } "
+        html += ".contacto { color: #666; margin: 5px 0; } "
+        html += ".peticion { background: #fff; padding: 10px; margin: 10px 0; border-left: 3px solid #4CAF50; } "
+        html += ".respuesta { background: #fff; padding: 10px; margin: 10px 0; border-left: 3px solid #FF9800; } "
+        html += ".transicion { padding: 8px; margin: 5px 0; background: #e8f4f8; border-radius: 4px; } "
+        html += ".error { color: #d32f2f; background: #ffebee; padding: 10px; margin: 10px 0; } "
+        html += "</style></head><body>"
+        html += f"<h1>Traza de Evento: {evento_id}</h1>"
+
+        for i, traza in enumerate(trazas, 1):
+            html += '<div class="traza">'
+            html += f'<div class="tipo">#{i} {traza.get("tipo_notificacion", "").upper()}</div>'
+            html += f'<div class="contacto">Contacto: {traza.get("contacto_externo", {}).get("nombre")} ({traza.get("contacto_externo", {}).get("numero")})</div>'
+            html += f'<div class="contacto">Usuario: {traza.get("usuario")} | Empresa: {traza.get("empresa")}</div>'
+            html += f'<div class="contacto">Activado: {traza.get("activado_en")}</div>'
+
+            html += '<div class="peticion"><strong>Petición Twilio:</strong><br>'
+            for k, v in traza.get("peticion_twilio", {}).items():
+                html += f'  {k}: {v}<br>'
+            html += '</div>'
+
+            html += '<div class="respuesta"><strong>Respuesta Inicial:</strong><br>'
+            for k, v in traza.get("respuesta_inicial", {}).items():
+                html += f'  {k}: {v}<br>'
+            html += '</div>'
+
+            if traza.get("transiciones_estado"):
+                html += '<strong>Transiciones de Estado:</strong><br>'
+                for trans in traza.get("transiciones_estado", []):
+                    html += f'<div class="transicion">'
+                    html += f'{trans.get("orden")}. {trans.get("estado")} @ {trans.get("timestamp")}'
+                    if trans.get("detalles"):
+                        html += f' - {trans.get("detalles")}'
+                    html += '</div>'
+
+            if traza.get("errores"):
+                html += f'<div class="error"><strong>Error:</strong> {traza.get("errores")}</div>'
+
+            html += '</div>'
+
+        html += "</body></html>"
+        from flask import make_response
+        response = make_response(html)
+        response.headers["Content-Type"] = "text/html; charset=utf-8"
+        return response
+    except Exception as e:
+        return err(str(e))
 
 
 # ═══════════════════════════════════════════════════════════════

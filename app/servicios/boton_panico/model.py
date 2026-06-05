@@ -63,6 +63,78 @@ ESTADOS_FINALES = {
 def _configs():      return db["panic_configurations"]
 def _eventos():      return db["panic_events"]
 def _user_contacts(): return db["user_panic_contacts"]
+def _notification_states(): return db["notification_states"]
+def _twilio_logs(): return db["twilio_requests_log"]
+
+
+class NotificationStateModel:
+    """Gestiona estados de notificaciones desde la BD (sin código quemado)."""
+
+    @staticmethod
+    def obtener_estado(tipo_notificacion: str, estado_twilio: str) -> dict:
+        """Obtiene documento de estado desde BD basado en tipo y estado Twilio.
+
+        Args:
+            tipo_notificacion: "llamada", "sms", "whatsapp"
+            estado_twilio: estado devuelto por Twilio (ej: "in-progress", "completed")
+
+        Returns:
+            dict con campos: estadoNotificacion, nombreEspanol, razonTerminacion, etc.
+            {} si no encuentra
+        """
+        return _notification_states().find_one({
+            "tipoNotificacion": tipo_notificacion,
+            "estadoNotificacion": estado_twilio
+        }) or {}
+
+    @staticmethod
+    def obtener_estados_por_tipo(tipo_notificacion: str) -> list:
+        """Obtiene todos los estados posibles para un tipo de notificación.
+
+        Returns:
+            Lista ordenada de documentos de estado
+        """
+        return list(_notification_states().find({
+            "tipoNotificacion": tipo_notificacion
+        }).sort("orden", 1))
+
+    @staticmethod
+    def obtener_nombre_espanol(tipo_notificacion: str, estado_twilio: str) -> str:
+        """Convierte estado Twilio a nombre en español.
+
+        Ej: "in-progress" → "en_llamada"
+        """
+        doc = NotificationStateModel.obtener_estado(tipo_notificacion, estado_twilio)
+        return doc.get("nombreEspanol", estado_twilio.lower())
+
+    @staticmethod
+    def es_estado_terminal(tipo_notificacion: str, estado_twilio: str) -> bool:
+        """Verifica si un estado es terminal (final)."""
+        doc = NotificationStateModel.obtener_estado(tipo_notificacion, estado_twilio)
+        return doc.get("esTerminal", False)
+
+    @staticmethod
+    def es_estado_pendiente(tipo_notificacion: str, estado_español: str) -> bool:
+        """Verifica si un estado es pendiente (aún puede cambiar).
+
+        Args:
+            tipo_notificacion: "llamada", "sms", "whatsapp"
+            estado_español: nombre en español del estado (ej: "en_llamada")
+        """
+        # Buscar el estado por nombre español (para estados ya mapeados)
+        doc = _notification_states().find_one({
+            "tipoNotificacion": tipo_notificacion,
+            "nombreEspanol": estado_español
+        })
+        if doc:
+            return doc.get("esPendiente", False)
+        return False
+
+    @staticmethod
+    def obtener_razon_terminacion(tipo_notificacion: str, estado_twilio: str) -> str:
+        """Obtiene la razón por la que terminó (si aplica)."""
+        doc = NotificationStateModel.obtener_estado(tipo_notificacion, estado_twilio)
+        return doc.get("razonTerminacion", "")
 
 
 class PanicConfigModel:
@@ -219,6 +291,81 @@ class PanicEventModel:
             "residente_id": residente_id,
             "activado_en":  {"$gte": desde},
         })
+
+
+class TwilioRequestLogModel:
+    """Registra trazas completas de peticiones a Twilio."""
+
+    @staticmethod
+    def registrar_peticion(evento_id: str, tipo_notificacion: str, contacto_nombre: str,
+                          numero: str, peticion: dict, respuesta_inicial: dict,
+                          usuario: str = "", empresa: str = "", activado_en: str = "") -> str:
+        """Registra una petición y respuesta inicial de Twilio.
+
+        Returns:
+            ID del documento creado
+        """
+        from datetime import datetime
+        doc = {
+            "evento_id": ObjectId(evento_id) if evento_id else None,
+            "usuario": usuario,
+            "empresa": empresa,
+            "activado_en": activado_en,
+            "contacto_externo": {
+                "nombre": contacto_nombre,
+                "numero": numero
+            },
+            "tipo_notificacion": tipo_notificacion,
+            "peticion_twilio": peticion,
+            "respuesta_inicial": respuesta_inicial,
+            "transiciones_estado": [],
+            "errores": None,
+            "guardado_en": datetime.utcnow().isoformat()
+        }
+        result = _twilio_logs().insert_one(doc)
+        return str(result.inserted_id)
+
+    @staticmethod
+    def agregar_transicion(log_id: str, estado: str, timestamp: str, detalles: str = ""):
+        """Agrega una transición de estado al log."""
+        # Obtener el documento actual
+        doc = _twilio_logs().find_one({"_id": ObjectId(log_id)})
+        if not doc:
+            return False
+
+        transiciones = doc.get("transiciones_estado", [])
+        transiciones.append({
+            "orden": len(transiciones) + 1,
+            "estado": estado,
+            "timestamp": timestamp,
+            "detalles": detalles
+        })
+
+        _twilio_logs().update_one(
+            {"_id": ObjectId(log_id)},
+            {"$set": {"transiciones_estado": transiciones}}
+        )
+        return True
+
+    @staticmethod
+    def registrar_error(log_id: str, error: str):
+        """Registra un error en el log."""
+        _twilio_logs().update_one(
+            {"_id": ObjectId(log_id)},
+            {"$set": {"errores": error}}
+        )
+
+    @staticmethod
+    def obtener_traza(evento_id: str) -> list:
+        """Obtiene todas las trazas de un evento específico."""
+        return list(_twilio_logs().find({
+            "evento_id": ObjectId(evento_id)
+        }).sort("guardado_en", 1))
+
+    @staticmethod
+    def obtener_traza_por_id(log_id: str) -> dict:
+        """Obtiene una traza específica por ID."""
+        return _twilio_logs().find_one({"_id": ObjectId(log_id)}) or {}
 
 
 class UserPanicContactModel:
