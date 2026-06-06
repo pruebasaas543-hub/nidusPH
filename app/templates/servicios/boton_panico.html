@@ -230,6 +230,9 @@ body { background:var(--bg); color:var(--text); }
 .r-ok     { background:rgba(39,103,73,.12); color:#2f9e6e; }
 .r-err    { background:rgba(229,62,62,.12); color:var(--red); }
 .r-mock   { background:rgba(183,121,31,.12); color:var(--orange); }
+.r-pend   { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); }
+.r-pend .r-spin { display:inline-block; animation:r-spin 1s linear infinite; }
+@keyframes r-spin { to { transform:rotate(360deg); } }
 
 /* Historial */
 .hist-list-wrap { display:flex; flex-direction:column; gap:7px; }
@@ -659,6 +662,7 @@ body { background:var(--bg); color:var(--text); }
   <div class="ov-icon">🚨</div>
   <div class="ov-title">¡ALERTA ENVIADA!</div>
   <div class="ov-sub" id="overlayMsg">Notificaciones enviadas</div>
+  <div id="overlayProgreso" style="width:90%;max-width:440px;max-height:46vh;overflow-y:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px 14px 10px;"></div>
   <button class="ov-close" onclick="cerrarOverlay()">Cerrar</button>
 </div>
 
@@ -718,6 +722,9 @@ function bpTab(id, btn) {
 // ═══════════════════════════════════════════════════════════════
 let _externos = [], _externosEditing = [], _externos_empresa = [], _externos_personales = [], _directorio = [], _paises = [];
 let _holding = false, _holdTimer = null, _animFrame = null, _holdStart = null;
+// Alerta "en proceso": el botón queda bloqueado hasta que TODAS las notificaciones
+// lleguen a un estado terminal (se libera vía polling a /alerta-estado).
+let _alertaEnProceso = false, _alertaPollTimer = null, _alertaEventoId = null;
 const HOLD_MS = 3000, CIRCUM = 628.32;
 
 function toast(msg, isError=false) {
@@ -783,6 +790,8 @@ async function init(empresaId) {
   _externosEditing = _externos.map(() => false);
   renderExternos(); renderDirectorio();
   renderHistorial(dHist.ok ? (dHist.data||[]) : []);
+  // Si quedó una alerta sin finalizar (ej. recargó la página), restaura el bloqueo.
+  verificarAlertaEnProceso();
 }
 
 const _CO_TZ = {timeZone: 'America/Bogota'};
@@ -969,9 +978,10 @@ async function guardarConfig(){
   const eid = ES_SISTEMA ? _admEmpresaId : MI_EMPRESA;
   const eq  = ES_SISTEMA && eid ? `?empresa_id=${eid}` : '';
 
-  // Separar: personales (nuevos) vs empresa
-  const nuevosPersonales = _externos_personales.filter(c => !c._id);
-  const personalesModificados = _externos_personales.filter(c => c._id);
+  // _externos es la fuente de verdad del UI (todos son personales; _externos_empresa no se usa).
+  // Nuevos = sin _id (requieren nombre y celular); modificados = con _id.
+  const nuevosPersonales = _externos.filter(c => !c._id && (c.nombre||'').trim() && (c.celular||'').trim());
+  const personalesModificados = _externos.filter(c => c._id);
 
   const payload = {
     contactos_directorio: _directorio.map(c => ({ contacto_id: c._id, nombre: c.nombre, habilitado_para_sms: c.habilitado_para_sms, habilitado_para_llamar: c.habilitado_para_llamar, habilitado_para_whatsapp: c.habilitado_para_whatsapp })),
@@ -1017,8 +1027,9 @@ async function guardarConfig(){
       }).catch(() => {});
     }
 
-    _externosEditing = _externos.map(() => false);
-    renderExternos();
+    // Recargar desde el servidor: los nuevos obtienen su _id (evita duplicados al
+    // volver a guardar) y se refleja el estado real persistido.
+    await init(eid);
     _mostrarResultado(true, 'Los cambios han sido aplicados correctamente.');
   } catch { _mostrarResultado(false, 'Error de conexión. Verifica tu red e intenta de nuevo.'); }
   finally { btn.disabled = false; }
@@ -1031,7 +1042,7 @@ const btnLabel = document.getElementById('btnLabel');
 const btnCount = document.getElementById('btnCount');
 
 function iniciarHold(e){
-  e.preventDefault(); if(_holding) return;
+  e.preventDefault(); if(_holding || _alertaEnProceso) return;
   _holding=true; _holdStart=Date.now();
   panicBtn.classList.remove('pulsing'); panicBtn.classList.add('holding');
   btnLabel.style.display='none'; btnCount.style.display='block';
@@ -1080,7 +1091,7 @@ async function dispararPanico(){
     const eq = ES_SISTEMA && _admEmpresaId ? `?empresa_id=${_admEmpresaId}` : '';
     const r = await fetch(`/servicios/boton_panico/trigger${eq}`, {method:'POST'});
     const d = await r.json();
-    if(d.ok){ mostrarResultado(d.data.resultado); mostrarOverlay(d.data.resultado); await recargarHistorial(); }
+    if(d.ok){ mostrarResultado(d.data.resultado); mostrarOverlay(d.data.resultado); await recargarHistorial(); entrarEnProceso(d.data.event_id); }
     else {
       resetBtn();
       await recargarHistorial(); // el intento fallido también quedó registrado
@@ -1101,28 +1112,98 @@ function resetBtn(){
   document.getElementById('panicHint').innerHTML='Mantén presionado <strong>3 segundos</strong><br>para activar la alerta';
 }
 function mostrarResultado(r){
-  const box = document.getElementById('resultBox');
-  const canalesHtml = (grupo, titulo) => {
-    if(!grupo||!grupo.length) return '';
-    const rows = grupo.map(c => {
-      const canales = c.canales||{};
-      const chips = Object.entries(canales).map(([canal, res]) => {
-        const cls  = res.estado==='enviado'||res.estado==='iniciado' ? 'r-ok' : res.estado==='mock' ? 'r-mock' : 'r-err';
-        const icon = canal==='sms'?'📱':canal==='llamada'?'☎️':'💬';
-        const txt  = res.estado==='enviado'?'Enviado':res.estado==='iniciado'?'Iniciado':res.estado==='mock'?'Mock':'Error';
-        return `<span class="r-canal ${cls}">${icon} ${txt}</span>`;
+  // Render inicial inmediato (desde la respuesta del trigger), luego el poll
+  // lo va actualizando en vivo.
+  const contactos = [...(r.externos||[]), ...(r.directorio||[])].map(c => {
+    const canales = {};
+    Object.entries(c.canales||{}).forEach(([tipo, info]) => { canales[tipo] = (info&&info.estado)||''; });
+    return { nombre: c.nombre || c.numero || '—', canales };
+  });
+  renderProgreso(contactos);
+}
+
+// Panel de progreso en vivo: cada contacto con su(s) canal(es) e ícono de estado.
+// Mientras un canal está pendiente muestra ⏳; al llegar a terminal muestra ✅/estado final.
+// Se pinta en LOS 2 LADOS: el panel lateral (resultBox) y el overlay rojo (overlayProgreso).
+function renderProgreso(contactos){
+  const targets = [document.getElementById('resultBox'),
+                   document.getElementById('overlayProgreso')].filter(Boolean);
+  if(!targets.length) return;
+  const iconCanal = t => t==='sms'?'📱':t==='llamada'?'☎️':t==='whatsapp'?'💬':'🔔';
+  let html;
+  if(!contactos || !contactos.length){
+    html = `<div style="font-size:.72rem;font-weight:700;color:#2f9e6e;letter-spacing:.5px;margin-bottom:8px;">✅ ALERTA ACTIVADA</div><div style="font-size:.78rem;color:var(--muted);">Sin contactos configurados</div>`;
+  } else {
+    let hayPend = false;
+    const rows = contactos.map(c => {
+      const chips = Object.entries(c.canales||{}).map(([tipo, estado]) => {
+        const e = (estado||'').toLowerCase();
+        const pend = _ESTADOS_PEND.has(e);
+        if(pend) hayPend = true;
+        const ei = _estadoInfo(e);
+        const cls = pend ? 'r-pend' : (ei.cls==='a-chip-ok' ? 'r-ok' : ei.cls==='a-chip-mock' ? 'r-mock' : 'r-err');
+        const txt = pend ? '<span class="r-spin">⏳</span> Enviando…' : `${ei.icon} ${ei.label}`;
+        return `<span class="r-canal ${cls}">${iconCanal(tipo)} ${txt}</span>`;
       }).join('');
-      return `<div class="result-row"><span class="r-nombre">${_esc(c.nombre||c.numero)}</span>${chips}</div>`;
+      // Nombre arriba y chips abajo (con wrap) para que el nombre NUNCA se aplaste
+      // aunque el contacto tenga varios canales.
+      return `<div class="result-row" style="flex-direction:column;align-items:stretch;gap:5px;"><span class="r-nombre">${_esc(c.nombre)}</span><div style="display:flex;flex-wrap:wrap;gap:4px;">${chips}</div></div>`;
     }).join('');
-    return `<div class="result-section"><div class="result-section-title">${titulo}</div>${rows}</div>`;
-  };
-  const html = canalesHtml(r.externos,'📞 Externos') + canalesHtml(r.directorio,'📒 Directorio');
-  box.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:#2f9e6e;letter-spacing:.5px;margin-bottom:8px;">✅ ALERTA ACTIVADA</div>${html||'<div style="font-size:.78rem;color:var(--muted);">Sin contactos configurados</div>'}`;
-  box.classList.add('show');
-  setStatus('listo','● LISTO');
-  panicBtn.disabled=false; panicBtn.classList.add('pulsing'); btnIcon.textContent='✅';
-  document.getElementById('panicHint').textContent='Alerta enviada correctamente.';
-  setTimeout(()=>{ btnIcon.textContent='🚨'; },5000);
+    const header = hayPend
+      ? `<div style="font-size:.72rem;font-weight:700;color:var(--orange);letter-spacing:.5px;margin-bottom:8px;">🚨 ALERTA EN PROCESO…</div>`
+      : `<div style="font-size:.72rem;font-weight:700;color:#2f9e6e;letter-spacing:.5px;margin-bottom:8px;">✅ TODOS LOS CONTACTOS NOTIFICADOS</div>`;
+    html = header + rows;
+  }
+  targets.forEach(t => { t.innerHTML = html; if(t.id==='resultBox') t.classList.add('show'); });
+}
+
+// ── Alerta en proceso: bloquea el botón hasta que todo sea terminal ──────────
+function entrarEnProceso(eventoId){
+  _alertaEnProceso = true;
+  _alertaEventoId  = eventoId || null;
+  panicBtn.disabled = true;
+  panicBtn.classList.remove('holding'); panicBtn.classList.add('pulsing');
+  btnIcon.textContent='⏳'; btnLabel.style.display=''; btnCount.style.display='none';
+  setStatus('enviando','● EN PROCESO');
+  document.getElementById('panicHint').innerHTML='Alerta en proceso…<br>esperando que <strong>todos</strong> los contactos sean notificados';
+  clearInterval(_alertaPollTimer);
+  _alertaPollTimer = setInterval(pollAlertaEstado, 4000);
+  pollAlertaEstado();
+}
+async function pollAlertaEstado(){
+  try {
+    const eid = ES_SISTEMA ? _admEmpresaId : MI_EMPRESA;
+    let url = `/servicios/boton_panico/alerta-estado?_t=${Date.now()}`;
+    if (_alertaEventoId) url += `&evento_id=${_alertaEventoId}`;
+    else if (eid)       url += `&empresa_id=${eid}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.ok){
+      if (Array.isArray(d.contactos)) renderProgreso(d.contactos);  // actualiza en vivo
+      if (!d.activa) salirDeProceso();
+    }
+  } catch {}
+}
+function salirDeProceso(){
+  _alertaEnProceso = false;
+  _alertaEventoId  = null;
+  clearInterval(_alertaPollTimer); _alertaPollTimer = null;
+  resetBtn();
+  document.getElementById('panicHint').innerHTML='✅ Todos los contactos fueron notificados.<br>Mantén presionado <strong>3 segundos</strong> para una nueva alerta';
+  toast('✅ Alerta completada: todos notificados');
+  // El "proceso" terminó: cierra el overlay rojo tras mostrar el estado final.
+  setTimeout(()=>{ cerrarOverlay(); }, 2500);
+}
+// Al cargar/cambiar empresa: si hay una alerta sin finalizar, restaura el bloqueo.
+async function verificarAlertaEnProceso(){
+  try {
+    const eid = ES_SISTEMA ? _admEmpresaId : MI_EMPRESA;
+    let url = `/servicios/boton_panico/alerta-estado?_t=${Date.now()}`;
+    if (eid) url += `&empresa_id=${eid}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.ok && d.activa) entrarEnProceso(d.evento_id);
+  } catch {}
 }
 function mostrarOverlay(r){
   const total=(r.externos||[]).length+(r.directorio||[]).length;

@@ -240,6 +240,96 @@ def listar_eventos():
     return ok(serializar(eventos))
 
 
+# ── Estado de alerta en proceso (bloquea el botón hasta que todo sea terminal) ─
+
+# Red de seguridad: si pasan más de 5 min, se libera el botón aunque falte
+# algún webhook, para no bloquearlo indefinidamente.
+_SEGUNDOS_SEGURIDAD_ALERTA = 300
+
+
+def _evento_finalizado(ev: dict) -> bool:
+    """True si TODAS las notificaciones del evento llegaron a un estado no-pendiente.
+
+    Un canal sigue "en proceso" mientras su estado esté en ESTADOS_PENDIENTES
+    (en_cola, enviando, sonando, en_llamada, recibido). Cuando ninguno queda
+    pendiente, el evento está finalizado y el botón se libera.
+    """
+    if not ev:
+        return True
+    resultado = ev.get("resultado", {})
+    if resultado.get("bloqueado"):
+        return True  # intento bloqueado por cooldown: no hay nada que esperar
+
+    activado = ev.get("activado_en")
+    if isinstance(activado, datetime):
+        if activado.tzinfo is None:
+            activado = activado.replace(tzinfo=timezone.utc)
+        if (datetime.now(timezone.utc) - activado).total_seconds() > _SEGUNDOS_SEGURIDAD_ALERTA:
+            return True
+
+    contactos = (resultado.get("externos") or []) + (resultado.get("directorio") or [])
+    if not contactos:
+        return True
+    for c in contactos:
+        for info in (c.get("canales") or {}).values():
+            if (info.get("estado") or "").lower() in ESTADOS_PENDIENTES:
+                return False
+    return True
+
+
+def _resumen_contactos(ev: dict) -> list:
+    """Lista de contactos del evento con el estado actual de cada canal,
+    para que el frontend muestre el progreso en vivo (nombre + canal + estado)."""
+    if not ev:
+        return []
+    resultado = ev.get("resultado", {})
+    contactos = (resultado.get("externos") or []) + (resultado.get("directorio") or [])
+    salida = []
+    for c in contactos:
+        canales = {tipo: (info.get("estado") or "")
+                   for tipo, info in (c.get("canales") or {}).items()}
+        if canales:
+            salida.append({"nombre": c.get("nombre") or c.get("numero") or "—",
+                           "canales": canales})
+    return salida
+
+
+@panico_bp.route("/alerta-estado", methods=["GET"])
+@requiere_login
+def alerta_estado():
+    """Indica si hay una alerta EN PROCESO (notificaciones aún no finalizadas).
+
+    El botón del residente se bloquea mientras `activa` sea true y se libera
+    cuando todas las notificaciones llegan a un estado final.
+    Acepta ?evento_id=... (preferido, tras disparar) o busca el último del residente.
+    """
+    try:
+        evento_id = request.args.get("evento_id", "").strip()
+        ev = None
+        if evento_id:
+            try:
+                ev = db["panic_events"].find_one({"_id": ObjectId(evento_id)})
+            except Exception:
+                ev = None
+        else:
+            eid = _eid_efectivo()
+            if eid:
+                filtro = {"empresa_id": ObjectId(eid)}
+                if not _es_sistema():
+                    filtro["residente_id"] = session.get("usuario_id")
+                ev = db["panic_events"].find_one(filtro, sort=[("activado_en", -1)])
+
+        finalizado = _evento_finalizado(ev)
+        return jsonify({
+            "ok": True,
+            "activa": (ev is not None) and (not finalizado),
+            "evento_id": str(ev["_id"]) if ev else None,
+            "contactos": _resumen_contactos(ev),
+        })
+    except Exception as e:
+        return err(str(e))
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # Endpoints exclusivos para roles es_sistema = true
 # ══════════════════════════════════════════════════════════════════════════
