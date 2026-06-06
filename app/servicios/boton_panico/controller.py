@@ -47,6 +47,16 @@ def _aplicar_vars(texto: str, nombre_residente: str, nombre_empresa: str,
             .replace("{apartamento}",      apartamento or ""))
 
 
+def _resultado_duplicado(numero: str, canal: str) -> dict:
+    """Resultado controlado cuando un número ya fue notificado por ese canal en
+    este mismo evento. Evita enviar 2 veces al mismo número: el segundo queda
+    "fallido" con la causa clara (no se envía a Twilio)."""
+    canal_txt = {"sms": "SMS", "whatsapp": "WhatsApp", "llamada": "llamada"}.get(canal, canal)
+    detalle = f"Número duplicado: ya fue notificado por {canal_txt} en otro contacto"
+    return {"numero": numero, "estado": "fallido", "detalle": detalle,
+            "historial": [{"estado": "fallido", "en": _ts(), "detalle": detalle}]}
+
+
 def _twilio_client():
     try:
         from twilio.rest import Client
@@ -316,6 +326,17 @@ class PanicController:
 
         twiml_conf = _construir_twiml(texto_llamada) if canal_call_on else None
 
+        # Deduplicación: un mismo número NO recibe 2 veces el mismo canal en este
+        # evento. El primer envío va normal; el duplicado queda "fallido" con la
+        # causa clara (no se envía a Twilio). Aplica a SMS, WhatsApp y llamada.
+        vistos_canal = set()
+        def _enviar_dedup(canal, num, enviar_fn):
+            clave = (num, canal)
+            if clave in vistos_canal:
+                return _resultado_duplicado(num, canal)
+            vistos_canal.add(clave)
+            return enviar_fn()
+
         # ── Contactos personales del usuario ──────────────────────────────
         try:
             contactos_personales = list(db["user_panic_contacts"].find({
@@ -330,14 +351,17 @@ class PanicController:
                 entry = {"nombre": c.get("nombre", ""), "numero": numero, "canales": {}}
 
                 if c.get("habilitado_para_sms") and canal_sms_on:
-                    entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms, c.get("nombre"), "",
-                                                          nombre_residente, nombre_empresa, _ts())
+                    entry["canales"]["sms"] = _enviar_dedup("sms", numero,
+                        lambda: _enviar_sms(cliente, numero, msg_sms, c.get("nombre"), "",
+                                            nombre_residente, nombre_empresa, _ts()))
                 if c.get("habilitado_para_llamada") and canal_call_on and twiml_conf:
-                    entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf, c.get("nombre"), "",
-                                                                  nombre_residente, nombre_empresa, _ts())
+                    entry["canales"]["llamada"] = _enviar_dedup("llamada", numero,
+                        lambda: _enviar_llamada(cliente, numero, twiml_conf, c.get("nombre"), "",
+                                                nombre_residente, nombre_empresa, _ts()))
                 if c.get("habilitado_para_whatsapp") and canal_wa_on:
-                    entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp, c.get("nombre"), "",
-                                                                    nombre_residente, nombre_empresa, _ts())
+                    entry["canales"]["whatsapp"] = _enviar_dedup("whatsapp", numero,
+                        lambda: _enviar_whatsapp(cliente, numero, msg_whatsapp, c.get("nombre"), "",
+                                                 nombre_residente, nombre_empresa, _ts()))
 
                 if entry.get("canales"):
                     resultado["externos"].append(entry)
@@ -361,14 +385,17 @@ class PanicController:
             entry  = {"nombre": c.get("nombre", ""), "numero": numero, "canales": {}}
 
             if necesita_sms:
-                entry["canales"]["sms"] = _enviar_sms(cliente, numero, msg_sms, c.get("nombre"), "",
-                                                      nombre_residente, nombre_empresa, _ts())
+                entry["canales"]["sms"] = _enviar_dedup("sms", numero,
+                    lambda: _enviar_sms(cliente, numero, msg_sms, c.get("nombre"), "",
+                                        nombre_residente, nombre_empresa, _ts()))
             if necesita_llamar and twiml_conf:
-                entry["canales"]["llamada"] = _enviar_llamada(cliente, numero, twiml_conf, c.get("nombre"), "",
-                                                              nombre_residente, nombre_empresa, _ts())
+                entry["canales"]["llamada"] = _enviar_dedup("llamada", numero,
+                    lambda: _enviar_llamada(cliente, numero, twiml_conf, c.get("nombre"), "",
+                                            nombre_residente, nombre_empresa, _ts()))
             if necesita_whatsapp:
-                entry["canales"]["whatsapp"] = _enviar_whatsapp(cliente, numero, msg_whatsapp, c.get("nombre"), "",
-                                                                nombre_residente, nombre_empresa, _ts())
+                entry["canales"]["whatsapp"] = _enviar_dedup("whatsapp", numero,
+                    lambda: _enviar_whatsapp(cliente, numero, msg_whatsapp, c.get("nombre"), "",
+                                             nombre_residente, nombre_empresa, _ts()))
 
             resultado["directorio"].append(entry)
 
