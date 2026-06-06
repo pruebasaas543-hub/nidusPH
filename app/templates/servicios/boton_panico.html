@@ -1342,34 +1342,28 @@ function logMostrarPopup(json) {
   const ei    = _estadoInfo(d.estado);
   const canal = (d.canal||'sms').toLowerCase();
   const icono = canal==='llamada'?'☎️':canal==='whatsapp'?'💬':'📱';
-  const jerarquia = _logJerarquia[canal] || [];
   const historial = d.historial || [];
-  const histMap   = {};
-  historial.forEach(h => { histMap[h.estado] = h; });
 
-  const todosEstados = [...jerarquia];
-  historial.forEach(h => { if (!todosEstados.includes(h.estado)) todosEstados.push(h.estado); });
-  const posActual = todosEstados.indexOf(d.estado);
-
-  const timelineHtml = todosEstados.map((est, idx) => {
-    const ei2      = _estadoInfo(est);
-    const logH     = histMap[est];
-    const pasado   = logH != null;
-    const esActual = est === d.estado;
-    const okColor  = 'var(--green,#276749)';
-    const errColor = 'var(--red,#c53030)';
-    const dotBg    = esActual ? (ei.color==='#276749'?okColor:errColor) : (pasado ? okColor : 'var(--border)');
-    const textColor= esActual ? (ei.color==='#276749'?okColor:errColor) : (pasado?'var(--text)':'var(--muted)');
-    const fw       = esActual||pasado ? '600':'400';
-    const ts       = logH ? _fmtTs(logH.en) : '';
-    const det2     = logH?.detalle ? `<div style="font-size:.69rem;color:var(--red);margin-top:2px;">⚠️ ${_esc(logH.detalle)}</div>` : '';
+  // Mostrar SOLO los estados por los que realmente pasó (en orden cronológico),
+  // no la jerarquía completa de estados posibles.
+  const okColor  = 'var(--green,#276749)';
+  const errColor = 'var(--red,#c53030)';
+  const timelineHtml = historial.map((logH, idx) => {
+    const ei2      = _estadoInfo(logH.estado);
+    const esActual = idx === historial.length - 1;
+    const esError  = ei2.cls === 'a-chip-err';
+    const dotBg    = esError ? errColor : okColor;
+    const textColor= esActual ? dotBg : 'var(--text)';
+    const fw       = esActual ? '700' : '500';
+    const ts       = (logH.en && logH.en !== '—') ? _fmtTs(logH.en) : '';
+    const det2     = logH.detalle ? `<div style="font-size:.69rem;color:var(--red);margin-top:2px;">⚠️ ${_esc(logH.detalle)}</div>` : '';
     const badge    = esActual ? `<span style="font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:99px;background:${dotBg};color:#fff;margin-left:6px;">ACTUAL</span>` : '';
-    const lineHtml = idx < todosEstados.length-1
-      ? `<div style="width:2px;height:18px;background:${pasado&&idx<posActual?okColor:'var(--border)'};margin:2px auto;"></div>` : '';
+    const lineHtml = idx < historial.length-1
+      ? `<div style="width:2px;height:18px;background:${okColor};margin:2px auto;"></div>` : '';
     return `
       <div style="display:flex;gap:10px;align-items:flex-start;">
         <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
-          <div style="width:26px;height:26px;border-radius:50%;background:${dotBg};display:flex;align-items:center;justify-content:center;font-size:.8rem;">${pasado?ei2.icon:'○'}</div>
+          <div style="width:26px;height:26px;border-radius:50%;background:${dotBg};display:flex;align-items:center;justify-content:center;font-size:.8rem;">${ei2.icon}</div>
           ${lineHtml}
         </div>
         <div style="flex:1;min-width:0;padding-bottom:2px;">
@@ -1586,25 +1580,14 @@ function _logIniciarPolling() {
     );
   });
   if (!hayPend) return;
-  _logPollingTimer = setInterval(async () => {
+  _logPollingTimer = setInterval(() => {
     const ids = _logDatosCSV.map(e => e._id).filter(Boolean);
     if (!ids.length) { clearInterval(_logPollingTimer); return; }
-    try {
-      const r = await fetch('/servicios/boton_panico/admin/refresh-lote', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({evento_ids:ids, solo_pendientes:true}),
-      });
-      const j = await r.json();
-      if (j.ok && j.actualizados > 0) {
-        admBuscarLog(_logPaginaActual);
-      } else {
-        logRefrescarTodos(true);
-        if (!document.getElementById('btnRefreshAll') ||
-            document.getElementById('btnRefreshAll').style.display==='none') {
-          clearInterval(_logPollingTimer);
-        }
-      }
-    } catch { clearInterval(_logPollingTimer); }
+    // Los webhooks de Twilio actualizan la BD en tiempo real.
+    // Solo re-leemos el log para reflejar los cambios (sin reconsultar Twilio,
+    // que pisaría la traza que los webhooks ya guardaron).
+    // admBuscarLog vuelve a armar el polling solo si quedan estados pendientes.
+    admBuscarLog(_logPaginaActual);
   }, 8000);
 }
 

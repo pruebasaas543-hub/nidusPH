@@ -7348,51 +7348,32 @@ function _panicoMostrarPopup(json) {
     const canal = (d.canal||'sms').toLowerCase();
     const icono = canal==='llamada'?'☎️':canal==='whatsapp'?'💬':'📱';
 
-    // Jerarquía del canal
-    const jerarquia = _panicoJerarquia[canal] || [];
     const historial = d.historial || [];
-    const histMap   = {};
-    historial.forEach(h => { histMap[h.estado] = h; });
-    const estadoActual = d.estado || '';
 
-    // Todos los estados que aparecen: los de jerarquía + extras del historial
-    const todosEstados = [...jerarquia];
-    historial.forEach(h => { if (!todosEstados.includes(h.estado)) todosEstados.push(h.estado); });
+    // Mostrar SOLO los estados por los que realmente pasó (en orden cronológico),
+    // no la jerarquía completa de estados posibles.
+    const timelineHtml = historial.map((logH, idx) => {
+        const ei2      = _panicoEstadoInfo(logH.estado);
+        const esActual = idx === historial.length - 1;
+        const esError  = ei2.color === '#c53030';
+        const esAlerta = ei2.color === '#b7791f';
+        const dotBg    = esError ? '#c53030' : (esAlerta ? '#b7791f' : '#276749');
+        const textColor= esActual ? dotBg : '#042243';
+        const fontWeight= esActual ? '700' : '500';
 
-    // Determinar posición actual en jerarquía
-    const posActual = todosEstados.indexOf(estadoActual);
-
-    const timelineHtml = todosEstados.map((est, idx) => {
-        const ei2   = _panicoEstadoInfo(est);
-        const logH  = histMap[est];
-        const pasado = logH != null;
-        const esActual = est === estadoActual;
-        const esFinal = !['en_cola','enviando','sonando','en_llamada','recibido','queued','sending','sent','initiated','ringing','in-progress'].includes(est);
-
-        let lineColor = '#e2e8f0'; // gris por defecto
-        let dotBg     = '#e2e8f0';
-        let dotColor  = '#8A9CC8';
-        let textColor = '#8A9CC8';
-        let fontWeight= '400';
-
-        if (pasado && !esActual) { lineColor='#276749'; dotBg='#276749'; dotColor='#fff'; textColor='#042243'; fontWeight='500'; }
-        if (esActual && ei.color==='#276749') { dotBg='#276749'; dotColor='#fff'; textColor='#042243'; fontWeight='700'; }
-        if (esActual && ei.color==='#c53030') { dotBg='#c53030'; dotColor='#fff'; textColor='#c53030'; fontWeight='700'; }
-        if (esActual && ei.color==='#b7791f') { dotBg='#b7791f'; dotColor='#fff'; textColor='#b7791f'; fontWeight='700'; }
-
-        const ts   = logH ? _panicoFmtTs(logH.en) : '';
-        const det2 = logH?.detalle ? `<div style="font-size:.69rem;color:#c53030;margin-top:2px;">⚠️ ${_esc(logH.detalle)}</div>` : '';
-        const badge = esActual ? `<span style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:99px;background:${dotBg};color:${dotColor};margin-left:6px;">ACTUAL</span>` : '';
+        const ts   = (logH.en && logH.en !== '—') ? _panicoFmtTs(logH.en) : '';
+        const det2 = logH.detalle ? `<div style="font-size:.69rem;color:#c53030;margin-top:2px;">⚠️ ${_esc(logH.detalle)}</div>` : '';
+        const badge = esActual ? `<span style="font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:99px;background:${dotBg};color:#fff;margin-left:6px;">ACTUAL</span>` : '';
 
         // Línea conectora (no en el último)
-        const lineHtml = idx < todosEstados.length-1
-            ? `<div style="width:2px;height:20px;background:${pasado&&idx<posActual?'#276749':'#e2e8f0'};margin:2px auto;"></div>`
+        const lineHtml = idx < historial.length-1
+            ? `<div style="width:2px;height:20px;background:#276749;margin:2px auto;"></div>`
             : '';
 
         return `
             <div style="display:flex;gap:12px;align-items:flex-start;">
                 <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
-                    <div style="width:28px;height:28px;border-radius:50%;background:${dotBg};display:flex;align-items:center;justify-content:center;font-size:.85rem;border:2px solid ${pasado?dotBg:'#e2e8f0'};">${pasado?ei2.icon:'○'}</div>
+                    <div style="width:28px;height:28px;border-radius:50%;background:${dotBg};display:flex;align-items:center;justify-content:center;font-size:.85rem;border:2px solid ${dotBg};">${ei2.icon}</div>
                     ${lineHtml}
                 </div>
                 <div style="padding-bottom:4px;flex:1;min-width:0;">

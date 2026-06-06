@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 TWILIO_FROM               = os.environ.get("TWILIO_PHONE_NUMBER", "")
 TWILIO_WA_FROM            = os.environ.get("TWILIO_WHATSAPP_FROM", "")
 TWILIO_PANIC_TEMPLATE_SID = os.environ.get("TWILIO_PANIC_TEMPLATE_SID", "")
+TWILIO_WEBHOOK_URL        = os.environ.get("TWILIO_WEBHOOK_URL", "http://localhost:5000/servicios/boton_panico/webhook/twilio-status")
 
 MSG_DEFAULT_SMS = (
     "EMERGENCIA: {nombre_residente} activo el boton de panico en "
@@ -110,7 +111,10 @@ def _enviar_sms(cliente, numero: str, mensaje: str, contacto_nombre: str = "", e
         return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
                 "historial": [{"estado": "mock", "en": _ts()}]}
     try:
-        msg = cliente.messages.create(to=numero, from_=TWILIO_FROM, body=mensaje)
+        msg = cliente.messages.create(
+            to=numero, from_=TWILIO_FROM, body=mensaje,
+            status_callback=TWILIO_WEBHOOK_URL
+        )
         log.info("SMS enviado → %s (SID=%s)", numero, msg.sid)
         estado_raw = msg.status or "queued"
         # Obtener estado desde BD en lugar de mapeo hardcodeado
@@ -152,7 +156,18 @@ def _enviar_llamada(cliente, numero: str, twiml: str, contacto_nombre: str = "",
         return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
                 "historial": [{"estado": "mock", "en": _ts()}]}
     try:
-        call = cliente.calls.create(to=numero, from_=TWILIO_FROM, twiml=twiml)
+        call = cliente.calls.create(
+            to=numero, from_=TWILIO_FROM, twiml=twiml,
+            status_callback=TWILIO_WEBHOOK_URL,
+            status_callback_event=["initiated", "ringing", "answered", "completed"],
+            # Corta el timbre a los 18s para reportar "no-answer" (No Contestó)
+            # ANTES de que entre el buzón (~25-30s). Ajustable según el operador.
+            timeout=18,
+            # AMD: detecta si contesta una persona o un buzón. Con timeout=18,
+            # si el buzón alcanza a contestar es porque la línea estaba ocupada/
+            # no disponible (desvío temprano) → lo marcamos "Ocupado".
+            machine_detection="Enable",
+        )
         log.info("Llamada iniciada → %s (SID=%s)", numero, call.sid)
         estado_raw = call.status or "queued"
         # Obtener estado desde BD en lugar de mapeo hardcodeado
@@ -194,7 +209,7 @@ def _enviar_whatsapp(cliente, numero: str, cuerpo: str, contacto_nombre: str = "
         return {"numero": numero, "estado": "mock", "detalle": "Sin credenciales Twilio",
                 "historial": [{"estado": "mock", "en": _ts()}]}
     try:
-        kwargs = {"to": f"whatsapp:{numero}", "from_": TWILIO_WA_FROM}
+        kwargs = {"to": f"whatsapp:{numero}", "from_": TWILIO_WA_FROM, "status_callback": TWILIO_WEBHOOK_URL}
         if TWILIO_PANIC_TEMPLATE_SID:
             kwargs["content_sid"]       = TWILIO_PANIC_TEMPLATE_SID
             kwargs["content_variables"] = f'{{"1":"{cuerpo}"}}'

@@ -4,9 +4,10 @@ API REST del módulo Botón de Pánico.
 Prefijo: /servicios/boton_panico
 """
 
-from flask import Blueprint, request, session
+from flask import Blueprint, request, session, jsonify
 from bson import ObjectId
 from datetime import datetime, timezone
+import logging
 
 from app import db
 from app.configuracion.utils import requiere_login, ok, err, serializar
@@ -16,6 +17,8 @@ from app.servicios.boton_panico.model import (
     PanicConfigModel, PanicEventModel, UserPanicContactModel, NotificationStateModel,
     MAPA_ESTADOS, JERARQUIA_ESTADOS, ESTADOS_PENDIENTES, ESTADOS_FINALES
 )
+
+log = logging.getLogger(__name__)
 
 panico_bp = Blueprint("boton_panico", __name__, url_prefix="/servicios/boton_panico")
 
@@ -365,75 +368,14 @@ def jerarquia_estados():
 @requiere_login
 @_requiere_permiso("log")
 def admin_refresh_lote():
-    """Refresca estados desde Twilio para una lista de evento_ids."""
-    datos      = request.get_json(silent=True) or {}
-    evento_ids = datos.get("evento_ids", [])
-    solo_pendientes = datos.get("solo_pendientes", True)
+    """OBSOLETO: los webhooks de Twilio actualizan los estados en tiempo real.
 
-    if not evento_ids:
-        return err("evento_ids requerido", 400)
-
-    try:
-        from app.servicios.boton_panico.controller import _twilio_client
-        cliente = _twilio_client()
-        if not cliente:
-            return err("Sin credenciales Twilio", 400)
-
-        actualizados = 0
-        for eid_str in evento_ids[:30]:  # máx 30 por lote
-            try:
-                ev = db["panic_events"].find_one({"_id": ObjectId(eid_str)})
-                if not ev:
-                    continue
-                resultado  = ev.get("resultado", {})
-                cambio     = False
-                for grupo in ("externos", "directorio"):
-                    for contacto in resultado.get(grupo, []):
-                        for tipo, info in list((contacto.get("canales") or {}).items()):
-                            sid = info.get("sid", "")
-                            estado_actual = info.get("estado", "")
-                            if not sid:
-                                continue
-                            if solo_pendientes and not NotificationStateModel.es_estado_pendiente(tipo, estado_actual):
-                                continue
-                            try:
-                                if tipo in ("sms", "whatsapp"):
-                                    nuevo_raw = cliente.messages(sid).fetch().status
-                                else:
-                                    nuevo_raw = cliente.calls(sid).fetch().status
-                                # Obtener estado desde BD en lugar de mapeo hardcodeado
-                                nuevo = NotificationStateModel.obtener_nombre_espanol(tipo, (nuevo_raw or "").lower())
-                                if nuevo and nuevo != estado_actual:
-                                    # Acumular historial en vez de sobreescribir
-                                    historial = info.get("historial") or [
-                                        {"estado": estado_actual or "", "en": "—"}
-                                    ]
-                                    # Solo agregar si el estado no está ya en historial
-                                    estados_vistos = {h["estado"] for h in historial}
-                                    if nuevo not in estados_vistos:
-                                        historial.append({
-                                            "estado": nuevo,
-                                            "en": datetime.utcnow().isoformat(),
-                                        })
-                                    info["estado"]    = nuevo
-                                    info["historial"] = historial
-                                    cambio = True
-                            except Exception:
-                                pass
-                if cambio:
-                    db["panic_events"].update_one(
-                        {"_id": ev["_id"]},
-                        {"$set": {"resultado": resultado,
-                                  "estados_actualizados_en": datetime.utcnow()}},
-                    )
-                    actualizados += 1
-            except Exception:
-                pass
-
-        from flask import jsonify as _j
-        return _j({"ok": True, "actualizados": actualizados})
-    except Exception as e:
-        return err(str(e))
+    Antes este endpoint reconsultaba Twilio y reescribía el `resultado` completo,
+    lo que pisaba la traza que los webhooks escriben en vivo (condición de carrera).
+    Ahora es un no-op: el frontend solo re-lee el log para mostrar lo que ya está en BD.
+    """
+    from flask import jsonify as _j
+    return _j({"ok": True, "actualizados": 0})
 
 
 @panico_bp.route("/admin/log", methods=["GET"])
@@ -586,7 +528,62 @@ def _obtener_estados_canal(canal: str) -> list:
         Lista de nombres en español de los estados válidos
     """
     estados_docs = NotificationStateModel.obtener_estados_por_tipo(canal)
-    return [doc.get("nombreEspanol") for doc in estados_docs]
+    # Varios estados Twilio pueden mapear al mismo nombre en español
+    # (ej. queued e initiated → en_cola). Devolver sin duplicados, conservando el orden.
+    nombres = [doc.get("nombreEspanol") for doc in estados_docs]
+    return list(dict.fromkeys(nombres))
+
+
+def _enriquecer_evento_con_transiciones(evento: dict) -> dict:
+    """Enriquece un evento con transiciones reales del poller desde twilio_requests_log.
+
+    Busca los logs de Twilio para cada SID y convierte las transiciones_estado
+    al formato de historial esperado por el frontend.
+    """
+    try:
+        resultado = evento.get("resultado", {})
+        todos_contactos = (resultado.get("externos", []) or []) + (resultado.get("directorio", []) or [])
+
+        for contacto in todos_contactos:
+            canales = contacto.get("canales", {})
+            for tipo_canal, info_canal in canales.items():
+                sid = info_canal.get("sid", "")
+                if not sid:
+                    continue
+
+                # Buscar el log de Twilio para este SID
+                twilio_log = db["twilio_requests_log"].find_one(
+                    {"respuesta_inicial.sid": sid, "tipo_notificacion": tipo_canal}
+                )
+
+                if twilio_log and twilio_log.get("transiciones_estado"):
+                    # Convertir transiciones al formato historial
+                    transiciones = twilio_log.get("transiciones_estado", [])
+                    historial = []
+
+                    for trans in transiciones:
+                        estado_nombre = trans.get("estado", "")
+                        timestamp = trans.get("timestamp", "")
+                        detalles = trans.get("detalles", "")
+
+                        historial_entry = {
+                            "estado": estado_nombre,
+                            "en": timestamp,
+                        }
+                        if detalles:
+                            historial_entry["detalle"] = detalles
+
+                        historial.append(historial_entry)
+
+                    # Reemplazar el historial con las transiciones reales
+                    if historial:
+                        info_canal["historial"] = historial
+
+        return evento
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Error enriqueciendo evento: %s", e)
+        return evento
 
 
 def _migrar_evento_lazy(evento: dict) -> dict:
@@ -615,9 +612,14 @@ def _migrar_evento_lazy(evento: dict) -> dict:
 @requiere_login
 @_requiere_permiso("log")
 def admin_refresh_estados():
-    """Consulta Twilio por el SID de cada canal y actualiza el estado en panic_events."""
-    datos       = request.get_json(silent=True) or {}
-    evento_id   = datos.get("evento_id", "").strip()
+    """OBSOLETO: los webhooks de Twilio actualizan los estados en tiempo real.
+
+    Antes reconsultaba Twilio y reescribía el `resultado` completo, pisando la
+    traza que escriben los webhooks. Ahora solo devuelve el estado actual en BD
+    (sin reconsultar Twilio ni reescribir), para que el frontend lo muestre.
+    """
+    datos     = request.get_json(silent=True) or {}
+    evento_id = datos.get("evento_id", "").strip()
     if not evento_id:
         return err("evento_id requerido", 400)
     try:
@@ -626,59 +628,8 @@ def admin_refresh_estados():
         if not ev:
             return err("Evento no encontrado", 404)
 
-        # Obtener cliente Twilio
-        from app.servicios.boton_panico.controller import _twilio_client
-        cliente = _twilio_client()
-        if not cliente:
-            return err("Sin credenciales Twilio — no se puede consultar estado", 400)
-
-        resultado = ev.get("resultado", {})
-        actualizado = False
-
-        for grupo in ("externos", "directorio"):
-            for contacto in resultado.get(grupo, []):
-                canales = contacto.get("canales", {})
-                for tipo, info in list(canales.items()):
-                    sid = info.get("sid", "")
-                    estado_actual = info.get("estado", "")
-                    if not sid or estado_actual in ("mock", "fallido"):
-                        continue
-                    nuevo_estado_raw = None
-                    try:
-                        if tipo in ("sms", "whatsapp"):
-                            msg = cliente.messages(sid).fetch()
-                            nuevo_estado_raw = msg.status
-                        elif tipo == "llamada":
-                            call = cliente.calls(sid).fetch()
-                            nuevo_estado_raw = call.status
-                    except Exception as e:
-                        nuevo_estado_raw = f"error_twilio: {e}"
-
-                    # Obtener estado desde BD en lugar de mapeo hardcodeado
-                    nuevo_estado = NotificationStateModel.obtener_nombre_espanol(tipo, (nuevo_estado_raw or "").lower())
-
-                    if nuevo_estado and nuevo_estado != estado_actual:
-                        historial = info.get("historial") or [
-                            {"estado": estado_actual or "", "en": "—"}
-                        ]
-                        estados_vistos = {h["estado"] for h in historial}
-                        if nuevo_estado not in estados_vistos:
-                            historial.append({
-                                "estado": nuevo_estado,
-                                "en": datetime.utcnow().isoformat(),
-                            })
-                        info["estado"]    = nuevo_estado
-                        info["historial"] = historial
-                        actualizado = True
-
-        if actualizado:
-            db["panic_events"].update_one(
-                {"_id": OID(evento_id)},
-                {"$set": {"resultado": resultado, "estados_actualizados_en": datetime.utcnow()}},
-            )
-
         from flask import jsonify as _jsonify
-        return _jsonify({"ok": True, "data": serializar(resultado), "actualizado": actualizado})
+        return _jsonify({"ok": True, "data": serializar(ev.get("resultado", {})), "actualizado": False})
     except Exception as e:
         return err(str(e))
 
@@ -913,6 +864,143 @@ def imprimir_traza_evento(evento_id):
         return response
     except Exception as e:
         return err(str(e))
+
+
+# ── Webhook de Twilio (recibe cambios de estado) ───────────────
+@panico_bp.route("/webhook/twilio-status", methods=["POST"])
+def webhook_twilio_status():
+    """Recibe webhooks de Twilio cuando cambia el estado de SMS/Llamada/WhatsApp.
+
+    Busca el evento en panic_events por SID y actualiza el historial directamente.
+    """
+    try:
+        data = request.form if request.form else request.get_json(silent=True) or {}
+
+        # Identificar si es SMS/WhatsApp o Llamada
+        sid = data.get("MessageSid") or data.get("CallSid") or ""
+        estado_raw = data.get("MessageStatus") or data.get("CallStatus") or ""
+        # AMD: si Twilio detectó buzón/contestadora lo dice en AnsweredBy
+        answered_by = (data.get("AnsweredBy") or "").lower()
+
+        if not sid or not estado_raw:
+            return jsonify({"ok": True}), 200  # Ignorar silenciosamente
+
+        # Buscar el evento en panic_events que contiene este SID
+        evento = db["panic_events"].find_one({
+            "$or": [
+                {"resultado.externos.canales.llamada.sid": sid},
+                {"resultado.externos.canales.sms.sid": sid},
+                {"resultado.externos.canales.whatsapp.sid": sid},
+                {"resultado.directorio.canales.llamada.sid": sid},
+                {"resultado.directorio.canales.sms.sid": sid},
+                {"resultado.directorio.canales.whatsapp.sid": sid},
+            ]
+        })
+
+        if not evento:
+            return jsonify({"ok": True}), 200
+
+        # Encontrar cuál es el tipo de canal (llamada, sms, whatsapp)
+        tipo_canal = None
+        contacto_encontrado = None
+        lista_contactos = evento.get("resultado", {}).get("externos", []) + evento.get("resultado", {}).get("directorio", [])
+
+        for contacto in lista_contactos:
+            canales = contacto.get("canales", {})
+            for canal_tipo, info_canal in canales.items():
+                if info_canal.get("sid") == sid:
+                    tipo_canal = canal_tipo
+                    contacto_encontrado = contacto
+                    break
+            if tipo_canal:
+                break
+
+        if not tipo_canal or not contacto_encontrado:
+            return jsonify({"ok": True}), 200
+
+        # Convertir estado de Twilio a español LEYENDO DE LA COLECCIÓN notification_states
+        # (fuente de verdad). Una sola consulta trae el nombre y la razón.
+        # MAPA_ESTADOS queda solo como red de seguridad si el estado no estuviera en la BD.
+        estado_raw_lower = estado_raw.lower()
+        estado_doc = NotificationStateModel.obtener_estado(tipo_canal, estado_raw_lower)
+        if estado_doc:
+            estado_nuevo = estado_doc.get("nombreEspanol", estado_raw_lower)
+            razon = estado_doc.get("razonTerminacion", "")
+        else:
+            estado_nuevo = MAPA_ESTADOS.get(estado_raw_lower, estado_raw_lower)
+            razon = ""
+
+        # Obtener historial actual
+        historial = contacto_encontrado.get("canales", {}).get(tipo_canal, {}).get("historial", [])
+        ultimo_estado = historial[-1]["estado"] if historial else ""
+
+        # Refinar el "completed" de una llamada. Twilio reporta "completed" tanto
+        # si contestó una persona, como si colgó tras contestar, como si cayó al buzón.
+        # Los separamos por DURACIÓN y por AMD (AnsweredBy), en este orden de prioridad:
+        if tipo_canal == "llamada" and estado_raw_lower == "completed":
+            try:
+                call_duration = int(data.get("CallDuration") or 0)
+            except (ValueError, TypeError):
+                call_duration = 0
+            contesto = any(h.get("estado") == "en_llamada" for h in historial)
+            es_maquina = answered_by.startswith("machine") or answered_by == "fax"
+
+            if contesto and 0 < call_duration < 10:
+                # Persona contestó y colgó rápido (el buzón nunca dura tan poco).
+                estado_nuevo = "cancelado"
+                razon = "El destinatario colgó antes de escuchar el mensaje"
+            elif es_maquina:
+                # Contestó un buzón. Con timeout=18, los "no contestó" se cortan
+                # antes del buzón; si el buzón igual contestó, la línea estaba
+                # ocupada / no disponible (desvío temprano) → "Ocupado".
+                estado_nuevo = "ocupado"
+                razon = "La línea estaba ocupada o no disponible (cayó al buzón)"
+
+        # Si el estado cambió, agregar a historial
+        if estado_nuevo != ultimo_estado:
+            historial.append({
+                "estado": estado_nuevo,
+                "en": datetime.utcnow().isoformat(),
+            })
+            if razon:
+                historial[-1]["detalle"] = razon
+
+            # Actualizar en panic_events usando update_one con la ruta exacta
+            update_path = None
+            es_externo = False
+
+            # Encontrar el índice del contacto en externos o directorio
+            for i, c in enumerate(evento.get("resultado", {}).get("externos", [])):
+                if c.get("numero") == contacto_encontrado.get("numero"):
+                    update_path = f"resultado.externos.{i}.canales.{tipo_canal}"
+                    es_externo = True
+                    break
+
+            if not update_path:
+                for i, c in enumerate(evento.get("resultado", {}).get("directorio", [])):
+                    if c.get("numero") == contacto_encontrado.get("numero"):
+                        update_path = f"resultado.directorio.{i}.canales.{tipo_canal}"
+                        break
+
+            if update_path:
+                db["panic_events"].update_one(
+                    {"_id": evento["_id"]},
+                    {
+                        "$set": {
+                            f"{update_path}.historial": historial,
+                            f"{update_path}.estado": estado_nuevo,
+                            "estados_actualizados_en": datetime.now(timezone.utc)
+                        }
+                    }
+                )
+                log.info("Twilio %s %s → %s", tipo_canal,
+                         contacto_encontrado.get("numero", ""), estado_nuevo)
+
+        return jsonify({"ok": True}), 200
+
+    except Exception as e:
+        log.error("Error en webhook Twilio: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ═══════════════════════════════════════════════════════════════

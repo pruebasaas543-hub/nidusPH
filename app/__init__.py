@@ -147,4 +147,9 @@ def create_app():
     except Exception as _e:
         app.logger.warning("Inicialización directorio_bloques: %s", _e)
 
+    # ── Twilio Webhooks (recibe estados en tiempo real) ──
+    # El poller ya no es necesario — Twilio enviará webhooks automáticamente
+    # cuando cambien los estados de SMS, WhatsApp o Llamadas
+    # Ver: POST /servicios/boton_panico/webhook/twilio-status
+
     return app

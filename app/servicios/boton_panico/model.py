@@ -46,7 +46,7 @@ JERARQUIA_ESTADOS = {
         "leido", "no_entregado", "fallido"
     ],
     "llamada": [
-        "en_cola", "enviando", "sonando", "en_llamada",
+        "en_cola", "sonando", "en_llamada",
         "completado", "ocupado", "no_contesto", "cancelado", "fallido"
     ],
 }
