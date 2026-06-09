@@ -220,24 +220,40 @@ def trigger():
 @panico_bp.route("/eventos", methods=["GET"])
 @requiere_login
 def listar_eventos():
-    if _es_sistema():
-        # Superadmin: últimas activaciones de todas las empresas
-        try:
-            eventos = list(
-                db["panic_events"]
-                .find({}, {"activado_en": 1, "empresa_id": 1, "residente_id": 1,
-                           "nombre_residente": 1, "resultado": 1})
-                .sort("activado_en", -1)
-                .limit(20)
-            )
-            return ok(serializar(eventos))
-        except Exception as e:
-            return err(str(e))
-    eid = _eid_efectivo()
-    if not eid:
-        return err("No hay empresa en sesión", 400)
-    eventos = PanicEventModel.listar_por_residente(eid, _usuario(), limite=5)
-    return ok(serializar(eventos))
+    """Últimas activaciones.
+
+    - Sistema (es_sistema=true): filtra por la empresa seleccionada (vacío si no
+      hay empresa seleccionada).
+    - Normal (es_sistema=false): SOLO las activaciones del propio usuario.
+
+    Devuelve las **10 últimas** + el **total**. Con `?todos=1` devuelve TODAS
+    (para el popup "ver todas las activaciones").
+    """
+    todos = request.args.get("todos") == "1"
+    proyeccion = {"activado_en": 1, "empresa_id": 1, "residente_id": 1,
+                  "nombre_residente": 1, "resultado": 1}
+    try:
+        if _es_sistema():
+            eid = request.args.get("empresa_id", "").strip()
+            if not eid:
+                # Sin empresa seleccionada → no se muestra nada
+                return jsonify({"ok": True, "data": [], "total": 0})
+            filtro = {"empresa_id": ObjectId(eid)}
+        else:
+            eid = _eid_efectivo()
+            if not eid:
+                return err("No hay empresa en sesión", 400)
+            # Solo las activaciones de ESTE usuario
+            filtro = {"empresa_id": ObjectId(eid), "residente_id": session.get("usuario_id")}
+
+        total  = db["panic_events"].count_documents(filtro)
+        cursor = db["panic_events"].find(filtro, proyeccion).sort("activado_en", -1)
+        if not todos:
+            cursor = cursor.limit(5)
+        eventos = list(cursor)
+        return jsonify({"ok": True, "data": serializar(eventos), "total": total})
+    except Exception as e:
+        return err(str(e))
 
 
 # ── Estado de alerta en proceso (bloquea el botón hasta que todo sea terminal) ─
@@ -720,6 +736,97 @@ def admin_refresh_estados():
 
         from flask import jsonify as _jsonify
         return _jsonify({"ok": True, "data": serializar(ev.get("resultado", {})), "actualizado": False})
+    except Exception as e:
+        return err(str(e))
+
+
+@panico_bp.route("/admin/consultar-en-cola", methods=["POST"])
+@requiere_login
+@_requiere_permiso("log")
+def admin_consultar_en_cola():
+    """Consulta a Twilio el estado REAL de una notificación atascada y la actualiza.
+
+    SOLO aplica a canales en estado 'en_cola' y bajo demanda (clic). Como el
+    mensaje atascado ya no recibe webhooks, no hay condición de carrera.
+    """
+    datos     = request.get_json(silent=True) or {}
+    evento_id = (datos.get("evento_id") or "").strip()
+    sid       = (datos.get("sid") or "").strip()
+    if not evento_id or not sid:
+        return err("evento_id y sid requeridos", 400)
+    try:
+        ev = db["panic_events"].find_one({"_id": ObjectId(evento_id)})
+        if not ev:
+            return err("Evento no encontrado", 404)
+
+        # Localizar el canal EXACTO por SID (único) — evita confusión con números
+        # duplicados (mismo número en varios contactos).
+        resultado = ev.get("resultado", {})
+        info = None
+        canal = None
+        update_path = None
+        for grupo in ("externos", "directorio"):
+            for i, c in enumerate(resultado.get(grupo, []) or []):
+                for tipo_k, cinfo in (c.get("canales") or {}).items():
+                    if (cinfo.get("sid") or "") == sid:
+                        info, canal = cinfo, tipo_k
+                        update_path = f"resultado.{grupo}.{i}.canales.{tipo_k}"
+                        break
+                if info:
+                    break
+            if info:
+                break
+
+        if not info or not update_path:
+            return err("No se encontró esa notificación (SID) en el evento", 404)
+
+        # SOLO aplica a "en_cola"
+        if (info.get("estado") or "").lower() != "en_cola":
+            return jsonify({"ok": True, "aplica": False, "mensaje": "Solo aplica a estados 'en cola'."})
+
+        sid = info.get("sid", "")
+        if not sid:
+            return err("Esa notificación no tiene SID (no se envió a Twilio)", 400)
+
+        from app.servicios.boton_panico.controller import _twilio_client
+        cliente = _twilio_client()
+        if not cliente:
+            return err("Sin credenciales Twilio", 400)
+
+        # Consultar el estado REAL en Twilio por SID
+        try:
+            if canal in ("sms", "whatsapp"):
+                estado_raw = (cliente.messages(sid).fetch().status or "").lower()
+            elif canal == "llamada":
+                estado_raw = (cliente.calls(sid).fetch().status or "").lower()
+            else:
+                return err("Canal no soportado", 400)
+        except Exception as e:
+            return err("Error consultando Twilio: " + str(e)[:120], 502)
+
+        # Convertir a español (colección como fuente; MAPA como respaldo)
+        estado_doc   = NotificationStateModel.obtener_estado(canal, estado_raw)
+        estado_nuevo = estado_doc.get("nombreEspanol") if estado_doc else MAPA_ESTADOS.get(estado_raw, estado_raw)
+        razon        = estado_doc.get("razonTerminacion", "") if estado_doc else ""
+
+        if estado_nuevo == "en_cola":
+            return jsonify({"ok": True, "actualizado": False, "estado": estado_nuevo,
+                            "mensaje": "Twilio aún lo reporta en cola."})
+
+        # Agregar transición al historial + actualizar el estado
+        historial = info.get("historial") or []
+        if not historial or (historial[-1].get("estado") != estado_nuevo):
+            entry = {"estado": estado_nuevo, "en": datetime.utcnow().isoformat()}
+            if razon:
+                entry["detalle"] = razon
+            historial.append(entry)
+        db["panic_events"].update_one(
+            {"_id": ev["_id"]},
+            {"$set": {f"{update_path}.historial": historial,
+                      f"{update_path}.estado": estado_nuevo,
+                      "estados_actualizados_en": datetime.now(timezone.utc)}},
+        )
+        return jsonify({"ok": True, "actualizado": True, "estado": estado_nuevo})
     except Exception as e:
         return err(str(e))
 

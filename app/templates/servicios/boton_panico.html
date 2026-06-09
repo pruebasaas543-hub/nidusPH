@@ -572,7 +572,7 @@ body { background:var(--bg); color:var(--text); }
                 style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:var(--text);">
             </label>
             <label>📡 Canal
-              <select id="log-canal" style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:var(--text);">
+              <select id="log-canal" onchange="_logActualizarEstados()" style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:var(--text);">
                 <option value="">Todos</option>
                 <option value="sms">📱 SMS</option>
                 <option value="whatsapp">💬 WhatsApp</option>
@@ -616,6 +616,16 @@ body { background:var(--bg); color:var(--text); }
         <button onclick="document.getElementById('log-estado-modal').style.display='none'"
           style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);">✕</button>
         <div id="log-estado-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Modal popup TODAS las activaciones -->
+    <div id="histTodasModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+      <div style="background:var(--bg2);border-radius:16px;padding:24px 22px 20px;max-width:460px;width:92%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3);position:relative;">
+        <button onclick="cerrarHistTodas()"
+          style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);">✕</button>
+        <div style="font-size:.95rem;font-weight:800;color:var(--text);margin-bottom:14px;">📋 Todas las activaciones</div>
+        <div id="histTodasBody" style="overflow-y:auto;"></div>
       </div>
     </div>
 
@@ -789,7 +799,7 @@ async function init(empresaId) {
   _externos = [..._externos_empresa, ..._externos_personales];
   _externosEditing = _externos.map(() => false);
   renderExternos(); renderDirectorio();
-  renderHistorial(dHist.ok ? (dHist.data||[]) : []);
+  renderHistorial(dHist.ok ? (dHist.data||[]) : [], dHist.ok ? (dHist.total||0) : 0);
   // Si quedó una alerta sin finalizar (ej. recargó la página), restaura el bloqueo.
   verificarAlertaEnProceso();
 }
@@ -1217,36 +1227,71 @@ function mostrarPopupCooldown(msg) {
   document.getElementById('cooldownOverlay').style.display = 'flex';
   navigator.vibrate && navigator.vibrate([200,100,200,100,200]);
 }
-function renderHistorial(eventos){
-  const list = document.getElementById('histList');
-  if(!eventos.length){ list.innerHTML='<div class="empty-state" style="padding:10px 0;">Sin activaciones registradas</div>'; return; }
-  list.innerHTML = `<div class="hist-list-wrap">` + eventos.map(e => {
-    const r=e.resultado||{};
-    const bloqueado = r.bloqueado === true;
-    const total=(r.externos||[]).length+(r.directorio||[]).length;
-    const quien = e.nombre_residente ? ` · <span style="color:var(--accent);font-weight:700;">${_esc(e.nombre_residente)}</span>` : '';
-    if (bloqueado) {
-      return `<div class="hist-item" style="background:color-mix(in srgb,var(--red) 8%,var(--bg2));border-color:color-mix(in srgb,var(--red) 25%,transparent);">
-        <div class="hist-dot" style="background:var(--red);"></div>
-        <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red);">⛔ Bloqueado${quien}</span>
-        <span style="font-size:.7rem;color:var(--muted);flex-shrink:0;margin-left:6px;" title="${_esc(r.motivo||'')}">Límite</span>
-        <span class="hist-fecha">${_fmtFecha(e.activado_en)}</span>
-      </div>`;
-    }
-    return `<div class="hist-item">
-      <div class="hist-dot"></div>
-      <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🚨 Pánico${quien}</span>
-      <span style="font-size:.7rem;color:var(--muted);flex-shrink:0;margin-left:6px;">${total} contacto(s)</span>
+function _histItemHtml(e){
+  const r=e.resultado||{};
+  const bloqueado = r.bloqueado === true;
+  const totalC=(r.externos||[]).length+(r.directorio||[]).length;
+  const quien = e.nombre_residente ? ` · <span style="color:var(--accent);font-weight:700;">${_esc(e.nombre_residente)}</span>` : '';
+  if (bloqueado) {
+    return `<div class="hist-item" style="background:color-mix(in srgb,var(--red) 8%,var(--bg2));border-color:color-mix(in srgb,var(--red) 25%,transparent);">
+      <div class="hist-dot" style="background:var(--red);"></div>
+      <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red);">⛔ Bloqueado${quien}</span>
+      <span style="font-size:.7rem;color:var(--muted);flex-shrink:0;margin-left:6px;" title="${_esc(r.motivo||'')}">Límite</span>
       <span class="hist-fecha">${_fmtFecha(e.activado_en)}</span>
     </div>`;
-  }).join('') + `</div>`;
+  }
+  return `<div class="hist-item">
+    <div class="hist-dot"></div>
+    <span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🚨 Pánico${quien}</span>
+    <span style="font-size:.7rem;color:var(--muted);flex-shrink:0;margin-left:6px;">${totalC} contacto(s)</span>
+    <span class="hist-fecha">${_fmtFecha(e.activado_en)}</span>
+  </div>`;
 }
+function renderHistorial(eventos, total){
+  const list = document.getElementById('histList');
+  total = total || 0;
+  if(!eventos.length){
+    const msg = (ES_SISTEMA && !_admEmpresaId)
+      ? 'Selecciona una empresa para ver las activaciones'
+      : 'Sin activaciones registradas';
+    list.innerHTML = `<div class="empty-state" style="padding:10px 0;">${msg}</div>`;
+    return;
+  }
+  const items = `<div class="hist-list-wrap">` + eventos.map(_histItemHtml).join('') + `</div>`;
+  const btnTodas = total > 0
+    ? `<button onclick="verTodasActivaciones()" style="width:100%;margin-top:10px;padding:9px;border-radius:10px;cursor:pointer;
+         background:color-mix(in srgb,var(--accent) 8%,transparent);border:1px solid var(--border);color:var(--accent);
+         font-size:.8rem;font-weight:700;font-family:inherit;">📋 Ver todas las activaciones (${total})</button>`
+    : '';
+  list.innerHTML = items + btnTodas;
+}
+// Popup con TODAS las activaciones (según empresa para sistema / usuario para normal)
+async function verTodasActivaciones(){
+  const eid = ES_SISTEMA ? _admEmpresaId : MI_EMPRESA;
+  if (ES_SISTEMA && !eid) return;
+  const eq = eid ? `&empresa_id=${eid}` : '';
+  const body = document.getElementById('histTodasBody');
+  body.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);">Cargando…</div>';
+  document.getElementById('histTodasModal').style.display = 'flex';
+  try {
+    const r = await fetch(`/servicios/boton_panico/eventos?todos=1&_t=${Date.now()}${eq}`);
+    const d = await r.json();
+    if (d.ok) {
+      const evs = d.data || [];
+      body.innerHTML = evs.length
+        ? `<div style="font-size:.74rem;color:var(--muted);margin-bottom:10px;">Total: <b>${d.total||evs.length}</b> activación(es)</div><div class="hist-list-wrap">` + evs.map(_histItemHtml).join('') + `</div>`
+        : '<div class="empty-state" style="padding:20px;">Sin activaciones registradas</div>';
+    } else { body.innerHTML = '<div style="color:var(--red);padding:20px;">Error al cargar.</div>'; }
+  } catch { body.innerHTML = '<div style="color:var(--red);padding:20px;">Error de conexión.</div>'; }
+}
+function cerrarHistTodas(){ document.getElementById('histTodasModal').style.display='none'; }
 async function recargarHistorial(){
   const eid = ES_SISTEMA ? _admEmpresaId : MI_EMPRESA;
+  if (ES_SISTEMA && !eid) { renderHistorial([], 0); return; }
   const eq  = eid ? `&empresa_id=${eid}` : '';
   const r = await fetch(`/servicios/boton_panico/eventos?_t=${Date.now()}${eq}`);
   const d = await r.json();
-  if(d.ok) renderHistorial(d.data||[]);
+  if(d.ok) renderHistorial(d.data||[], d.total||0);
 }
 function setStatus(tipo, txt){ const el=document.getElementById('panicStatus'); el.className=`panic-status ${tipo}`; el.textContent=txt; }
 
@@ -1275,6 +1320,8 @@ async function admCargarEmpresas() {
 }
 async function admSelEmpresa(eid, skipDirectorio) {
   _admEmpresaId = eid;
+  // Recargar "Últimas activaciones" según la empresa seleccionada (o vaciar si no hay)
+  if (ES_SISTEMA) recargarHistorial();
   const panel = document.getElementById('adm-config-panel');
   const empty = document.getElementById('adm-empty-sel');
   if (!eid) { if(panel) panel.style.display='none'; if(empty) empty.style.display='flex'; return; }
@@ -1618,6 +1665,41 @@ let _logPollingTimer = null;
     } catch {}
 })();
 
+// Estados propios de cada canal (lista fija, coincide con la colección).
+const _ESTADOS_CANAL = {
+  sms:      ['en_cola','enviando','recibido','entregado','no_entregado','fallido'],
+  whatsapp: ['en_cola','enviando','recibido','entregado','leido','fallido'],
+  llamada:  ['en_cola','sonando','en_llamada','completado','ocupado','no_contesto','cancelado','fallido'],
+};
+// El filtro "Estado" depende del "Canal": al elegir un canal, solo muestra los
+// estados propios de ese método (SMS, WhatsApp o Llamada). Sin canal → genéricos.
+function _logActualizarEstados(){
+  const canal = document.getElementById('log-canal') ? document.getElementById('log-canal').value : '';
+  const sel   = document.getElementById('log-estado');
+  if (!sel) return;
+  const prev = sel.value;
+  if (!canal) {
+    sel.innerHTML = `<option value="">Todos</option>`
+      + `<option value="ok">✅ Entregado / Contestó</option>`
+      + `<option value="error">❌ Error / No contestó</option>`
+      + `<option value="mock">🟡 Mock</option>`;
+  } else {
+    const estados = _ESTADOS_CANAL[canal] || _logJerarquia[canal] || [];
+    sel.innerHTML = '<option value="">Todos</option>' + estados.map(e => {
+      const ei = (typeof _estadoInfo === 'function') ? _estadoInfo(e) : {icon:'•', label:e};
+      return `<option value="${e}">${ei.icon} ${ei.label}</option>`;
+    }).join('');
+  }
+  // Conservar la selección previa si sigue disponible para el nuevo canal
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  else sel.value = '';
+}
+// Refuerzo: enlazar el cambio de Canal también por JS (por si el onchange inline falla)
+(function(){
+  const c = document.getElementById('log-canal');
+  if (c && !c._estadosBound) { c._estadosBound = true; c.addEventListener('change', _logActualizarEstados); }
+})();
+
 async function logRefrescarTodos(soloBtn) {
   if (soloBtn) {
     const hay = _logDatosCSV.some(ev => {
@@ -1790,11 +1872,10 @@ if (ES_SISTEMA) {
   admCargarEmpresas();
   // Directorio vacío hasta seleccionar empresa — init sin empresa no carga contactos
   if (PERM.emergencia) {
-    // Solo cargar paises e historial global; directorio espera empresa
+    // Solo cargar paises; el historial espera a que se seleccione una empresa
     fetch(`/servicios/boton_panico/paises?_t=${Date.now()}`)
       .then(r=>r.json()).then(d=>{ _paises = d.ok?(d.data||[]):[{nombre_pais:'Colombia',prefijo:'+57',bandera:'🇨🇴'}]; });
-    fetch(`/servicios/boton_panico/eventos?_t=${Date.now()}`)
-      .then(r=>r.json()).then(d=>{ if(d.ok) renderHistorial(d.data||[]); });
+    renderHistorial([], 0);  // vacío hasta seleccionar empresa
   }
 } else {
   // Usuario normal: empresa fija de sesión

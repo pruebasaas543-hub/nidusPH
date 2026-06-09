@@ -1975,7 +1975,7 @@
                             <input type="text" id="panico-log-nombre" placeholder="Nombre…" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
                         </label>
                         <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">📡 Canal
-                            <select id="panico-log-canal" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                            <select id="panico-log-canal" onchange="_panicoActualizarEstados()" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
                                 <option value="">Todos</option>
                                 <option value="sms">📱 SMS</option>
                                 <option value="whatsapp">💬 WhatsApp</option>
@@ -1983,11 +1983,8 @@
                             </select>
                         </label>
                         <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">✅ Estado
-                            <select id="panico-log-estado" style="padding:7px 10px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
+                            <select id="panico-log-estado" style="padding:7px 10px;min-width:175px;border:1.5px solid rgba(4,34,67,.15);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;color:#042243;">
                                 <option value="">Todos</option>
-                                <option value="ok">✅ Entregado / Contestó</option>
-                                <option value="error">❌ Error / No contestó</option>
-                                <option value="mock">🟡 Mock</option>
                             </select>
                         </label>
                         <label style="font-size:.75rem;font-weight:700;color:#042243;display:flex;flex-direction:column;gap:4px;">🕐 Hora desde
@@ -7334,6 +7331,39 @@ function _panicoEstadoInfo(e) {
         || { label: e||'—', color:'#c53030', bg:'rgba(229,62,62,.1)', icon:'❓', desc:`Estado: ${e||'desconocido'}` };
 }
 
+// Estados propios de cada canal (lista fija, coincide con la colección notification_states).
+const _PANICO_ESTADOS_CANAL = {
+    sms:      ['en_cola','enviando','recibido','entregado','no_entregado','fallido'],
+    whatsapp: ['en_cola','enviando','recibido','entregado','leido','fallido'],
+    llamada:  ['en_cola','sonando','en_llamada','completado','ocupado','no_contesto','cancelado','fallido'],
+};
+// El filtro "Estado" depende del "Canal": al elegir un canal, solo muestra los
+// estados propios de ese método. Sin canal → opciones genéricas.
+function _panicoActualizarEstados(){
+    const cSel = document.getElementById('panico-log-canal');
+    const sel  = document.getElementById('panico-log-estado');
+    if (!sel) return;
+    const canal = cSel ? cSel.value : '';
+    const prev  = sel.value;
+    if (!canal) {
+        // Sin canal seleccionado → solo "Todos"
+        sel.innerHTML = '<option value="">Todos</option>';
+    } else {
+        const estados = _PANICO_ESTADOS_CANAL[canal] || _panicoJerarquia[canal] || [];
+        sel.innerHTML = '<option value="">Todos</option>' + estados.map(e => {
+            const ei = _panicoEstadoInfo(e);
+            return `<option value="${e}">${ei.icon} ${ei.label}</option>`;
+        }).join('');
+    }
+    if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+    else sel.value = '';
+}
+// Refuerzo del enlace por JS (por si el onchange inline no aplica)
+(function(){
+    const c = document.getElementById('panico-log-canal');
+    if (c && !c._estadosBound) { c._estadosBound = true; c.addEventListener('change', _panicoActualizarEstados); }
+})();
+
 function _panicoFmtTs(iso) {
     if (!iso || iso === '—') return '—';
     try {
@@ -7420,6 +7450,24 @@ async function _panicoRefrescarEstado(eventoId, rowId) {
     if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
 }
 
+// Consulta a Twilio el estado real de una notificación atascada en "en cola"
+// y la actualiza. Solo aplica a estados en_cola (bajo demanda, sin carrera).
+async function _panicoVerificarEnCola(eventoId, sid){
+    if (!sid) { showToast('Esa notificación no tiene SID', true); return; }
+    showToast('🔍 Consultando Twilio…');
+    try {
+        const r = await fetch('/servicios/boton_panico/admin/consultar-en-cola', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({evento_id: eventoId, sid: sid}),
+        });
+        const j = await r.json();
+        if (!j.ok) { showToast('Error: ' + (j.error||''), true); return; }
+        if (j.aplica === false) { showToast(j.mensaje || 'Solo aplica a "en cola"'); return; }
+        if (j.actualizado) { showToast('✅ Estado real: ' + (j.estado||'')); _panicoBuscarLog(_panicoPagActual); }
+        else { showToast(j.mensaje || 'Twilio aún lo reporta en cola'); }
+    } catch { showToast('Error de conexión', true); }
+}
+
 async function _panicoBuscarLog(pagina) {
     pagina = pagina || 1;
     if (pagina < 1) return;
@@ -7501,6 +7549,7 @@ async function _panicoBuscarLog(pagina) {
                 const ei   = _panicoEstadoInfo(info.estado);
                 const rowId = `prow-${ev._id}-${ci}-${ii}`;
                 const canRef = info.sid && !['mock','fallido','error'].includes((info.estado||'').toLowerCase());
+                const esEnCola = (info.estado||'').toLowerCase() === 'en_cola';
                 const popData = encodeURIComponent(JSON.stringify({
                     estado: info.estado, canal: tipo, receptor: c.nombre||'',
                     sid: info.sid||'', detalle: info.detalle||'',
@@ -7519,6 +7568,8 @@ async function _panicoBuscarLog(pagina) {
                     <td style="${tdStyle}">
                         <button onclick="_panicoMostrarPopup('${popData}')" title="Ver trazabilidad"
                             style="padding:3px 10px;border-radius:99px;border:1px solid rgba(39,135,245,.3);background:rgba(39,135,245,.08);color:#2787F5;font-size:.76rem;cursor:pointer;">💬 Ver</button>
+                        ${esEnCola ? `<button onclick="_panicoVerificarEnCola('${ev._id}','${info.sid||''}')" title="Consultar estado real en Twilio (solo aplica a 'en cola')"
+                            style="margin-left:5px;padding:3px 9px;border-radius:99px;border:1px solid rgba(183,121,31,.35);background:rgba(183,121,31,.12);color:#b7791f;font-size:.76rem;cursor:pointer;white-space:nowrap;">🔍 Verificar</button>` : ''}
                     </td>
                 </tr>`;
             }));
