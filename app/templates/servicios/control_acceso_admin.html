@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="{{ tema_clave }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🪪 Control de Acceso — Administración</title>
+<style id="nidus-tema">{{ tema_css | safe }}</style>
+{% if tema_vars %}<style id="nidus-vars">{{ tema_vars | safe }}</style>{% endif %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit','Segoe UI',sans-serif;}
+:root{--bg:#EEF2FF;--bg2:#FFFFFF;--accent:#2787F5;--text:#1E2756;--muted:#8A9CC8;--border:rgba(39,135,245,.18);}
+html,body{height:100%;}body{background:var(--bg);color:var(--text);}
+.wrap{max-width:1100px;margin:0 auto;padding:16px;}
+.top{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,#042243,#0a4a8c);color:#fff;border-radius:14px;padding:14px 20px;margin-bottom:14px;}
+.top .ic{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.tab{display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:11px;cursor:pointer;font-size:.86rem;font-weight:700;border:1.5px solid var(--border);background:var(--bg2);color:var(--muted);transition:all .2s;}
+.tab.active{background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:var(--accent);color:var(--accent);}
+.tab .badge{display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.62rem;padding:1px 7px;font-weight:800;}
+.tab .badge.on{display:inline-block;animation:pulse .8s infinite;}
+@keyframes pulse{50%{opacity:.4;}}
+.frame-wrap{background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.05);}
+iframe{width:100%;height:760px;border:none;display:block;background:var(--bg);}
+.hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="ic">🪪</div>
+    <div>
+      <div style="font-size:1.05rem;font-weight:800;">Control de Acceso — Administración</div>
+      <div style="font-size:.74rem;opacity:.8;">Vista completa: monitoreo, portería y credenciales</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="monitoreo" onclick="cambiar('monitoreo',this)">🛡️ Monitoreo <span class="badge" id="badgeCoaccion">!</span></div>
+    <div class="tab" data-tab="porteria" onclick="cambiar('porteria',this)">🚪 Portería</div>
+    <div class="tab" data-tab="credenciales" onclick="cambiar('credenciales',this)">🪪 Credenciales</div>
+  </div>
+
+  <div class="frame-wrap">
+    <iframe id="f-monitoreo"    src="/servicios/control_acceso/?vista=monitoreo"></iframe>
+    <iframe id="f-porteria"     class="hidden" data-src="/servicios/control_acceso/?vista=porteria"></iframe>
+    <iframe id="f-credenciales" class="hidden" data-src="/servicios/control_acceso/?vista=credenciales"></iframe>
+  </div>
+</div>
+
+<script>
+const API='/servicios/control_acceso';
+function cambiar(tab, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['monitoreo','porteria','credenciales'].forEach(t=>{
+    const f=document.getElementById('f-'+t);
+    if(t===tab){
+      // Carga perezosa del iframe la primera vez
+      if(!f.src && f.dataset.src){ f.src=f.dataset.src; }
+      f.classList.remove('hidden');
+    } else { f.classList.add('hidden'); }
+  });
+}
+// Aviso de coacción en la pestaña (badge) aunque estés en otra pestaña
+async function chequeoCoaccion(){
+  try{
+    const r=await fetch(`${API}/coacciones-activas?_t=${Date.now()}`); const j=await r.json();
+    const hay = j.ok && (j.data||[]).length>0;
+    document.getElementById('badgeCoaccion').className = 'badge'+(hay?' on':'');
+  }catch{}
+}
+chequeoCoaccion(); setInterval(chequeoCoaccion, 5000);
+</script>
+</body>
+</html>

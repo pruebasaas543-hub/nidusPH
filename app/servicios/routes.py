@@ -64,12 +64,21 @@ def panel_servicio(codigo):
         es_sistema = rol in RolModel.nombres_sistema()
         empresa_id = session.get("empresa_id", "")
         tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
-        # Residente → su vista; Admin/Sistema → monitoreo (alertas coacción);
-        # Vigilancia y demás → portería.
-        if rol == "Residente":
+        # ?vista= fuerza una vista (lo usan los iframes del dashboard admin).
+        # Si no, se elige por rol: Residente → credenciales; Admin/Sistema → dashboard
+        # completo (todas las pestañas); Vigilancia y demás → portería.
+        vista = request.args.get("vista", "")
+        _mapa = {
+            "porteria":     "servicios/control_acceso_porteria.html",
+            "credenciales": "servicios/control_acceso_residente.html",
+            "monitoreo":    "servicios/control_acceso_monitoreo.html",
+        }
+        if vista in _mapa:
+            plantilla = _mapa[vista]
+        elif rol == "Residente":
             plantilla = "servicios/control_acceso_residente.html"
         elif es_sistema or rol == "Administrador de la Copropiedad":
-            plantilla = "servicios/control_acceso_monitoreo.html"
+            plantilla = "servicios/control_acceso_admin.html"
         else:
             plantilla = "servicios/control_acceso_porteria.html"
         return render_template(plantilla, servicio=srv,
