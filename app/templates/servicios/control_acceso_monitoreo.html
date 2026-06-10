@@ -55,6 +55,7 @@ const API='/servicios/control_acceso';
 const $=id=>document.getElementById(id);
 const EID=new URLSearchParams(location.search).get('empresa_id')||'';
 const Q=EID?('&empresa_id='+encodeURIComponent(EID)):'';
+if(new URLSearchParams(location.search).get('embed')==='1'){const h=document.querySelector('.ca-top');if(h)h.style.display='none';}
 let _ultimaCoaccion=null;
 
 async function pollCoacciones(){

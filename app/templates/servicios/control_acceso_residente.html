@@ -109,6 +109,7 @@ const API='/servicios/control_acceso';
 const $=id=>document.getElementById(id);
 const EID=new URLSearchParams(location.search).get('empresa_id')||'';
 const Q=EID?('&empresa_id='+encodeURIComponent(EID)):'';
+if(new URLSearchParams(location.search).get('embed')==='1'){const h=document.querySelector('.ca-top');if(h)h.style.display='none';}
 function toast(m){const t=$('toast');t.textContent=m;t.className='toast show';setTimeout(()=>t.className='toast',2500);}
 function toggleRecurrencia(){ $('recurrencia').style.display = $('v-tipo').value==='recurrente' ? 'block':'none'; }
 document.querySelectorAll('#dias .dia').forEach(d=>d.onclick=()=>d.classList.toggle('on'));
