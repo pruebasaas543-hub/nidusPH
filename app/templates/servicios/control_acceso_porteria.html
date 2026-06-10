@@ -100,6 +100,8 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 <script>
 const API = '/servicios/control_acceso';
 const $ = id => document.getElementById(id);
+const EID = new URLSearchParams(location.search).get('empresa_id') || '';
+const Q = EID ? ('&empresa_id='+encodeURIComponent(EID)) : '';
 
 async function validar(){
   const codigo = $('codigo').value.trim();
@@ -107,7 +109,7 @@ async function validar(){
   const box = $('resultado');
   box.className = 'resultado show'; box.innerHTML = 'Validando…';
   try{
-    const r = await fetch(`${API}/validar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({codigo})});
+    const r = await fetch(`${API}/validar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({codigo,empresa_id:EID})});
     const j = await r.json();
     if(!j.ok){ box.className='resultado show r-err'; box.innerHTML=`<div class="big">⚠️ Error</div>${j.error||''}`; return; }
     pintarResultado(j.data);
@@ -140,7 +142,7 @@ async function guardarManual(){
   if(!nombre||!documento||!apto){ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">Nombre, documento y apartamento son obligatorios.</div>'; return; }
   const unidad={torre:$('m-torre').value.trim(),apartamento:apto};
   try{
-    const r=await fetch(`${API}/ingreso-manual`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre,documento,unidad})});
+    const r=await fetch(`${API}/ingreso-manual`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre,documento,unidad,empresa_id:EID})});
     const j=await r.json();
     if(!j.ok){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${j.error}</div>`; return; }
     $('manualResult').innerHTML=`<div class="hint" style="color:var(--green);">✅ Registrado. Log: ${j.data.log_id}</div>
@@ -157,7 +159,7 @@ async function llamarCitofono(logId, nombreVisita){
   if(!numero) return;
   $('manualResult').innerHTML='<div class="hint">📞 Llamando al residente…</div>';
   try{
-    const r=await fetch(`${API}/citofonia/llamar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({log_id:logId,numero,nombre_visita:nombreVisita})});
+    const r=await fetch(`${API}/citofonia/llamar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({log_id:logId,numero,nombre_visita:nombreVisita,empresa_id:EID})});
     const j=await r.json();
     if(!j.ok){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${j.error}</div>`; return; }
     // Polling del estado (sin recargar)
@@ -178,7 +180,7 @@ async function pollCito(logId){
 // ── Minuta ──
 async function cargarMinuta(){
   try{
-    const r=await fetch(`${API}/logs?limite=12&_t=${Date.now()}`); const j=await r.json();
+    const r=await fetch(`${API}/logs?limite=12&_t=${Date.now()}${Q}`); const j=await r.json();
     if(!j.ok) return;
     const list=j.data||[];
     if(!list.length){ $('minuta').innerHTML='<div class="hint">Sin registros aún.</div>'; return; }

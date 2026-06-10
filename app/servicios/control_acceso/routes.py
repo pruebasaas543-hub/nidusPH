@@ -27,6 +27,23 @@ def _conjunto_id():  return session.get("empresa_id", "")
 def _usuario_id():   return session.get("usuario_id", "")
 
 
+def _es_sistema():
+    from app.configuracion.roles.model import RolModel
+    return session.get("rol", "") in RolModel.nombres_sistema()
+
+
+def _conjunto_efectivo():
+    """Conjunto a usar. Sistema → el SELECCIONADO (?empresa_id= o body), o el de
+    sesión. Usuario normal → siempre el de su sesión. (Mismo patrón que pánico.)"""
+    if _es_sistema():
+        eid = (request.args.get("empresa_id") or "").strip()
+        if not eid:
+            d = request.get_json(silent=True) or {}
+            eid = (d.get("empresa_id") or "").strip()
+        return eid or session.get("empresa_id", "")
+    return session.get("empresa_id", "")
+
+
 def _conjunto_info(cid: str):
     if not cid:
         return "", ""
@@ -35,11 +52,23 @@ def _conjunto_info(cid: str):
     return (e.get("razon_social") or e.get("nombre") or ""), (e.get("direccion") or "")
 
 
+# ── Conjuntos disponibles (selector del SuperAdmin) ────────────────────────
+@control_acceso_bp.route("/conjuntos", methods=["GET"])
+@requiere_login
+def listar_conjuntos():
+    """Lista de conjuntos/empresas para el selector. Solo para sistema."""
+    if not _es_sistema():
+        return ok([])
+    empresas = list(db["empresas"].find({}, {"razon_social": 1, "nombre": 1})
+                    .sort("razon_social", 1))
+    return ok(serializar(empresas))
+
+
 # ── Portería: validar código (QR / PIN 6 chars / coacción) ─────────────────
 @control_acceso_bp.route("/validar", methods=["POST"])
 @requiere_login
 def validar():
-    cid = _conjunto_id()
+    cid = _conjunto_efectivo()
     if not cid:
         return err("Sin conjunto en sesión", 400)
     datos  = request.get_json(silent=True) or {}
@@ -57,7 +86,7 @@ def validar():
 @control_acceso_bp.route("/ingreso-manual", methods=["POST"])
 @requiere_login
 def ingreso_manual():
-    cid = _conjunto_id()
+    cid = _conjunto_efectivo()
     if not cid:
         return err("Sin conjunto en sesión", 400)
     d = request.get_json(silent=True) or {}
@@ -75,7 +104,7 @@ def ingreso_manual():
 @control_acceso_bp.route("/citofonia/llamar", methods=["POST"])
 @requiere_login
 def citofonia_llamar():
-    cid = _conjunto_id()
+    cid = _conjunto_efectivo()
     if not cid:
         return err("Sin conjunto en sesión", 400)
     d = request.get_json(silent=True) or {}
@@ -122,7 +151,7 @@ def citofonia_estado(log_id):
 @control_acceso_bp.route("/coacciones-activas", methods=["GET"])
 @requiere_login
 def coacciones_activas():
-    cid = _conjunto_id()
+    cid = _conjunto_efectivo()
     if not cid:
         return ok([])
     return ok(serializar(AccessLogModel.coacciones_activas(cid)))
@@ -147,7 +176,7 @@ def atender_coaccion():
 @control_acceso_bp.route("/credenciales", methods=["POST"])
 @requiere_login
 def crear_credencial():
-    cid = _conjunto_id()
+    cid = _conjunto_efectivo()
     uid = _usuario_id()
     if not cid or not uid:
         return err("Sin conjunto o usuario en sesión", 400)
@@ -182,10 +211,15 @@ def crear_credencial():
 @control_acceso_bp.route("/credenciales", methods=["GET"])
 @requiere_login
 def listar_credenciales():
-    cid = _conjunto_id()
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("Sin conjunto", 400)
+    # Sistema → todas las del conjunto; residente → solo las suyas
+    if _es_sistema():
+        return ok(serializar(AccessCredentialModel.listar_por_conjunto(cid)))
     uid = _usuario_id()
-    if not cid or not uid:
-        return err("Sin conjunto o usuario en sesión", 400)
+    if not uid:
+        return err("Sin usuario en sesión", 400)
     return ok(serializar(AccessCredentialModel.listar_por_solicitante(cid, uid)))
 
 
@@ -213,7 +247,7 @@ def set_pin_coaccion():
 @control_acceso_bp.route("/logs", methods=["GET"])
 @requiere_login
 def listar_logs():
-    cid = _conjunto_id()
+    cid = _conjunto_efectivo()
     if not cid:
         return err("Sin conjunto en sesión", 400)
     return ok(serializar(AccessLogModel.listar(cid, limite=int(request.args.get("limite", 50)))))

@@ -107,6 +107,8 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 <script>
 const API='/servicios/control_acceso';
 const $=id=>document.getElementById(id);
+const EID=new URLSearchParams(location.search).get('empresa_id')||'';
+const Q=EID?('&empresa_id='+encodeURIComponent(EID)):'';
 function toast(m){const t=$('toast');t.textContent=m;t.className='toast show';setTimeout(()=>t.className='toast',2500);}
 function toggleRecurrencia(){ $('recurrencia').style.display = $('v-tipo').value==='recurrente' ? 'block':'none'; }
 document.querySelectorAll('#dias .dia').forEach(d=>d.onclick=()=>d.classList.toggle('on'));
@@ -123,6 +125,7 @@ async function crear(){
     body.configuracion_recurrencia={dias_permitidos:dias,hora_inicio:$('v-hini').value,hora_fin:$('v-hfin').value};
   }
   if($('v-fin').value) body.vigencia={fin:$('v-fin').value+'T23:59:59'};
+  body.empresa_id=EID;
   try{
     const r=await fetch(`${API}/credenciales`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const j=await r.json();
@@ -148,7 +151,7 @@ async function guardarPin(){
 
 async function cargar(){
   try{
-    const r=await fetch(`${API}/credenciales?_t=${Date.now()}`); const j=await r.json();
+    const r=await fetch(`${API}/credenciales?_t=${Date.now()}${Q}`); const j=await r.json();
     if(!j.ok) return;
     const list=(j.data||[]).filter(c=>c.estado==='activo');
     if(!list.length){ $('lista').innerHTML='<div class="hint">No tienes credenciales activas.</div>'; return; }

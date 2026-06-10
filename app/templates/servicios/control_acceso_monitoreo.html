@@ -53,11 +53,13 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 <script>
 const API='/servicios/control_acceso';
 const $=id=>document.getElementById(id);
+const EID=new URLSearchParams(location.search).get('empresa_id')||'';
+const Q=EID?('&empresa_id='+encodeURIComponent(EID)):'';
 let _ultimaCoaccion=null;
 
 async function pollCoacciones(){
   try{
-    const r=await fetch(`${API}/coacciones-activas?_t=${Date.now()}`); const j=await r.json();
+    const r=await fetch(`${API}/coacciones-activas?_t=${Date.now()}${Q}`); const j=await r.json();
     if(!j.ok) return;
     const list=j.data||[];
     const zona=$('alertaZona');
@@ -90,7 +92,7 @@ async function atender(id){
 }
 async function cargarMinuta(){
   try{
-    const r=await fetch(`${API}/logs?limite=15&_t=${Date.now()}`); const j=await r.json();
+    const r=await fetch(`${API}/logs?limite=15&_t=${Date.now()}${Q}`); const j=await r.json();
     if(!j.ok) return;
     const list=j.data||[];
     if(!list.length){ $('minuta').innerHTML='<div style="font-size:.74rem;color:var(--muted);">Sin registros.</div>'; return; }

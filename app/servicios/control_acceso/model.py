@@ -95,6 +95,13 @@ class AccessCredentialModel:
         }).sort("creado_en", -1))
 
     @staticmethod
+    def listar_por_conjunto(conjunto_id: str) -> list:
+        """Todas las credenciales del conjunto (para el SuperAdmin)."""
+        return list(_credentials().find({
+            "conjunto_id": ObjectId(conjunto_id),
+        }).sort("creado_en", -1))
+
+    @staticmethod
     def revocar(credencial_id: str) -> bool:
         r = _credentials().update_one(
             {"_id": ObjectId(credencial_id)},
