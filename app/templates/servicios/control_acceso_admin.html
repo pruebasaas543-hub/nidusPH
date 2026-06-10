@@ -15,90 +15,100 @@
   --text:#1E2756; --muted:#8A9CC8; --border:rgba(39,135,245,.18);
   --red:#e53e3e; --green:#276749; --orange:#b7791f;
 }
-html,body{height:100%;overflow:hidden;}
+html,body{height:100%;}
 body{background:var(--bg);color:var(--text);}
-.bp-page{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.ca-wrap{max-width:1180px;margin:0 auto;padding:24px;}
 
-/* Topbar */
-.bp-topbar{display:flex;align-items:center;gap:14px;padding:0 24px;height:60px;flex-shrink:0;
-  background:linear-gradient(90deg,#042243 0%,#0a4a8c 60%,#042243 100%);box-shadow:0 2px 16px rgba(4,34,67,.3);z-index:50;}
-.bp-ticon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0a4a8c,#2787F5);
-  display:flex;align-items:center;justify-content:center;font-size:1.15rem;box-shadow:0 0 14px rgba(39,135,245,.4);}
-.bp-tname{font-size:1.02rem;font-weight:700;color:#fff;}
-.bp-tsub{font-size:.72rem;color:rgba(255,255,255,.7);}
+/* Cabecera (estilo panel de configuración) */
+.cfg-head{display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;}
+.cfg-volver{display:inline-flex;align-items:center;gap:6px;background:none;border:1.5px solid rgba(4,34,67,.22);border-radius:10px;
+  padding:8px 16px;cursor:pointer;font-size:.82rem;color:#042243;font-weight:600;transition:all .2s;white-space:nowrap;text-decoration:none;}
+.cfg-volver:hover{background:rgba(4,34,67,.06);}
+.cfg-div{width:1px;height:32px;background:rgba(4,34,67,.12);flex-shrink:0;}
+.cfg-id{display:flex;align-items:center;gap:12px;flex:1;}
+.cfg-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#0a4a8c,#2787F5);display:flex;align-items:center;
+  justify-content:center;font-size:1.2rem;box-shadow:0 4px 12px rgba(39,135,245,.3);flex-shrink:0;}
+.cfg-title{font-size:1.05rem;font-weight:800;color:#042243;line-height:1.2;}
+.cfg-sub{font-size:.75rem;color:#8A9CC8;margin-top:2px;}
 
-/* Toolbar (Volver + selector conjunto) */
-.bp-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 24px;flex-shrink:0;
-  background:color-mix(in srgb,var(--bg2) 80%,transparent);border-bottom:1px solid var(--border);}
-.bp-volver{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;cursor:pointer;text-decoration:none;
-  font-size:.83rem;font-weight:600;color:var(--text);background:var(--bg2);border:1px solid var(--border);transition:all .2s;}
-.bp-volver:hover{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent);}
-.bp-emp-sel{margin-left:auto;min-width:260px;background:var(--bg2);color:var(--text);border:1px solid var(--border);
-  border-radius:10px;padding:9px 14px;font-family:inherit;font-size:.84rem;outline:none;cursor:pointer;}
-.bp-emp-sel:focus{border-color:var(--accent);}
-.bp-emp-label{font-size:.8rem;font-weight:700;color:var(--muted);white-space:nowrap;}
+/* Selector empresa */
+.cfg-empresa{background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.cfg-empresa .lbl-ic{font-size:1.4rem;}
+.cfg-empresa .lbl-t{font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;}
+.cfg-empresa .lbl-s{font-size:.72rem;color:#8A9CC8;margin-top:1px;}
+.cfg-empresa select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.9rem;
+  font-family:inherit;color:var(--text);background:var(--bg2);outline:none;cursor:pointer;}
+.cfg-empresa select:focus{border-color:var(--accent);}
 
 /* Tabs */
-.bp-tabs-wrap{padding:14px 24px 0;flex-shrink:0;overflow-x:auto;background:#0a2d5a;border-bottom:1px solid rgba(255,255,255,.12);
-  scrollbar-width:none;-ms-overflow-style:none;}
-.bp-tabs-wrap::-webkit-scrollbar{display:none;height:0;}
-.bp-tabs{display:flex;gap:6px;}
-.bp-tab{display:flex;align-items:center;gap:7px;padding:8px 18px 10px;border-radius:10px 10px 0 0;cursor:pointer;font-size:.8rem;
-  font-weight:600;white-space:nowrap;border:1px solid transparent;border-bottom:none;color:rgba(255,255,255,.65);background:transparent;
-  transition:all .2s;font-family:inherit;position:relative;}
-.bp-tab:hover{color:#fff;background:rgba(255,255,255,.08);}
-.bp-tab.active{background:color-mix(in srgb,var(--tab-color,var(--accent)) 18%,transparent);color:var(--tab-color,#fff);
-  border-color:color-mix(in srgb,var(--tab-color,var(--accent)) 40%,transparent);font-weight:700;}
-.bp-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:3px;background:var(--tab-color,var(--accent));border-radius:2px 2px 0 0;}
-.bp-badge{display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;}
-.bp-badge.on{display:inline-block;animation:pulse .8s infinite;}
+.cfg-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;}
+.cfg-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;cursor:pointer;font-size:.84rem;font-weight:700;
+  font-family:inherit;border:1.5px solid transparent;color:var(--muted);background:none;transition:all .2s;}
+.cfg-tab:hover{color:var(--text);background:rgba(4,34,67,.04);}
+.cfg-tab.active{color:var(--tab-color,var(--accent));background:color-mix(in srgb,var(--tab-color,var(--accent)) 12%,transparent);
+  border-color:color-mix(in srgb,var(--tab-color,var(--accent)) 35%,transparent);}
+.cfg-badge{display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;}
+.cfg-badge.on{display:inline-block;animation:pulse .8s infinite;}
 @keyframes pulse{50%{opacity:.4;}}
 
-/* Content */
-.bp-content{flex:1;overflow:hidden;position:relative;background:var(--bg);}
-.bp-content iframe{width:100%;height:100%;border:none;display:block;}
-.bp-aviso{padding:60px 20px;text-align:center;color:var(--muted);font-size:.92rem;}
+/* Contenido */
+.cfg-frame-wrap{border:1.5px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg2);box-shadow:0 2px 12px rgba(0,0,0,.05);}
+.cfg-frame-wrap iframe{width:100%;height:74vh;min-height:520px;border:none;display:block;}
+.cfg-aviso{padding:70px 20px;text-align:center;color:var(--muted);font-size:.95rem;}
 .hidden{display:none;}
-@media(max-width:600px){.bp-topbar{padding:0 14px;}.bp-toolbar{padding:10px 14px;}.bp-tabs-wrap{padding:12px 14px 0;}.bp-emp-sel{min-width:0;flex:1;}}
+@media(max-width:600px){.ca-wrap{padding:14px;}}
 </style>
 </head>
 <body>
-<div class="bp-page">
-  <!-- Topbar -->
-  <div class="bp-topbar">
-    <div class="bp-ticon">🪪</div>
-    <div>
-      <div class="bp-tname">Control de Acceso</div>
-      <div class="bp-tsub">{{ servicio.descripcion or 'Portería, credenciales y monitoreo' }}</div>
+<div class="ca-wrap">
+
+  <!-- Cabecera -->
+  <div class="cfg-head">
+    <a class="cfg-volver" href="{{ url_for('auth.dashboard') }}"
+       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
+      &#8592; Volver a Inicio
+    </a>
+    <div class="cfg-div"></div>
+    <div class="cfg-id">
+      <div class="cfg-icon">🪪</div>
+      <div>
+        <div class="cfg-title">Control de Acceso</div>
+        <div class="cfg-sub">{{ servicio.descripcion or 'Portería, credenciales y monitoreo de seguridad' }}</div>
+      </div>
     </div>
   </div>
 
-  <!-- Toolbar: Volver + selector de conjunto (solo sistema) -->
-  <div class="bp-toolbar">
-    <a class="bp-volver" href="{{ url_for('auth.dashboard') }}"
-       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
-      <span style="font-size:1rem;line-height:1;">&#8592;</span> Volver
-    </a>
-    {% if es_sistema %}
-    <span class="bp-emp-label">🏢 Conjunto</span>
-    <select class="bp-emp-sel" id="conjuntoSel" onchange="seleccionarConjunto(this.value)">
-      <option value="">— Selecciona un conjunto —</option>
-    </select>
-    {% endif %}
+  <!-- Selector empresa / conjunto -->
+  {% if es_sistema %}
+  <div class="cfg-empresa">
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <span class="lbl-ic">🏢</span>
+      <div>
+        <div class="lbl-t">Empresa / Propiedad</div>
+        <div class="lbl-s">Selecciona para ver su configuración</div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:220px;">
+      <select id="conjuntoSel" onchange="seleccionarConjunto(this.value)">
+        <option value="">— Selecciona una empresa —</option>
+      </select>
+    </div>
   </div>
+  {% endif %}
 
   <!-- Tabs -->
-  <div class="bp-tabs-wrap">
-    <div class="bp-tabs">
-      <button class="bp-tab active" style="--tab-color:#e53e3e" data-tab="monitoreo" onclick="cambiar('monitoreo',this)">🛡️ Monitoreo <span class="bp-badge" id="badgeCoaccion">!</span></button>
-      <button class="bp-tab" style="--tab-color:var(--accent)" data-tab="porteria" onclick="cambiar('porteria',this)">🚪 Portería</button>
-      <button class="bp-tab" style="--tab-color:var(--orange)" data-tab="credenciales" onclick="cambiar('credenciales',this)">🪪 Credenciales</button>
-    </div>
+  <div class="cfg-tabs">
+    <button class="cfg-tab active" style="--tab-color:#e53e3e" data-tab="monitoreo" onclick="cambiar('monitoreo',this)">🛡️ Monitoreo <span class="cfg-badge" id="badgeCoaccion">!</span></button>
+    <button class="cfg-tab" style="--tab-color:var(--accent)" data-tab="porteria" onclick="cambiar('porteria',this)">🚪 Portería</button>
+    <button class="cfg-tab" style="--tab-color:var(--orange)" data-tab="credenciales" onclick="cambiar('credenciales',this)">🪪 Credenciales</button>
   </div>
 
-  <!-- Content -->
-  <div class="bp-content">
-    <div id="aviso" class="bp-aviso">👆 Selecciona un conjunto arriba para comenzar.</div>
+  <!-- Contenido -->
+  <div class="cfg-frame-wrap">
+    {% if es_sistema %}
+    <div id="aviso" class="cfg-aviso">👆 Selecciona una empresa arriba para comenzar.</div>
+    {% endif %}
     <iframe id="f-monitoreo"    class="hidden"></iframe>
     <iframe id="f-porteria"     class="hidden"></iframe>
     <iframe id="f-credenciales" class="hidden"></iframe>
@@ -107,6 +117,7 @@ body{background:var(--bg);color:var(--text);}
 
 <script>
 const API='/servicios/control_acceso';
+const ES_SISTEMA = {{ 'true' if es_sistema else 'false' }};
 let EID='';
 let tabActual='monitoreo';
 const cargado={monitoreo:false,porteria:false,credenciales:false};
@@ -120,32 +131,43 @@ async function cargarConjuntos(){
 }
 function seleccionarConjunto(eid){
   EID=eid;
-  ['monitoreo','porteria','credenciales'].forEach(t=>{ cargado[t]=false; document.getElementById('f-'+t).src='about:blank'; document.getElementById('f-'+t).classList.add('hidden'); });
-  document.getElementById('aviso').style.display = eid ? 'none' : 'block';
+  ['monitoreo','porteria','credenciales'].forEach(t=>{ cargado[t]=false; const f=document.getElementById('f-'+t); f.src='about:blank'; f.classList.add('hidden'); });
+  const av=document.getElementById('aviso'); if(av) av.style.display = eid ? 'none' : 'block';
   if(eid) mostrarTab(tabActual);
 }
 function cambiar(tab, el){
-  document.querySelectorAll('.bp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.cfg-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active'); tabActual=tab;
-  if(EID) mostrarTab(tab); else document.getElementById('aviso').style.display='block';
+  if(EID) mostrarTab(tab);
+  else { const av=document.getElementById('aviso'); if(av) av.style.display='block'; }
 }
 function mostrarTab(tab){
-  document.getElementById('aviso').style.display='none';
+  const av=document.getElementById('aviso'); if(av) av.style.display='none';
   ['monitoreo','porteria','credenciales'].forEach(t=>{
     const f=document.getElementById('f-'+t);
-    if(t===tab){ if(!cargado[t]){ f.src=`/servicios/control_acceso/?vista=${t}&empresa_id=${encodeURIComponent(EID)}&embed=1`; cargado[t]=true; } f.classList.remove('hidden'); }
-    else f.classList.add('hidden');
+    if(t===tab){
+      if(!cargado[t]){
+        const qs = EID ? `&empresa_id=${encodeURIComponent(EID)}` : '';
+        f.src=`/servicios/control_acceso/?vista=${t}${qs}&embed=1`;
+        cargado[t]=true;
+      }
+      f.classList.remove('hidden');
+    } else f.classList.add('hidden');
   });
 }
 async function chequeoCoaccion(){
   const b=document.getElementById('badgeCoaccion');
-  if(!EID){ if(b)b.className='bp-badge'; return; }
+  const qs = EID ? `empresa_id=${encodeURIComponent(EID)}&` : '';
+  if(ES_SISTEMA && !EID){ if(b)b.className='cfg-badge'; return; }
   try{
-    const r=await fetch(`${API}/coacciones-activas?empresa_id=${encodeURIComponent(EID)}&_t=${Date.now()}`); const j=await r.json();
-    if(b) b.className='bp-badge'+((j.ok&&(j.data||[]).length>0)?' on':'');
+    const r=await fetch(`${API}/coacciones-activas?${qs}_t=${Date.now()}`); const j=await r.json();
+    if(b) b.className='cfg-badge'+((j.ok&&(j.data||[]).length>0)?' on':'');
   }catch{}
 }
-cargarConjuntos();
+
+// Sistema: espera selección de empresa. No-sistema (Admin PH): arranca directo.
+if(ES_SISTEMA){ cargarConjuntos(); }
+else { mostrarTab('monitoreo'); }
 chequeoCoaccion(); setInterval(chequeoCoaccion,5000);
 </script>
 </body>
