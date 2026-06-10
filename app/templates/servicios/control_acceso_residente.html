@@ -39,14 +39,6 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 </head>
 <body>
 <div class="ca-page">
-  <div class="ca-top">
-    <div class="ic">🪪</div>
-    <div>
-      <div style="font-size:1.05rem;font-weight:800;">Control de Acceso — Residente</div>
-      <div style="font-size:.74rem;opacity:.8;">Invitaciones (QR/PIN) · Horarios · PIN de coacción</div>
-    </div>
-  </div>
-
   <div class="ca-grid">
     <!-- Crear invitación -->
     <div>
@@ -109,7 +101,6 @@ const API='/servicios/control_acceso';
 const $=id=>document.getElementById(id);
 const EID=new URLSearchParams(location.search).get('empresa_id')||'';
 const Q=EID?('&empresa_id='+encodeURIComponent(EID)):'';
-if(new URLSearchParams(location.search).get('embed')==='1'){const h=document.querySelector('.ca-top');if(h)h.style.display='none';}
 function toast(m){const t=$('toast');t.textContent=m;t.className='toast show';setTimeout(()=>t.className='toast',2500);}
 function toggleRecurrencia(){ $('recurrencia').style.display = $('v-tipo').value==='recurrente' ? 'block':'none'; }
 document.querySelectorAll('#dias .dia').forEach(d=>d.onclick=()=>d.classList.toggle('on'));

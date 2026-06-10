@@ -30,14 +30,6 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 </head>
 <body>
 <div class="ca-page">
-  <div class="ca-top">
-    <div class="ic">🛡️</div>
-    <div>
-      <div style="font-size:1.05rem;font-weight:800;">Control de Acceso — Centro de Monitoreo</div>
-      <div style="font-size:.74rem;opacity:.8;">Alertas de coacción en tiempo real · Bitácora de ingresos</div>
-    </div>
-  </div>
-
   <div id="alertaZona"></div>
 
   <div class="card">
@@ -55,7 +47,6 @@ const API='/servicios/control_acceso';
 const $=id=>document.getElementById(id);
 const EID=new URLSearchParams(location.search).get('empresa_id')||'';
 const Q=EID?('&empresa_id='+encodeURIComponent(EID)):'';
-if(new URLSearchParams(location.search).get('embed')==='1'){const h=document.querySelector('.ca-top');if(h)h.style.display='none';}
 let _ultimaCoaccion=null;
 
 async function pollCoacciones(){
