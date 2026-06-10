@@ -5066,8 +5066,16 @@ const SRV = {
     renderPaneles() {
         const container = document.getElementById('servicios-paneles-container');
         if (!container) return;
-        container.innerHTML = this._data.filter(s => s.activo).map(s => `
-            <div id="srv-panel-${s.codigo}" class="config-panel">
+        container.innerHTML = this._data.filter(s => s.activo).map(s => {
+            // Control de Acceso: embeber el módulo real en un iframe (como el botón de pánico)
+            if (s.codigo === 'control_acceso') {
+                return `<div id="srv-panel-${s.codigo}" class="config-panel">
+                    <div class="config-panel-title">${s.icono || '🪪'} <span>${s.nombre}</span></div>
+                    <iframe src="/servicios/control_acceso/" title="Control de Acceso"
+                        style="width:100%;height:800px;border:none;border-radius:12px;display:block;margin-top:12px;background:#EEF2FF;"></iframe>
+                </div>`;
+            }
+            return `<div id="srv-panel-${s.codigo}" class="config-panel">
                 <div class="config-panel-title">${s.icono || '📋'} <span>${s.nombre}</span></div>
                 <div class="config-panel-subtitle">${s.descripcion || 'Módulo en desarrollo.'}</div>
                 <div style="margin-top:60px;text-align:center;">
@@ -5082,7 +5090,8 @@ const SRV = {
                         EN DESARROLLO
                     </div>
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     },
 
     limpiar() {
