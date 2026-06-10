@@ -9,106 +9,93 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit','Segoe UI',sans-serif;}
-:root{
-  --bg:#EEF2FF; --bg2:#FFFFFF; --bg3:#D8E4F5;
-  --accent:#2787F5; --accent2:#1a6de0;
-  --text:#1E2756; --muted:#8A9CC8; --border:rgba(39,135,245,.18);
-  --red:#e53e3e; --green:#276749; --orange:#b7791f;
-}
-html,body{height:100%;}
-body{background:var(--bg);color:var(--text);}
-.ca-wrap{max-width:1180px;margin:0 auto;padding:24px;}
+html,body{height:100%;background:#FFFFFF;color:#1E2756;}
 
-/* Header: Volver + Empresa (estilo panel.html) */
-.cfg-head{display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;}
-.cfg-volver{display:inline-flex;align-items:center;gap:6px;background:none;border:1.5px solid rgba(4,34,67,.22);border-radius:10px;
-  padding:8px 16px;cursor:pointer;font-size:.82rem;color:#042243;font-weight:600;transition:all .2s;white-space:nowrap;text-decoration:none;}
-.cfg-volver:hover{background:rgba(4,34,67,.06);}
+/* form-control (replica Bootstrap para el select) */
+.form-control{display:block;width:100%;padding:.375rem .75rem;font-size:1rem;line-height:1.5;color:#495057;
+  background-color:#fff;background-clip:padding-box;border:1px solid #ced4da;border-radius:.25rem;
+  transition:border-color .15s ease-in-out,box-shadow .15s ease-in-out;font-family:inherit;}
+.form-control:focus{color:#495057;background-color:#fff;border-color:#80bdff;outline:0;
+  box-shadow:0 0 0 .2rem rgba(0,123,255,.25);}
 
-/* Selector empresa (estilo exacto panel.html cfg-boton-panico) */
-.cfg-empresa{background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;
-  display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-left:auto;}
-.cfg-empresa-lbl{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.cfg-empresa-lbl .ic{font-size:1.4rem;}
-.cfg-empresa-lbl .txt{display:flex;flex-direction:column;}
-.cfg-empresa-lbl .t{font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;}
-.cfg-empresa-lbl .s{font-size:.72rem;color:#8A9CC8;margin-top:1px;}
-.cfg-empresa select{background:var(--bg2);border:1.5px solid rgba(4,34,67,.12);border-radius:10px;padding:9px 14px;
-  font-size:.84rem;color:#042243;font-family:inherit;outline:none;cursor:pointer;min-width:280px;}
-.cfg-empresa select:focus{border-color:var(--accent);}
+/* Tabs (idéntico a dir-tab-btn en panel.html) */
+.dir-tab-btn{padding:6px 14px;border-radius:20px;border:1.5px solid rgba(4,34,67,.25);background:transparent;
+  color:#042243;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;}
+.dir-tab-btn:hover{background:rgba(4,34,67,.08);}
+.dir-tab-btn.active{background:#042243;color:#fff;border-color:#042243;}
 
-/* Tabs */
-.cfg-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;}
-.cfg-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;cursor:pointer;font-size:.84rem;font-weight:700;
-  font-family:inherit;border:1.5px solid transparent;color:var(--muted);background:none;transition:all .2s;}
-.cfg-tab:hover{color:var(--text);background:rgba(4,34,67,.04);}
-.cfg-tab.active{color:var(--tab-color,var(--accent));background:color-mix(in srgb,var(--tab-color,var(--accent)) 12%,transparent);
-  border-color:color-mix(in srgb,var(--tab-color,var(--accent)) 35%,transparent);}
-.cfg-badge{display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;}
-.cfg-badge.on{display:inline-block;animation:pulse .8s infinite;}
+/* Badge coacción */
+.ca-badge{display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;margin-left:4px;}
+.ca-badge.on{display:inline-block;animation:pulse .8s infinite;}
 @keyframes pulse{50%{opacity:.4;}}
 
-/* Contenido */
-.cfg-frame-wrap{border:1.5px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg2);box-shadow:0 2px 12px rgba(0,0,0,.05);}
-.cfg-frame-wrap iframe{width:100%;height:74vh;min-height:520px;border:none;display:block;}
-.cfg-aviso{padding:70px 20px;text-align:center;color:var(--muted);font-size:.95rem;}
+/* iframe contenedor */
+.ca-iframe-wrap{border:1px solid rgba(4,34,67,.1);border-radius:12px;overflow:hidden;margin-top:14px;}
+.ca-iframe-wrap iframe{width:100%;height:800px;border:none;display:block;background:#EEF2FF;}
+.ca-aviso{padding:70px 20px;text-align:center;color:#8A9CC8;font-size:.92rem;}
 .hidden{display:none;}
-@media(max-width:600px){.ca-wrap{padding:14px;}.cfg-empresa{flex-direction:column;align-items:stretch;margin-left:0;}.cfg-empresa select{min-width:auto;}}
 </style>
 </head>
 <body>
-<div class="ca-wrap">
+<div style="padding:24px;">
 
-  <!-- Header: Volver + Empresa -->
-  {% if es_sistema %}
-  <div class="cfg-head">
-    <a class="cfg-volver" href="{{ url_for('auth.dashboard') }}"
-       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
+  <!-- Cabecera: idéntica a cfg-boton-panico en panel.html -->
+  <div style="display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;">
+    <a href="{{ url_for('auth.dashboard') }}"
+       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;"
+       style="display:inline-flex;align-items:center;gap:6px;background:none;border:1.5px solid rgba(4,34,67,.22);border-radius:10px;padding:8px 16px;cursor:pointer;font-size:.82rem;color:#042243;font-weight:600;transition:all .2s;white-space:nowrap;text-decoration:none;"
+       onmouseover="this.style.background='rgba(4,34,67,.06)'" onmouseout="this.style.background='none'">
       &#8592; Volver a Inicio
     </a>
-    <div class="cfg-empresa">
-      <div class="cfg-empresa-lbl">
-        <span class="ic">🏢</span>
-        <div class="txt">
-          <div class="t">Empresa / Propiedad</div>
-          <div class="s">Selecciona para ver su configuración</div>
-        </div>
+    <div style="width:1px;height:32px;background:rgba(4,34,67,.12);flex-shrink:0;"></div>
+    <div style="display:flex;align-items:center;gap:12px;flex:1;">
+      <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#0a4a8c,#2787F5);display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 4px 12px rgba(39,135,245,.3);flex-shrink:0;">🪪</div>
+      <div>
+        <div style="font-size:1.05rem;font-weight:800;color:#042243;line-height:1.2;">Control de Acceso</div>
+        <div style="font-size:.75rem;color:#8A9CC8;margin-top:2px;">Portería, credenciales y monitoreo de seguridad</div>
       </div>
-      <select id="conjuntoSel" onchange="seleccionarConjunto(this.value)">
+    </div>
+  </div>
+
+  <!-- Selector empresa: idéntico al de cfg-boton-panico en panel.html -->
+  {% if es_sistema %}
+  <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <span style="font-size:1.4rem;">🏢</span>
+      <div>
+        <div style="font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;">Empresa / Propiedad</div>
+        <div style="font-size:.72rem;color:#8A9CC8;margin-top:1px;">Selecciona para ver su configuración</div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:220px;">
+      <select class="form-control" id="conjuntoSel" onchange="seleccionarConjunto(this.value)" style="width:100%;">
         <option value="">— Selecciona una empresa —</option>
       </select>
     </div>
   </div>
-  {% else %}
-  <div class="cfg-head">
-    <a class="cfg-volver" href="{{ url_for('auth.dashboard') }}"
-       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
-      &#8592; Volver a Inicio
-    </a>
-  </div>
   {% endif %}
 
-  <!-- Tabs -->
-  <div class="cfg-tabs">
-    <button class="cfg-tab active" style="--tab-color:#e53e3e" data-tab="monitoreo" onclick="cambiar('monitoreo',this)">🛡️ Monitoreo <span class="cfg-badge" id="badgeCoaccion">!</span></button>
-    <button class="cfg-tab" style="--tab-color:var(--accent)" data-tab="porteria" onclick="cambiar('porteria',this)">🚪 Portería</button>
-    <button class="cfg-tab" style="--tab-color:var(--orange)" data-tab="credenciales" onclick="cambiar('credenciales',this)">🪪 Credenciales</button>
+  <!-- Tabs: idénticos a cfg-boton-panico en panel.html -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
+    <button class="dir-tab-btn active" data-tab="monitoreo" onclick="cambiar('monitoreo',this)">🛡️ Monitoreo <span class="ca-badge" id="badgeCoaccion">!</span></button>
+    <button class="dir-tab-btn" data-tab="porteria" onclick="cambiar('porteria',this)">🚪 Portería</button>
+    <button class="dir-tab-btn" data-tab="credenciales" onclick="cambiar('credenciales',this)">🪪 Credenciales</button>
   </div>
 
   <!-- Contenido -->
-  <div class="cfg-frame-wrap">
+  <div class="ca-iframe-wrap">
     {% if es_sistema %}
-    <div id="aviso" class="cfg-aviso">👆 Selecciona una empresa arriba para comenzar.</div>
+    <div id="aviso" class="ca-aviso">👆 Selecciona una empresa arriba para comenzar.</div>
     {% endif %}
     <iframe id="f-monitoreo"    class="hidden"></iframe>
     <iframe id="f-porteria"     class="hidden"></iframe>
     <iframe id="f-credenciales" class="hidden"></iframe>
   </div>
-</div>
 
+</div>
 <script>
 const API='/servicios/control_acceso';
-const ES_SISTEMA = {{ 'true' if es_sistema else 'false' }};
+const ES_SISTEMA={{ 'true' if es_sistema else 'false' }};
 let EID='';
 let tabActual='monitoreo';
 const cargado={monitoreo:false,porteria:false,credenciales:false};
@@ -117,47 +104,42 @@ async function cargarConjuntos(){
   try{
     const r=await fetch(`${API}/conjuntos?_t=${Date.now()}`); const j=await r.json();
     const sel=document.getElementById('conjuntoSel'); if(!sel) return;
-    (j.data||[]).forEach(e=>{ const o=document.createElement('option'); o.value=e._id; o.textContent=e.razon_social||e.nombre||e._id; sel.appendChild(o); });
+    (j.data||[]).forEach(e=>{const o=document.createElement('option');o.value=e._id;o.textContent=e.razon_social||e.nombre||e._id;sel.appendChild(o);});
   }catch{}
 }
 function seleccionarConjunto(eid){
   EID=eid;
-  ['monitoreo','porteria','credenciales'].forEach(t=>{ cargado[t]=false; const f=document.getElementById('f-'+t); f.src='about:blank'; f.classList.add('hidden'); });
-  const av=document.getElementById('aviso'); if(av) av.style.display = eid ? 'none' : 'block';
+  ['monitoreo','porteria','credenciales'].forEach(t=>{cargado[t]=false;const f=document.getElementById('f-'+t);f.src='about:blank';f.classList.add('hidden');});
+  const av=document.getElementById('aviso'); if(av) av.style.display=eid?'none':'block';
   if(eid) mostrarTab(tabActual);
 }
-function cambiar(tab, el){
-  document.querySelectorAll('.cfg-tab').forEach(t=>t.classList.remove('active'));
+function cambiar(tab,el){
+  document.querySelectorAll('.dir-tab-btn').forEach(t=>t.classList.remove('active'));
   el.classList.add('active'); tabActual=tab;
   if(EID) mostrarTab(tab);
-  else { const av=document.getElementById('aviso'); if(av) av.style.display='block'; }
+  else{const av=document.getElementById('aviso');if(av) av.style.display='block';}
 }
 function mostrarTab(tab){
   const av=document.getElementById('aviso'); if(av) av.style.display='none';
   ['monitoreo','porteria','credenciales'].forEach(t=>{
     const f=document.getElementById('f-'+t);
     if(t===tab){
-      if(!cargado[t]){
-        const qs = EID ? `&empresa_id=${encodeURIComponent(EID)}` : '';
-        f.src=`/servicios/control_acceso/?vista=${t}${qs}&embed=1`;
-        cargado[t]=true;
-      }
+      if(!cargado[t]){const qs=EID?`&empresa_id=${encodeURIComponent(EID)}`:'';f.src=`/servicios/control_acceso/?vista=${t}${qs}&embed=1`;cargado[t]=true;}
       f.classList.remove('hidden');
     } else f.classList.add('hidden');
   });
 }
 async function chequeoCoaccion(){
   const b=document.getElementById('badgeCoaccion');
-  const qs = EID ? `empresa_id=${encodeURIComponent(EID)}&` : '';
-  if(ES_SISTEMA && !EID){ if(b)b.className='cfg-badge'; return; }
+  if(ES_SISTEMA&&!EID){if(b)b.className='ca-badge';return;}
   try{
+    const qs=EID?`empresa_id=${encodeURIComponent(EID)}&`:'';
     const r=await fetch(`${API}/coacciones-activas?${qs}_t=${Date.now()}`); const j=await r.json();
-    if(b) b.className='cfg-badge'+((j.ok&&(j.data||[]).length>0)?' on':'');
+    if(b) b.className='ca-badge'+((j.ok&&(j.data||[]).length>0)?' on':'');
   }catch{}
 }
-
-if(ES_SISTEMA){ cargarConjuntos(); }
-else { mostrarTab('monitoreo'); }
+if(ES_SISTEMA){cargarConjuntos();}
+else{mostrarTab('monitoreo');}
 chequeoCoaccion(); setInterval(chequeoCoaccion,5000);
 </script>
 </body>

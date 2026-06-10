@@ -2027,6 +2027,64 @@
 
         </div><!-- /cfg-boton-panico -->
 
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- cfg-control-acceso                                         -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div id="cfg-control-acceso" class="config-panel">
+
+            <!-- Cabecera -->
+            <div style="display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;">
+                <button onclick="setActive(document.getElementById('nav-inicio'));mostrarPanel('cfg-inicio')"
+                    style="display:inline-flex;align-items:center;gap:6px;background:none;border:1.5px solid rgba(4,34,67,.22);border-radius:10px;padding:8px 16px;cursor:pointer;font-size:.82rem;color:#042243;font-weight:600;transition:all .2s;white-space:nowrap;"
+                    onmouseover="this.style.background='rgba(4,34,67,.06)'" onmouseout="this.style.background='none'">
+                    &#8592; Volver a Inicio
+                </button>
+                <div style="width:1px;height:32px;background:rgba(4,34,67,.12);flex-shrink:0;"></div>
+                <div style="display:flex;align-items:center;gap:12px;flex:1;">
+                    <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#0a4a8c,#2787F5);display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 4px 12px rgba(39,135,245,.3);flex-shrink:0;">🪪</div>
+                    <div>
+                        <div style="font-size:1.05rem;font-weight:800;color:#042243;line-height:1.2;">Control de Acceso</div>
+                        <div style="font-size:.75rem;color:#8A9CC8;margin-top:2px;">Portería, credenciales y monitoreo de seguridad</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selector empresa -->
+            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                    <span style="font-size:1.4rem;">🏢</span>
+                    <div>
+                        <div style="font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;">Empresa / Propiedad</div>
+                        <div style="font-size:.72rem;color:#8A9CC8;margin-top:1px;">Selecciona para ver su configuración</div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:220px;">
+                    <select class="form-control" id="ca-empresa-sel" onchange="_caAccesoSeleccionarEmpresa(this.value)" style="width:100%;">
+                        <option value="">— Selecciona una empresa —</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
+                <button class="dir-tab-btn active" data-catab="monitoreo" onclick="_caAccesoTab(this)">🛡️ Monitoreo <span id="ca-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;">!</span></button>
+                <button class="dir-tab-btn" data-catab="porteria" onclick="_caAccesoTab(this)">🚪 Portería</button>
+                <button class="dir-tab-btn" data-catab="credenciales" onclick="_caAccesoTab(this)">🪪 Credenciales</button>
+            </div>
+
+            <!-- Panes -->
+            <div id="ca-pane-monitoreo">
+                <iframe id="ca-frame-monitoreo" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Monitoreo"></iframe>
+            </div>
+            <div id="ca-pane-porteria" style="display:none;">
+                <iframe id="ca-frame-porteria" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Portería"></iframe>
+            </div>
+            <div id="ca-pane-credenciales" style="display:none;">
+                <iframe id="ca-frame-credenciales" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Credenciales"></iframe>
+            </div>
+
+        </div><!-- /cfg-control-acceso -->
+
         <!-- Modal Confirmación Botón de Pánico -->
         <div id="modal-panico-confirm" style="display:none;position:fixed;inset:0;background:rgba(4,34,67,.55);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);">
             <div style="background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(4,34,67,.22);width:clamp(300px,90vw,440px);overflow:hidden;">
@@ -5046,8 +5104,9 @@ const SRV = {
         };
         const _panelDestino = (codigo) => {
             // Bespoke (configuración propia): directorio y botón de pánico
-            if (codigo === 'directorio')   return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
-            if (codigo === 'boton_panico') return `mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()`;
+            if (codigo === 'directorio')    return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
+            if (codigo === 'boton_panico')  return `mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()`;
+            if (codigo === 'control_acceso') return `mostrarPanel('cfg-control-acceso');_caAccesoPoblarEmpresas()`;
             // Resto: apertura genérica (iframe a /servicios/<codigo>/, carga perezosa)
             return `_abrirModuloGenerico('${codigo}')`;
         };
@@ -5074,7 +5133,9 @@ const SRV = {
         // si aún no está implementado, panel_servicio.html ("EN DESARROLLO").
         // Así un módulo NUEVO funciona sin cablear nada aquí.
         // (Directorio y Botón de Pánico siguen usando su panel bespoke cfg-*.)
-        container.innerHTML = this._data.filter(s => s.activo).map(s => `
+        // Módulos con panel bespoke propio: no generan iframe genérico aquí
+        const BESPOKE = ['directorio', 'boton_panico', 'control_acceso'];
+        container.innerHTML = this._data.filter(s => s.activo && !BESPOKE.includes(s.codigo)).map(s => `
             <div id="srv-panel-${s.codigo}" class="config-panel">
                 <div class="config-panel-title">${s.icono || '📋'} <span>${s.nombre}</span></div>
                 <iframe id="srv-iframe-${s.codigo}" data-src="/servicios/${s.codigo}/" title="${s.nombre}"
@@ -7243,6 +7304,66 @@ async function _panicoSeleccionarEmpresa(empresaId) {
 function _abrirModuloPanico() {
     // activado desde sidebar — el tab panico ya se activó via _panicoTab
 }
+
+// ── Control de Acceso ────────────────────────────────────────────────────────
+let _caAccesoEmpresaId = null;
+const _caAccesoTabs = ['monitoreo','porteria','credenciales'];
+
+async function _caAccesoPoblarEmpresas() {
+    const sel = document.getElementById('ca-empresa-sel');
+    if (!sel) return;
+    if (sel.options.length > 1) return; // ya cargado
+    try {
+        const r = await fetch('/config/empresas?solo_activas=1&_t=' + Date.now());
+        const d = await r.json();
+        if (d.ok) {
+            (d.data || []).forEach(e => {
+                const o = document.createElement('option');
+                o.value = e._id; o.textContent = e.razon_social || e.nombre || e._id;
+                sel.appendChild(o);
+            });
+        }
+    } catch {}
+}
+
+function _caAccesoTab(btn) {
+    const tab = btn.dataset.catab;
+    document.querySelectorAll('[data-catab]').forEach(b => b.classList.toggle('active', b === btn));
+    _caAccesoTabs.forEach(t => {
+        const p = document.getElementById('ca-pane-' + t);
+        if (p) p.style.display = t === tab ? 'block' : 'none';
+    });
+    if (_caAccesoEmpresaId) _caAccesoCargarFrame(tab);
+}
+
+function _caAccesoCargarFrame(tab) {
+    const f = document.getElementById('ca-frame-' + tab);
+    if (!f) return;
+    const url = `/servicios/control_acceso/?vista=${tab}&empresa_id=${encodeURIComponent(_caAccesoEmpresaId)}&embed=1`;
+    if (f.src !== url) f.src = url;
+}
+
+function _caAccesoSeleccionarEmpresa(eid) {
+    _caAccesoEmpresaId = eid || null;
+    if (!eid) return;
+    // Cargar solo el tab activo ahora; los demás se cargan al hacer click
+    const tabActivo = document.querySelector('[data-catab].active');
+    if (tabActivo) _caAccesoCargarFrame(tabActivo.dataset.catab);
+    // Badge coacción
+    _caAccesoChequeoCoaccion();
+}
+
+async function _caAccesoChequeoCoaccion() {
+    const b = document.getElementById('ca-badge');
+    if (!b || !_caAccesoEmpresaId) return;
+    try {
+        const r = await fetch(`/servicios/control_acceso/coacciones-activas?empresa_id=${encodeURIComponent(_caAccesoEmpresaId)}&_t=${Date.now()}`);
+        const j = await r.json();
+        const hay = j.ok && (j.data || []).length > 0;
+        b.style.display = hay ? 'inline-block' : 'none';
+    } catch {}
+}
+setInterval(() => { if (_caAccesoEmpresaId) _caAccesoChequeoCoaccion(); }, 5000);
 
 // Apertura GENÉRICA de cualquier módulo: muestra su panel y carga el iframe
 // (/servicios/<codigo>/) la primera vez (perezoso). Cualquier módulo nuevo
