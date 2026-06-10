@@ -14,7 +14,18 @@ servicios_admin_bp = Blueprint("servicios_admin", __name__, url_prefix="/config/
 
 @servicios_bp.route("/<codigo>/")
 def panel_servicio(codigo):
-    """Renderiza el panel de un servicio por su código."""
+    """Renderiza el panel de un servicio/módulo por su código.
+
+    ─── CONTRATO PARA AGREGAR UN MÓDULO NUEVO (que no se vuelva a olvidar) ───
+    1. Crear el doc en la colección `servicios` (con su `codigo`).
+    2. Crear el blueprint bajo `/servicios/<codigo>/...` y registrarlo en app/__init__.py.
+    3. Agregar aquí un `if codigo == "<codigo>": return render_template(...)`.
+       Si no se agrega, cae al fallback `panel_servicio.html` ("EN DESARROLLO").
+    NO hace falta tocar configuracion/panel.html: el panel del SuperAdmin abre
+    CUALQUIER módulo con un iframe genérico a /servicios/<codigo>/ (ver
+    ServiciosInicio.renderPaneles / _abrirModuloGenerico). El frontend es
+    genérico; este dispatcher es la única fuente de verdad de qué se renderiza.
+    """
     from app.servicios.model import ServicioModel
     from flask import abort
     srv = ServicioModel.buscar_por_codigo(codigo)

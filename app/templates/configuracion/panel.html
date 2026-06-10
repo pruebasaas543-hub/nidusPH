@@ -5045,9 +5045,11 @@ const SRV = {
             borde:'rgba(0,200,240,.4)', hsh:'rgba(4,34,67,.3)', desc:'rgba(255,255,255,.75)'
         };
         const _panelDestino = (codigo) => {
+            // Bespoke (configuración propia): directorio y botón de pánico
             if (codigo === 'directorio')   return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
             if (codigo === 'boton_panico') return `mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()`;
-            return `mostrarPanel('srv-panel-${codigo}')`;
+            // Resto: apertura genérica (iframe a /servicios/<codigo>/, carga perezosa)
+            return `_abrirModuloGenerico('${codigo}')`;
         };
         grid.innerHTML = activos.map((s, i) => {
             return `<div onclick="setActive(document.getElementById('nav-inicio'));${_panelDestino(s.codigo)}"
@@ -5066,32 +5068,18 @@ const SRV = {
     renderPaneles() {
         const container = document.getElementById('servicios-paneles-container');
         if (!container) return;
-        container.innerHTML = this._data.filter(s => s.activo).map(s => {
-            // Control de Acceso: embeber el módulo real en un iframe (como el botón de pánico)
-            if (s.codigo === 'control_acceso') {
-                return `<div id="srv-panel-${s.codigo}" class="config-panel">
-                    <div class="config-panel-title">${s.icono || '🪪'} <span>${s.nombre}</span></div>
-                    <iframe src="/servicios/control_acceso/" title="Control de Acceso"
-                        style="width:100%;height:800px;border:none;border-radius:12px;display:block;margin-top:12px;background:#EEF2FF;"></iframe>
-                </div>`;
-            }
-            return `<div id="srv-panel-${s.codigo}" class="config-panel">
+        // CONVENCIÓN ÚNICA: cada módulo se abre con un iframe genérico a
+        // /servicios/<codigo>/ (carga perezosa). El backend (dispatcher
+        // panel_servicio) decide qué renderiza: la página real del módulo o,
+        // si aún no está implementado, panel_servicio.html ("EN DESARROLLO").
+        // Así un módulo NUEVO funciona sin cablear nada aquí.
+        // (Directorio y Botón de Pánico siguen usando su panel bespoke cfg-*.)
+        container.innerHTML = this._data.filter(s => s.activo).map(s => `
+            <div id="srv-panel-${s.codigo}" class="config-panel">
                 <div class="config-panel-title">${s.icono || '📋'} <span>${s.nombre}</span></div>
-                <div class="config-panel-subtitle">${s.descripcion || 'Módulo en desarrollo.'}</div>
-                <div style="margin-top:60px;text-align:center;">
-                    <div style="font-size:4rem;margin-bottom:20px;">${s.icono || '📋'}</div>
-                    <h2 style="font-size:1.6rem;font-weight:700;">${s.nombre}</h2>
-                    <p style="opacity:.5;margin-top:10px;font-size:.9rem;">
-                        ${s.descripcion || 'Este módulo está en construcción. Pronto estará disponible.'}
-                    </p>
-                    <div style="display:inline-block;margin-top:24px;padding:6px 20px;border-radius:20px;
-                         background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);
-                         color:#00c8f0;font-size:.78rem;font-weight:600;letter-spacing:1px;">
-                        EN DESARROLLO
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
+                <iframe id="srv-iframe-${s.codigo}" data-src="/servicios/${s.codigo}/" title="${s.nombre}"
+                    style="width:100%;height:800px;border:none;border-radius:12px;display:block;margin-top:12px;background:#EEF2FF;"></iframe>
+            </div>`).join('');
     },
 
     limpiar() {
@@ -7254,6 +7242,15 @@ async function _panicoSeleccionarEmpresa(empresaId) {
 
 function _abrirModuloPanico() {
     // activado desde sidebar — el tab panico ya se activó via _panicoTab
+}
+
+// Apertura GENÉRICA de cualquier módulo: muestra su panel y carga el iframe
+// (/servicios/<codigo>/) la primera vez (perezoso). Cualquier módulo nuevo
+// funciona sin tocar este archivo — ver convención en ServiciosInicio.renderPaneles.
+function _abrirModuloGenerico(codigo) {
+    if (typeof mostrarPanel === 'function') mostrarPanel('srv-panel-' + codigo);
+    const f = document.getElementById('srv-iframe-' + codigo);
+    if (f && !f.src && f.dataset.src) f.src = f.dataset.src;
 }
 
 function _actualizarIframePanico() {
