@@ -128,6 +128,21 @@ def coacciones_activas():
     return ok(serializar(AccessLogModel.coacciones_activas(cid)))
 
 
+@control_acceso_bp.route("/coaccion/atender", methods=["POST"])
+@requiere_login
+def atender_coaccion():
+    from datetime import datetime
+    d = request.get_json(silent=True) or {}
+    log_id = (d.get("log_id") or "").strip()
+    if not log_id:
+        return err("log_id requerido", 400)
+    r = db["access_logs"].update_one(
+        {"_id": ObjectId(log_id)},
+        {"$set": {"coaccion_activa": False, "estado": "coaccion_atendida",
+                  "atendido_por": _usuario_id(), "atendido_en": datetime.utcnow()}})
+    return ok(mensaje="Atendida") if r.modified_count else err("No encontrada", 404)
+
+
 # ── Credenciales (residente: crear QR/PIN, listar, revocar) ────────────────
 @control_acceso_bp.route("/credenciales", methods=["POST"])
 @requiere_login

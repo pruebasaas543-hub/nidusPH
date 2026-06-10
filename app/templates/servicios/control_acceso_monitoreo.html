@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="{{ tema_clave }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛡️ Control de Acceso — Monitoreo</title>
+<style id="nidus-tema">{{ tema_css | safe }}</style>
+{% if tema_vars %}<style id="nidus-vars">{{ tema_vars | safe }}</style>{% endif %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit','Segoe UI',sans-serif;}
+:root{--bg:#EEF2FF;--bg2:#FFFFFF;--accent:#2787F5;--text:#1E2756;--muted:#8A9CC8;--border:rgba(39,135,245,.18);--red:#e53e3e;--green:#276749;--orange:#b7791f;}
+html,body{height:100%;}body{background:var(--bg);color:var(--text);}
+.ca-page{max-width:1000px;margin:0 auto;padding:20px;}
+.ca-top{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,#042243,#0a4a8c);color:#fff;border-radius:14px;padding:14px 20px;margin-bottom:18px;}
+.ca-top .ic{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.card{background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:18px;}
+.card-title{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+.estado-ok{background:rgba(39,103,73,.08);border:1.5px solid var(--green);border-radius:14px;padding:26px;text-align:center;color:var(--green);}
+.alerta{border-radius:16px;padding:26px;text-align:center;color:#fff;background:#b00020;animation:flash 1s steps(1) infinite;box-shadow:0 0 0 4px rgba(176,0,32,.25);}
+@keyframes flash{0%{background:#b00020;}50%{background:#7b0d1e;}}
+.alerta .big{font-size:1.7rem;font-weight:800;margin-bottom:8px;letter-spacing:.5px;}
+.alerta .row{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:12px;}
+.coaccion-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:14px;width:100%;max-width:420px;}
+.btn{padding:10px 18px;border-radius:11px;border:none;cursor:pointer;font-size:.85rem;font-weight:700;font-family:inherit;}
+.btn-atender{background:#fff;color:#b00020;}
+.minuta-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:7px;background:var(--bg);}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="ca-page">
+  <div class="ca-top">
+    <div class="ic">🛡️</div>
+    <div>
+      <div style="font-size:1.05rem;font-weight:800;">Control de Acceso — Centro de Monitoreo</div>
+      <div style="font-size:.74rem;opacity:.8;">Alertas de coacción en tiempo real · Bitácora de ingresos</div>
+    </div>
+  </div>
+
+  <div id="alertaZona"></div>
+
+  <div class="card">
+    <div class="card-title">📋 Bitácora de ingresos (minuta)</div>
+    <div id="minuta"><div style="font-size:.74rem;color:var(--muted);">Cargando…</div></div>
+  </div>
+</div>
+
+<audio id="sirena" preload="auto">
+  <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==" type="audio/wav">
+</audio>
+
+<script>
+const API='/servicios/control_acceso';
+const $=id=>document.getElementById(id);
+let _ultimaCoaccion=null;
+
+async function pollCoacciones(){
+  try{
+    const r=await fetch(`${API}/coacciones-activas?_t=${Date.now()}`); const j=await r.json();
+    if(!j.ok) return;
+    const list=j.data||[];
+    const zona=$('alertaZona');
+    if(!list.length){
+      zona.innerHTML='<div class="estado-ok"><div style="font-size:1.3rem;font-weight:800;">✅ Sin alertas activas</div><div style="font-size:.8rem;margin-top:4px;">Monitoreo en línea</div></div>';
+      _ultimaCoaccion=null;
+      return;
+    }
+    // Sonar al detectar una nueva
+    if(list[0]._id !== _ultimaCoaccion){ _ultimaCoaccion=list[0]._id; try{$('sirena').play();}catch{} if(navigator.vibrate)navigator.vibrate([300,100,300]); }
+    zona.innerHTML='<div class="alerta"><div class="big">🚨 ¡EMERGENCIA DE SEGURIDAD — COACCIÓN!</div>'
+      +'<div style="font-size:.85rem;">Acceso bajo coacción en desarrollo. Proceder según protocolo de seguridad armada.</div>'
+      +'<div class="row">'+list.map(c=>{
+        const u=c.unidad||{};
+        const f=c.creado_en?new Date(c.creado_en.includes('T')?c.creado_en:c.creado_en+'Z').toLocaleString('es-CO'):'';
+        return `<div class="coaccion-card">
+          <div style="font-weight:800;font-size:1rem;">Torre ${u.torre||'—'} · Apto ${u.apartamento||'—'}</div>
+          <div style="font-size:.78rem;opacity:.9;margin:4px 0;">${c.detalle||''}</div>
+          <div style="font-size:.72rem;opacity:.8;">${f}</div>
+          <button class="btn btn-atender" style="margin-top:8px;" onclick="atender('${c._id}')">✔️ Atender / reconocer</button>
+        </div>`;
+      }).join('')+'</div></div>';
+  }catch{}
+}
+async function atender(id){
+  try{
+    const r=await fetch(`${API}/coaccion/atender`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({log_id:id})});
+    await r.json(); pollCoacciones();
+  }catch{}
+}
+async function cargarMinuta(){
+  try{
+    const r=await fetch(`${API}/logs?limite=15&_t=${Date.now()}`); const j=await r.json();
+    if(!j.ok) return;
+    const list=j.data||[];
+    if(!list.length){ $('minuta').innerHTML='<div style="font-size:.74rem;color:var(--muted);">Sin registros.</div>'; return; }
+    const color=e=>e.includes('autorizado')?'var(--green)':e.includes('rechazado')?'var(--red)':e.includes('coaccion')?'#b00020':e==='ingreso_manual'?'var(--orange)':'var(--muted)';
+    $('minuta').innerHTML=list.map(l=>{
+      const v=l.visitante||{},u=l.unidad||{};
+      const f=l.creado_en?new Date(l.creado_en.includes('T')?l.creado_en:l.creado_en+'Z').toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="minuta-item"><div class="dot" style="background:${color(l.estado)};"></div>
+        <div style="flex:1;min-width:0;"><div style="font-size:.82rem;font-weight:700;">${v.nombre||'—'} ${u.apartamento?('· Apto '+u.apartamento):''}</div>
+        <div style="font-size:.68rem;color:var(--muted);">${l.metodo||''} · ${l.estado||''}</div></div>
+        <div style="font-size:.66rem;color:var(--muted);">${f}</div></div>`;
+    }).join('');
+  }catch{}
+}
+pollCoacciones(); cargarMinuta();
+setInterval(pollCoacciones, 4000);
+setInterval(cargarMinuta, 12000);
+</script>
+</body>
+</html>

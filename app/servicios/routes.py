@@ -64,9 +64,14 @@ def panel_servicio(codigo):
         es_sistema = rol in RolModel.nombres_sistema()
         empresa_id = session.get("empresa_id", "")
         tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
-        # Residente: su vista (crear credenciales + PIN coacción). Resto: portería.
-        plantilla = ("servicios/control_acceso_residente.html" if rol == "Residente"
-                     else "servicios/control_acceso_porteria.html")
+        # Residente → su vista; Admin/Sistema → monitoreo (alertas coacción);
+        # Vigilancia y demás → portería.
+        if rol == "Residente":
+            plantilla = "servicios/control_acceso_residente.html"
+        elif es_sistema or rol == "Administrador de la Copropiedad":
+            plantilla = "servicios/control_acceso_monitoreo.html"
+        else:
+            plantilla = "servicios/control_acceso_porteria.html"
         return render_template(plantilla, servicio=srv,
                                es_sistema=es_sistema, empresa_id=empresa_id, rol=rol,
                                tema_clave=tema_clave, tema_css=tema_css, tema_vars=tema_vars)
