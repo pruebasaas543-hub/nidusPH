@@ -109,6 +109,7 @@ def create_app():
     from app.servicios.routes               import servicios_bp, servicios_admin_bp
     from app.servicios.directorio.routes    import directorio_bp
     from app.servicios.boton_panico.routes  import panico_bp
+    from app.servicios.control_acceso.routes import control_acceso_bp
     from app.contabilidad                   import register_contabilidad_blueprints
 
     app.register_blueprint(auth_bp)
@@ -119,9 +120,10 @@ def create_app():
     app.register_blueprint(servicios_admin_bp)
     app.register_blueprint(directorio_bp)
     app.register_blueprint(panico_bp)
+    app.register_blueprint(control_acceso_bp)
     register_contabilidad_blueprints(app)
 
-    app.logger.info("Blueprints registrados: auth, recuperacion, slug, configuracion(x8), contabilidad(x8), directorio, boton_panico")
+    app.logger.info("Blueprints registrados: auth, recuperacion, slug, configuracion(x8), contabilidad(x8), directorio, boton_panico, control_acceso")
 
     # ── Migraciones idempotentes de BD (se ejecutan en cada arranque, son seguras) ──
     try:
@@ -146,6 +148,28 @@ def create_app():
         inicializar_plantillas_globales()
     except Exception as _e:
         app.logger.warning("Inicialización directorio_bloques: %s", _e)
+
+    # ── Catálogo: módulo "Control de Acceso" (ADITIVO — no toca otros datos) ──
+    try:
+        from datetime import datetime as _dt
+        db["servicios"].update_one(
+            {"codigo": "control_acceso"},
+            {"$setOnInsert": {
+                "nombre":      "Control de Acceso",
+                "codigo":      "control_acceso",
+                "descripcion": "Portería: credenciales (QR/PIN), coacción y citofonía",
+                "icono":       "🛂",
+                "orden":       50,
+                "activo":      True,
+                "creado_en":   _dt.utcnow(),
+                "creado_por":  "sistema",
+            }},
+            upsert=True,
+        )
+        db["access_credentials"].create_index([("conjunto_id", 1), ("codigo", 1)])
+        db["access_logs"].create_index([("conjunto_id", 1), ("creado_en", -1)])
+    except Exception as _e:
+        app.logger.warning("Inicialización control_acceso: %s", _e)
 
     # ── Twilio Webhooks (recibe estados en tiempo real) ──
     # El poller ya no es necesario — Twilio enviará webhooks automáticamente
