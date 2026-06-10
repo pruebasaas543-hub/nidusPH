@@ -57,6 +57,16 @@ def panel_servicio(codigo):
         return render_template("servicios/boton_panico.html", servicio=srv,
                                es_sistema=es_sistema, empresa_id=empresa_id, permisos=permisos,
                                tema_clave=tema_clave, tema_css=tema_css, tema_vars=tema_vars)
+    if codigo == "control_acceso":
+        from app.configuracion.roles.model import RolModel
+        from app.autenticacion.routes import _tema_efectivo
+        rol = session.get("rol", "")
+        es_sistema = rol in RolModel.nombres_sistema()
+        empresa_id = session.get("empresa_id", "")
+        tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
+        return render_template("servicios/control_acceso_porteria.html", servicio=srv,
+                               es_sistema=es_sistema, empresa_id=empresa_id, rol=rol,
+                               tema_clave=tema_clave, tema_css=tema_css, tema_vars=tema_vars)
     return render_template("servicios/panel_servicio.html", servicio=srv)
 
 
