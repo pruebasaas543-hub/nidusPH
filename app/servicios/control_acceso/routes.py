@@ -140,6 +140,12 @@ def crear_credencial():
     visitante = d.get("visitante") or {}
     if not visitante.get("nombre"):
         return err("Nombre del visitante requerido", 400)
+    # Unidad: si no viene, se deriva de la asociación del residente (torre/apto)
+    unidad = d.get("unidad") or {}
+    if not unidad:
+        a = db["asociaciones"].find_one({"user_id": ObjectId(uid), "empresa_id": ObjectId(cid)}) or {}
+        unidad = {"torre": a.get("torre", ""), "apartamento": a.get("apartamento", ""),
+                  "bloque": a.get("unidad", "")}
     from datetime import datetime
     def _fecha(v):
         try:
@@ -153,7 +159,7 @@ def crear_credencial():
         configuracion_recurrencia=d.get("configuracion_recurrencia"),
         vigencia_inicio=_fecha((d.get("vigencia") or {}).get("inicio")),
         vigencia_fin=_fecha((d.get("vigencia") or {}).get("fin")),
-        unidad=d.get("unidad") or {},
+        unidad=unidad,
     )
     return ok(serializar(cred), status=201)
 

@@ -64,7 +64,10 @@ def panel_servicio(codigo):
         es_sistema = rol in RolModel.nombres_sistema()
         empresa_id = session.get("empresa_id", "")
         tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
-        return render_template("servicios/control_acceso_porteria.html", servicio=srv,
+        # Residente: su vista (crear credenciales + PIN coacción). Resto: portería.
+        plantilla = ("servicios/control_acceso_residente.html" if rol == "Residente"
+                     else "servicios/control_acceso_porteria.html")
+        return render_template(plantilla, servicio=srv,
                                es_sistema=es_sistema, empresa_id=empresa_id, rol=rol,
                                tema_clave=tema_clave, tema_css=tema_css, tema_vars=tema_vars)
     return render_template("servicios/panel_servicio.html", servicio=srv)
