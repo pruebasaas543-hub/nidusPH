@@ -19,26 +19,22 @@ html,body{height:100%;}
 body{background:var(--bg);color:var(--text);}
 .ca-wrap{max-width:1180px;margin:0 auto;padding:24px;}
 
-/* Cabecera (estilo panel de configuración) */
+/* Header: Volver + Empresa (estilo panel.html) */
 .cfg-head{display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;}
 .cfg-volver{display:inline-flex;align-items:center;gap:6px;background:none;border:1.5px solid rgba(4,34,67,.22);border-radius:10px;
   padding:8px 16px;cursor:pointer;font-size:.82rem;color:#042243;font-weight:600;transition:all .2s;white-space:nowrap;text-decoration:none;}
 .cfg-volver:hover{background:rgba(4,34,67,.06);}
-.cfg-div{width:1px;height:32px;background:rgba(4,34,67,.12);flex-shrink:0;}
-.cfg-id{display:flex;align-items:center;gap:12px;flex:1;}
-.cfg-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#0a4a8c,#2787F5);display:flex;align-items:center;
-  justify-content:center;font-size:1.2rem;box-shadow:0 4px 12px rgba(39,135,245,.3);flex-shrink:0;}
-.cfg-title{font-size:1.05rem;font-weight:800;color:#042243;line-height:1.2;}
-.cfg-sub{font-size:.75rem;color:#8A9CC8;margin-top:2px;}
 
-/* Selector empresa */
+/* Selector empresa (estilo exacto panel.html cfg-boton-panico) */
 .cfg-empresa{background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;
-  display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
-.cfg-empresa .lbl-ic{font-size:1.4rem;}
-.cfg-empresa .lbl-t{font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;}
-.cfg-empresa .lbl-s{font-size:.72rem;color:#8A9CC8;margin-top:1px;}
-.cfg-empresa select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.9rem;
-  font-family:inherit;color:var(--text);background:var(--bg2);outline:none;cursor:pointer;}
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-left:auto;}
+.cfg-empresa-lbl{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.cfg-empresa-lbl .ic{font-size:1.4rem;}
+.cfg-empresa-lbl .txt{display:flex;flex-direction:column;}
+.cfg-empresa-lbl .t{font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;}
+.cfg-empresa-lbl .s{font-size:.72rem;color:#8A9CC8;margin-top:1px;}
+.cfg-empresa select{background:var(--bg2);border:1.5px solid rgba(4,34,67,.12);border-radius:10px;padding:9px 14px;
+  font-size:.84rem;color:#042243;font-family:inherit;outline:none;cursor:pointer;min-width:280px;}
 .cfg-empresa select:focus{border-color:var(--accent);}
 
 /* Tabs */
@@ -57,43 +53,38 @@ body{background:var(--bg);color:var(--text);}
 .cfg-frame-wrap iframe{width:100%;height:74vh;min-height:520px;border:none;display:block;}
 .cfg-aviso{padding:70px 20px;text-align:center;color:var(--muted);font-size:.95rem;}
 .hidden{display:none;}
-@media(max-width:600px){.ca-wrap{padding:14px;}}
+@media(max-width:600px){.ca-wrap{padding:14px;}.cfg-empresa{flex-direction:column;align-items:stretch;margin-left:0;}.cfg-empresa select{min-width:auto;}}
 </style>
 </head>
 <body>
 <div class="ca-wrap">
 
-  <!-- Cabecera -->
+  <!-- Header: Volver + Empresa -->
+  {% if es_sistema %}
   <div class="cfg-head">
     <a class="cfg-volver" href="{{ url_for('auth.dashboard') }}"
        onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
       &#8592; Volver a Inicio
     </a>
-    <div class="cfg-div"></div>
-    <div class="cfg-id">
-      <div class="cfg-icon">🪪</div>
-      <div>
-        <div class="cfg-title">Control de Acceso</div>
-        <div class="cfg-sub">{{ servicio.descripcion or 'Portería, credenciales y monitoreo de seguridad' }}</div>
+    <div class="cfg-empresa">
+      <div class="cfg-empresa-lbl">
+        <span class="ic">🏢</span>
+        <div class="txt">
+          <div class="t">Empresa / Propiedad</div>
+          <div class="s">Selecciona para ver su configuración</div>
+        </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Selector empresa / conjunto -->
-  {% if es_sistema %}
-  <div class="cfg-empresa">
-    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-      <span class="lbl-ic">🏢</span>
-      <div>
-        <div class="lbl-t">Empresa / Propiedad</div>
-        <div class="lbl-s">Selecciona para ver su configuración</div>
-      </div>
-    </div>
-    <div style="flex:1;min-width:220px;">
       <select id="conjuntoSel" onchange="seleccionarConjunto(this.value)">
         <option value="">— Selecciona una empresa —</option>
       </select>
     </div>
+  </div>
+  {% else %}
+  <div class="cfg-head">
+    <a class="cfg-volver" href="{{ url_for('auth.dashboard') }}"
+       onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;">
+      &#8592; Volver a Inicio
+    </a>
   </div>
   {% endif %}
 
@@ -165,7 +156,6 @@ async function chequeoCoaccion(){
   }catch{}
 }
 
-// Sistema: espera selección de empresa. No-sistema (Admin PH): arranca directo.
 if(ES_SISTEMA){ cargarConjuntos(); }
 else { mostrarTab('monitoreo'); }
 chequeoCoaccion(); setInterval(chequeoCoaccion,5000);
