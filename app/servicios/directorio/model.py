@@ -14,7 +14,7 @@ from bson import ObjectId
 import base64
 
 
-BLOQUES_VALIDOS = {"EMERGENCIAS", "ADMIN", "PUBLICOS", "LOGISTICA", "LOCAL"}
+BLOQUES_VALIDOS = {"EMERGENCIAS", "ADMIN", "PUBLICOS", "LOGISTICA", "LOCAL", "RESIDENTES"}
 
 _BLOQUES_DEFAULT = [
     {"codigo": "EMERGENCIAS", "nombre": "Emergencias",        "emoji": "🚨", "orden": 1},
@@ -22,6 +22,7 @@ _BLOQUES_DEFAULT = [
     {"codigo": "PUBLICOS",    "nombre": "Servicios Públicos", "emoji": "💡", "orden": 3},
     {"codigo": "LOGISTICA",   "nombre": "Logística",          "emoji": "🔧", "orden": 4},
     {"codigo": "LOCAL",       "nombre": "Locales",            "emoji": "📍", "orden": 5},
+    {"codigo": "RESIDENTES",  "nombre": "Residentes",         "emoji": "🏠", "orden": 6},
 ]
 
 

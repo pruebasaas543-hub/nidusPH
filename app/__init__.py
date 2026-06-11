@@ -146,6 +146,16 @@ def create_app():
     try:
         from app.servicios.directorio.model import inicializar_plantillas_globales
         inicializar_plantillas_globales()
+        # Migración: agregar bloque RESIDENTES a todas las empresas que no lo tengan
+        _n = db["directorio_config"].update_many(
+            {"bloques.codigo": {"$ne": "RESIDENTES"}},
+            {"$push": {"bloques": {
+                "codigo": "RESIDENTES", "nombre": "Residentes", "emoji": "🏠",
+                "orden": 6, "activo": True, "es_predeterminado": True,
+            }}}
+        )
+        if _n.modified_count:
+            app.logger.info("Migración: bloque RESIDENTES agregado a %d empresa(s)", _n.modified_count)
     except Exception as _e:
         app.logger.warning("Inicialización directorio_bloques: %s", _e)
 
