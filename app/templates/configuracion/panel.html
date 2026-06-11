@@ -2067,24 +2067,24 @@
 
             <!-- Tabs -->
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
-                <button class="dir-tab-btn active" data-catab="monitoreo" onclick="_caAccesoTab(this)">🛡️ Monitoreo <span id="ca-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;">!</span></button>
-                <button class="dir-tab-btn" data-catab="porteria" onclick="_caAccesoTab(this)">🚪 Portería</button>
+                <button class="dir-tab-btn active" data-catab="configuracion" onclick="_caAccesoTab(this)">⚙️ Configuración</button>
                 <button class="dir-tab-btn" data-catab="credenciales" onclick="_caAccesoTab(this)">🪪 Credenciales</button>
-                <button class="dir-tab-btn" data-catab="configuracion" onclick="_caAccesoTab(this)">⚙️ Configuración</button>
+                <button class="dir-tab-btn" data-catab="porteria" onclick="_caAccesoTab(this)">🚪 Portería</button>
+                <button class="dir-tab-btn" data-catab="monitoreo" onclick="_caAccesoTab(this)">🛡️ Monitoreo <span id="ca-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;">!</span></button>
             </div>
 
             <!-- Panes -->
-            <div id="ca-pane-monitoreo">
-                <iframe id="ca-frame-monitoreo" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Monitoreo"></iframe>
-            </div>
-            <div id="ca-pane-porteria" style="display:none;">
-                <iframe id="ca-frame-porteria" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Portería"></iframe>
+            <div id="ca-pane-configuracion">
+                <iframe id="ca-frame-configuracion" style="width:100%;height:800px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Configuración"></iframe>
             </div>
             <div id="ca-pane-credenciales" style="display:none;">
                 <iframe id="ca-frame-credenciales" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Credenciales"></iframe>
             </div>
-            <div id="ca-pane-configuracion" style="display:none;">
-                <iframe id="ca-frame-configuracion" style="width:100%;height:800px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Configuración"></iframe>
+            <div id="ca-pane-porteria" style="display:none;">
+                <iframe id="ca-frame-porteria" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Portería"></iframe>
+            </div>
+            <div id="ca-pane-monitoreo" style="display:none;">
+                <iframe id="ca-frame-monitoreo" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Monitoreo"></iframe>
             </div>
 
         </div><!-- /cfg-control-acceso -->
@@ -7311,7 +7311,7 @@ function _abrirModuloPanico() {
 
 // ── Control de Acceso ────────────────────────────────────────────────────────
 let _caAccesoEmpresaId = null;
-const _caAccesoTabs = ['monitoreo','porteria','credenciales','configuracion'];
+const _caAccesoTabs = ['configuracion','credenciales','porteria','monitoreo'];
 
 async function _caAccesoPoblarEmpresas() {
     const sel = document.getElementById('ca-empresa-sel');
