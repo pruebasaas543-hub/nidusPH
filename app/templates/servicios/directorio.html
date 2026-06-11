@@ -450,7 +450,7 @@
     </button>
     <button class="btn-nuevo" id="btn-importar-res"
       onclick="DC.abrirImportar()"
-      style="background:linear-gradient(135deg,#276749,#38a169);display:none;">
+      style="background:linear-gradient(135deg,#276749,#38a169);">
       📥 Importar Residentes
     </button>
     <div class="search-wrap">
@@ -526,6 +526,32 @@
         <div class="form-group">
           <label>Apartamento</label>
           <input id="f-apartamento" type="text" placeholder="Ej: 101" />
+        </div>
+      </div>
+
+      <!-- Parqueadero -->
+      <div class="toggle-section dynamic-field dc-field-residente" style="display:none;">
+        <div class="toggle-section-title">🚗 Parqueadero / Vehículo</div>
+        <label class="toggle-label">
+          <input type="checkbox" id="f-parqueadero" onchange="DC.toggleParqueadero()" />
+          <span class="toggle-track"></span>
+          <span>¿Tiene parqueadero?</span>
+        </label>
+      </div>
+      <div id="f-vehiculo-wrap" style="display:none;">
+        <div class="row2">
+          <div class="form-group">
+            <label>Placa *</label>
+            <input id="f-placa" type="text" placeholder="Ej: ABC123" style="text-transform:uppercase;" />
+          </div>
+          <div class="form-group">
+            <label>Color *</label>
+            <input id="f-color" type="text" placeholder="Ej: Blanco" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Marca *</label>
+          <input id="f-marca" type="text" placeholder="Ej: Chevrolet Spark" />
         </div>
       </div>
 
@@ -751,6 +777,7 @@ const DC = (() => {
                 ${c.cargo_titulo ? `<div class="card-cargo">${esc(c.cargo_titulo)}</div>` : ''}
                 ${c.tipo_residente ? `<div class="card-cargo" style="color:${m.color};">${c.tipo_residente === 'Propietario' ? '🏡' : '🔑'} ${esc(c.tipo_residente)}</div>` : ''}
                 ${(c.torre||c.apartamento) ? `<div class="card-cargo">🏢 ${c.torre ? 'Torre '+esc(c.torre)+' ' : ''}${c.apartamento ? 'Apto '+esc(c.apartamento) : ''}</div>` : ''}
+                ${c.tiene_parqueadero && c.vehiculo ? `<div class="card-cargo">🚗 ${esc(c.vehiculo.marca||'')} ${esc(c.vehiculo.color||'')} · ${esc(c.vehiculo.placa||'')}</div>` : ''}
                 <span class="card-bloque-badge" style="background:${m.color}18;color:${m.color};">
                   ${m.icon} ${m.label}
                 </span>
@@ -817,28 +844,43 @@ const DC = (() => {
     const m = META[b] || META.EMERGENCIAS;
     document.getElementById('dc-modal-icon').textContent = m.icon;
     document.getElementById('dc-modal-sub').textContent  = m.label;
-    // Campos específicos de cada tipo
     document.querySelectorAll('.dc-field-cargo').forEach(el     => el.style.display = m.cargo     ? '' : 'none');
     document.querySelectorAll('.dc-field-correo').forEach(el    => el.style.display = m.correo    ? '' : 'none');
     document.querySelectorAll('.dc-field-panico').forEach(el    => el.style.display = m.panico    ? '' : 'none');
     document.querySelectorAll('.dc-field-residente').forEach(el => el.style.display = m.residente ? '' : 'none');
-    // Teléfonos: opcional para residentes
-    const telSection = document.querySelector('.form-group:has(#phone-list)');
-    if (telSection) {
-      const lbl = telSection.querySelector('label');
-      if (lbl) lbl.innerHTML = m.residente
+    // Parqueadero: ocultar vehículo al cambiar bloque (se reactiva con el toggle)
+    const vehWrap = document.getElementById('f-vehiculo-wrap');
+    if (vehWrap) {
+      if (!m.residente) {
+        vehWrap.style.display = 'none';
+      } else {
+        vehWrap.style.display = document.getElementById('f-parqueadero').checked ? '' : 'none';
+      }
+    }
+    // Teléfonos: etiqueta opcional para residentes (sin :has())
+    const phoneList = document.getElementById('phone-list');
+    if (phoneList) {
+      const telLbl = phoneList.closest('.form-group') && phoneList.closest('.form-group').querySelector('label');
+      if (telLbl) telLbl.innerHTML = m.residente
         ? 'Teléfono <span style="font-weight:400;font-size:.72rem;text-transform:none;">(opcional)</span>'
         : 'Teléfonos * <span style="font-weight:400;font-size:.72rem;text-transform:none;">(mín. 1)</span>';
     }
-    // Etiqueta "Nombre" → "Nombres" para residentes
+    // Nombre → Nombres para residentes
     const lblNombre = document.getElementById('lbl-nombre');
     if (lblNombre) lblNombre.textContent = m.residente ? 'Nombres *' : 'Nombre *';
     const fNombre = document.getElementById('f-nombre');
     if (fNombre) fNombre.placeholder = m.residente ? 'Nombres del residente' : 'Nombre del contacto';
     if (m.cargo) _cargarCargos(b, cargoActual);
-    // Botón importar solo visible cuando tab RESIDENTES
-    const btnImp = document.getElementById('btn-importar-res');
-    if (btnImp) btnImp.style.display = (_bloqueActual === 'RESIDENTES') ? '' : 'none';
+  }
+
+  function toggleParqueadero() {
+    const checked = document.getElementById('f-parqueadero').checked;
+    document.getElementById('f-vehiculo-wrap').style.display = checked ? '' : 'none';
+    if (!checked) {
+      document.getElementById('f-placa').value  = '';
+      document.getElementById('f-color').value  = '';
+      document.getElementById('f-marca').value  = '';
+    }
   }
 
   async function _cargarCargos(bloque, valorActual = '') {
@@ -887,6 +929,12 @@ const DC = (() => {
     document.getElementById('f-tipo-residente').value     = contacto ? (contacto.tipo_residente||'Propietario') : 'Propietario';
     document.getElementById('f-torre').value              = contacto ? (contacto.torre||'') : '';
     document.getElementById('f-apartamento').value        = contacto ? (contacto.apartamento||'') : '';
+    const _veh = contacto ? (contacto.vehiculo || {}) : {};
+    const _tieneParq = contacto ? !!contacto.tiene_parqueadero : false;
+    document.getElementById('f-parqueadero').checked = _tieneParq;
+    document.getElementById('f-placa').value  = _veh.placa  || '';
+    document.getElementById('f-color').value  = _veh.color  || '';
+    document.getElementById('f-marca').value  = _veh.marca  || '';
     const _cargoVal = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('f-correo').value             = contacto ? (contacto.correo||'') : '';
     document.getElementById('f-visible').checked          = contacto ? !!contacto.es_visible_para_residentes : true;
@@ -985,10 +1033,20 @@ const DC = (() => {
     fd.append('telefonos', JSON.stringify(tels));
     // Campos de residente
     if (m.residente) {
-      fd.append('apellidos',      document.getElementById('f-apellidos').value.trim());
-      fd.append('tipo_residente', document.getElementById('f-tipo-residente').value);
-      fd.append('torre',          document.getElementById('f-torre').value.trim());
-      fd.append('apartamento',    document.getElementById('f-apartamento').value.trim());
+      fd.append('apellidos',         document.getElementById('f-apellidos').value.trim());
+      fd.append('tipo_residente',    document.getElementById('f-tipo-residente').value);
+      fd.append('torre',             document.getElementById('f-torre').value.trim());
+      fd.append('apartamento',       document.getElementById('f-apartamento').value.trim());
+      const tieneParq = document.getElementById('f-parqueadero').checked;
+      fd.append('tiene_parqueadero', tieneParq);
+      if (tieneParq) {
+        const veh = {
+          placa: document.getElementById('f-placa').value.trim().toUpperCase(),
+          color: document.getElementById('f-color').value.trim(),
+          marca: document.getElementById('f-marca').value.trim(),
+        };
+        fd.append('vehiculo', JSON.stringify(veh));
+      }
     }
     const fotoInput = document.getElementById('f-foto');
     if (fotoInput.files[0]) fd.append('foto', fotoInput.files[0]);
@@ -1086,8 +1144,8 @@ const DC = (() => {
   document.addEventListener('DOMContentLoaded', cargar);
 
   return { abrirModal, cerrarModal, cambioBloque, guardar, editar, eliminar, setBloque, filtrar,
-           agregarTelefono, previewFoto, abrirImportar, cerrarImportar, seleccionarArchivo,
-           dropArchivo, ejecutarImportacion };
+           agregarTelefono, previewFoto, toggleParqueadero,
+           abrirImportar, cerrarImportar, seleccionarArchivo, dropArchivo, ejecutarImportacion };
 })();
 
 // ── Tema: empresa (server) + localStorage (preferencia usuario) ──

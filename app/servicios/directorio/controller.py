@@ -43,8 +43,9 @@ class ContactoController:
         if correo and not email_ok(correo):
             return False, "El correo electrónico no tiene formato válido"
         telefonos = datos.get("telefonos", [])
-        if not isinstance(telefonos, list) or not telefonos:
-            return False, "Debe ingresar al menos un teléfono"
+        if bloque != "RESIDENTES":
+            if not isinstance(telefonos, list) or not telefonos:
+                return False, "Debe ingresar al menos un teléfono"
         for t in telefonos:
             if not isinstance(t, dict) or not t.get("numero", "").strip():
                 return False, "Cada teléfono debe tener al menos el número"

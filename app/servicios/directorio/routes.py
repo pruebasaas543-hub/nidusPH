@@ -171,9 +171,12 @@ def plantilla_residentes():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Nombres", "Apellidos", "Tipo de residente", "Torre", "Apartamento",
-                     "Telefono", "Visible para residentes", "Visible para seguridad", "Visible para administracion"])
-    writer.writerow(["Juan Carlos", "García Martínez", "Propietario", "A", "101", "3112345678", "Sí", "No", "No"])
-    writer.writerow(["María Fernanda", "López Ruiz", "Arrendatario", "B", "205", "3209876543", "Sí", "No", "Sí"])
+                     "Telefono", "Parqueadero", "Placa", "Color vehiculo", "Marca vehiculo",
+                     "Visible para residentes", "Visible para seguridad", "Visible para administracion"])
+    writer.writerow(["Juan Carlos", "García Martínez", "Propietario", "A", "101", "3112345678",
+                     "Sí", "ABC123", "Blanco", "Chevrolet Spark", "Sí", "No", "No"])
+    writer.writerow(["María Fernanda", "López Ruiz", "Arrendatario", "B", "205", "3209876543",
+                     "No", "", "", "", "Sí", "No", "Sí"])
     output.seek(0)
     from flask import Response
     return Response(
@@ -253,6 +256,12 @@ def importar_residentes():
         vis_seg  = _bool_col(fila, "visible para seguridad",  "visible_seguridad")
         vis_adm  = _bool_col(fila, "visible para administracion", "visible para administración", "visible_admin")
 
+        parqueadero = _bool_col(fila, "parqueadero", "tiene_parqueadero")
+        placa  = (fila.get("placa") or "").strip().upper()
+        color  = (fila.get("color vehiculo") or fila.get("color") or "").strip()
+        marca  = (fila.get("marca vehiculo") or fila.get("marca") or "").strip()
+        vehiculo = {"placa": placa, "color": color, "marca": marca} if (parqueadero and placa) else {}
+
         datos = {
             "bloque":      "RESIDENTES",
             "nombre":      nombres,
@@ -260,6 +269,8 @@ def importar_residentes():
             "tipo_residente": tipo,
             "torre":       torre,
             "apartamento": apartamento,
+            "tiene_parqueadero": parqueadero,
+            "vehiculo":    vehiculo,
             "telefonos":   [{"numero": telefono, "prefijo": "+57"}] if telefono else [],
             "cargo_titulo": "",
             "correo":      "",
