@@ -97,6 +97,7 @@ input:checked+.tog-sl.red{background:var(--red);}
           <option value="texto">Texto libre</option>
           <option value="numero">Número / Documento</option>
           <option value="booleano">Sí / No</option>
+          <option value="fecha">Fecha</option>
           <option value="lista">Lista de opciones</option>
         </select>
       </div>
@@ -476,7 +477,7 @@ async function eliminarBlacklist(id){
 }
 
 // ── Formularios dinámicos ──────────────────────────────────────────────────
-const _TIPO_LBL = {texto:'Texto',numero:'Número',booleano:'Sí/No',lista:'Lista'};
+const _TIPO_LBL = {texto:'Texto',numero:'Número',booleano:'Sí/No',fecha:'Fecha',lista:'Lista'};
 let _formularios = {visita:[],contratista:[],domicilio:[],proveedor:[]};
 let _tipoActivo  = 'visita';
 
