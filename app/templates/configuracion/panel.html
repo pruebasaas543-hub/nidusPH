@@ -6596,8 +6596,9 @@ async function _dirCargarBloques() {
 function _dirRenderTabsBloques() {
     const wrap = document.getElementById('dir-tabs-wrap');
     if (!wrap) return;
-    const btnTodos = wrap.querySelector('[data-bloque="TODOS"]');
-    const btnNuevo = wrap.querySelector('.btn-primary');
+    const btnTodos   = wrap.querySelector('[data-bloque="TODOS"]');
+    const btnImportar = wrap.querySelector('#dir-btn-importar');
+    const btnNuevo   = wrap.querySelector('.btn-primary');
     wrap.innerHTML = '';
     if (btnTodos) wrap.appendChild(btnTodos);
     _dirBloques.filter(b => b.activo).forEach(b => {
@@ -6608,6 +6609,7 @@ function _dirRenderTabsBloques() {
         btn.textContent = `${b.emoji || ''} ${b.nombre}`.trim();
         wrap.appendChild(btn);
     });
+    if (btnImportar) wrap.appendChild(btnImportar);
     if (btnNuevo) wrap.appendChild(btnNuevo);
 }
 
