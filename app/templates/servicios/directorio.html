@@ -740,8 +740,12 @@ const DC = (() => {
       const q = _busqueda.toLowerCase();
       lista = lista.filter(c =>
         (c.nombre||'').toLowerCase().includes(q) ||
+        (c.apellidos||'').toLowerCase().includes(q) ||
         (c.cargo_titulo||'').toLowerCase().includes(q) ||
-        (c.correo||'').toLowerCase().includes(q));
+        (c.correo||'').toLowerCase().includes(q) ||
+        (c.torre||'').toLowerCase().includes(q) ||
+        (c.apartamento||'').toLowerCase().includes(q) ||
+        (c.vehiculo?.placa||'').toLowerCase().includes(q));
     }
     label.textContent = _bloqueActual === 'TODOS'
       ? `Todos los contactos (${lista.length})`
