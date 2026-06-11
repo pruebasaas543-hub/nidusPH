@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 from app.servicios.control_acceso.model import (
     AccessCredentialModel, AccessLogModel, CoaccionModel, _ahora_bogota,
 )
+from app.servicios.control_acceso.config_model import CaConfigModel, CaBlacklistModel
 
 # Reuso de la base Twilio ya probada (sin tocarla)
 from app.servicios.boton_panico.controller import (
@@ -83,11 +84,23 @@ class AccessController:
         codigo = (codigo or "").strip().upper()
         ahora = _ahora_bogota()
 
+        # 0) LOCKDOWN — bloquea todo ingreso cuando está activo
+        if CaConfigModel.lockdown_activo(conjunto_id):
+            AccessLogModel.registrar(conjunto_id, metodo="PIN", estado="rechazado",
+                                     vigilante_id=vigilante_id,
+                                     detalle="Acceso bloqueado — Modo Lockdown activo")
+            return {"resultado": "RECHAZADO",
+                    "motivo": "⛔ MODO EMERGENCIA ACTIVO — Todos los accesos bloqueados",
+                    "lockdown": True}
+
         # 1) ¿Es un PIN de COACCIÓN de algún residente del conjunto?
         coaccion = CoaccionModel.buscar_por_pin(conjunto_id, codigo)
         if coaccion:
             return AccessController._procesar_coaccion(
                 conjunto_id, coaccion, vigilante_id, conjunto_nombre, conjunto_direccion)
+
+        # 1b) BLACKLIST — documento del visitante bloqueado
+        # (solo si el código pertenece a una credencial ya existente)
 
         # 2) Buscar credencial por código
         cred = AccessCredentialModel.buscar_por_codigo(conjunto_id, codigo)
@@ -98,6 +111,18 @@ class AccessController:
 
         visitante = cred.get("visitante", {})
         unidad    = cred.get("unidad", {})
+
+        # 2b) Verificar blacklist por documento del visitante
+        doc_visitante = (visitante.get("documento") or "").strip()
+        if doc_visitante and CaBlacklistModel.esta_bloqueado(conjunto_id, doc_visitante):
+            AccessLogModel.registrar(conjunto_id, visitante=visitante, unidad=unidad,
+                                     metodo=cred.get("metodo_autenticacion", "QR"),
+                                     estado="rechazado", credencial_id=cred["_id"],
+                                     vigilante_id=vigilante_id,
+                                     detalle="Visitante en lista negra")
+            return {"resultado": "RECHAZADO",
+                    "motivo": "🚫 Persona en lista negra — Acceso denegado",
+                    "visitante": visitante}
 
         # 3) Vigencia
         if not AccessCredentialModel.vigencia_ok(cred, ahora):
@@ -125,6 +150,11 @@ class AccessController:
                                  metodo=cred.get("metodo_autenticacion", "QR"),
                                  estado="autorizado", credencial_id=cred["_id"],
                                  vigilante_id=vigilante_id, detalle="Acceso autorizado")
+
+        # Notificar al residente por WhatsApp (async, no bloquea portería)
+        _async(AccessController._notificar_residente_ingreso,
+               conjunto_id, cred, visitante, unidad, ahora)
+
         return {"resultado": "AUTORIZADO", "visitante": visitante, "unidad": unidad,
                 "tipo_credencial": cred.get("tipo_credencial")}
 
@@ -153,6 +183,74 @@ class AccessController:
         # Respuesta DUAL: a la pantalla se le dice "autorizado" (genérico)
         return {"resultado": "AUTORIZADO", "coaccion": True, "log_id": log_id,
                 "mensaje_pantalla": "Acceso Autorizado. Bienvenido."}
+
+    @staticmethod
+    def _notificar_residente_ingreso(conjunto_id, cred, visitante, unidad, ahora):
+        """WhatsApp al residente cuando su visita es autorizada en portería."""
+        cfg = CaConfigModel.obtener(conjunto_id)
+        if not cfg.get("notificaciones", {}).get("avisar_residente_ingreso", True):
+            return
+        from app import db
+        sid = cred.get("solicitante_id")
+        if not sid:
+            return
+        u = db["users"].find_one({"_id": sid}, {"telefono": 1, "nombres": 1}) or {}
+        numero = _num("+57", u.get("telefono", ""))
+        if not numero:
+            return
+        apto  = unidad.get("apartamento") or unidad.get("bloque") or ""
+        torre = unidad.get("torre") or ""
+        loc   = f"Torre {torre} - Apto {apto}".strip(" -")
+        hora  = ahora.strftime("%I:%M %p")
+        msg   = (f"🏠 *Nidus Control de Acceso*\n"
+                 f"Tu visita *{visitante.get('nombre', 'visitante')}* "
+                 f"acaba de ingresar al conjunto a las {hora}.\n"
+                 f"Unidad: {loc}")
+        _async(_enviar_whatsapp, numero, msg)
+
+    @staticmethod
+    def notificar_lockdown(conjunto_id: str):
+        """Envía WhatsApp + llamada a los números de emergencia del conjunto."""
+        from app import db
+        cfg = CaConfigModel.obtener(conjunto_id)
+        lockdown_cfg = cfg.get("lockdown", {})
+        numeros = lockdown_cfg.get("numeros_emergencia", [])
+        empresa = db["empresas"].find_one({"_id": __import__('bson').ObjectId(conjunto_id)},
+                                          {"razon_social": 1, "nombre": 1}) or {}
+        nombre_conj = empresa.get("razon_social") or empresa.get("nombre") or "Conjunto"
+        msg = (f"🔴 *ALERTA LOCKDOWN — {nombre_conj}*\n"
+               f"Se ha activado el modo de emergencia. "
+               f"TODOS los accesos y salidas están bloqueados. "
+               f"Proceder según protocolo de seguridad.")
+        for num in numeros:
+            num_fmt = _num("+57", num)
+            if not num_fmt:
+                continue
+            if lockdown_cfg.get("notificar_whatsapp", True):
+                _safe(_enviar_whatsapp, num_fmt, msg)
+            if lockdown_cfg.get("notificar_llamada", True):
+                _safe(AccessController._llamada_lockdown, num_fmt, nombre_conj)
+
+    @staticmethod
+    def _llamada_lockdown(numero: str, nombre_conj: str):
+        cliente = _twilio_client()
+        if not cliente or not TWILIO_FROM:
+            return
+        texto = (f"Alerta de emergencia en {nombre_conj}. "
+                 f"Se ha activado el modo lockdown. "
+                 f"Todos los accesos están bloqueados. "
+                 f"Proceda según el protocolo de seguridad inmediatamente.")
+        twiml = (f'<?xml version="1.0" encoding="UTF-8"?>'
+                 f'<Response><Say language="es-US" voice="Polly.Lupe">'
+                 f'{_xml.escape(texto)}</Say></Response>')
+        from twilio.twiml.voice_response import VoiceResponse
+        import base64
+        twiml_url = (f"http://twimlets.com/echo?Twiml="
+                     + __import__('urllib.parse', fromlist=['quote']).parse.quote(twiml))
+        try:
+            cliente.calls.create(to=numero, from_=TWILIO_FROM, twiml=twiml)
+        except Exception as e:
+            log.warning("lockdown call error: %s", str(e)[:120])
 
     @staticmethod
     def _notificar_fuera_horario(cred, visitante, unidad, ahora):

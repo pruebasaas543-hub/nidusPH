@@ -80,9 +80,10 @@ def panel_servicio(codigo):
         # completo (todas las pestañas); Vigilancia y demás → portería.
         vista = request.args.get("vista", "")
         _mapa = {
-            "porteria":     "servicios/control_acceso_porteria.html",
-            "credenciales": "servicios/control_acceso_residente.html",
-            "monitoreo":    "servicios/control_acceso_monitoreo.html",
+            "porteria":       "servicios/control_acceso_porteria.html",
+            "credenciales":   "servicios/control_acceso_residente.html",
+            "monitoreo":      "servicios/control_acceso_monitoreo.html",
+            "configuracion":  "servicios/control_acceso_config.html",
         }
         if vista in _mapa:
             plantilla = _mapa[vista]

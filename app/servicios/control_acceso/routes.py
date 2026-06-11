@@ -8,7 +8,7 @@ webhook del botón de pánico. El resto requiere login.
 """
 
 import logging
-from flask import Blueprint, request, session, jsonify, Response
+from flask import Blueprint, request, session, jsonify, Response, render_template
 
 from app import db
 from bson import ObjectId
@@ -17,6 +17,7 @@ from app.servicios.control_acceso.controller import AccessController
 from app.servicios.control_acceso.model import (
     AccessCredentialModel, AccessLogModel, CoaccionModel,
 )
+from app.servicios.control_acceso.config_model import CaConfigModel, CaBlacklistModel
 
 log = logging.getLogger(__name__)
 control_acceso_bp = Blueprint("control_acceso", __name__,
@@ -241,6 +242,153 @@ def set_pin_coaccion():
     if not pin or len(pin) < 4:
         return err("El PIN de coacción debe tener al menos 4 caracteres", 400)
     return ok(mensaje="PIN de coacción guardado") if CoaccionModel.set_pin(uid, pin) else err("No se pudo guardar")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# CONFIGURACIÓN GLOBAL (solo es_sistema)
+# ══════════════════════════════════════════════════════════════════════════
+
+@control_acceso_bp.route("/config", methods=["GET"])
+@requiere_login
+def get_config():
+    if not _es_sistema():
+        return err("Acceso denegado", 403)
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("empresa_id requerido", 400)
+    return ok(serializar(CaConfigModel.obtener(cid)))
+
+
+@control_acceso_bp.route("/config", methods=["POST"])
+@requiere_login
+def guardar_config():
+    if not _es_sistema():
+        return err("Acceso denegado", 403)
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("empresa_id requerido", 400)
+    datos = request.get_json(silent=True) or {}
+    datos.pop("empresa_id", None)
+    CaConfigModel.guardar(cid, datos)
+    return ok(mensaje="Configuración guardada")
+
+
+@control_acceso_bp.route("/lockdown", methods=["POST"])
+@requiere_login
+def toggle_lockdown():
+    if not _es_sistema():
+        # Admin PH también puede activar lockdown
+        rol = session.get("rol", "")
+        if "admin" not in rol.lower():
+            return err("Acceso denegado", 403)
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("empresa_id requerido", 400)
+    d = request.get_json(silent=True) or {}
+    activar = bool(d.get("activar", True))
+    CaConfigModel.activar_lockdown(cid, _usuario_id(), activar)
+    if activar:
+        # Notificaciones de emergencia en segundo plano
+        import threading
+        threading.Thread(
+            target=AccessController.notificar_lockdown,
+            args=(cid,), daemon=True
+        ).start()
+    estado = "activado" if activar else "desactivado"
+    return ok(mensaje=f"Lockdown {estado}")
+
+
+# ── Blacklist ──────────────────────────────────────────────────────────────
+
+@control_acceso_bp.route("/blacklist", methods=["GET"])
+@requiere_login
+def listar_blacklist():
+    if not _es_sistema():
+        return err("Acceso denegado", 403)
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("empresa_id requerido", 400)
+    return ok(serializar(CaBlacklistModel.listar(cid)))
+
+
+@control_acceso_bp.route("/blacklist", methods=["POST"])
+@requiere_login
+def agregar_blacklist():
+    if not _es_sistema():
+        return err("Acceso denegado", 403)
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("empresa_id requerido", 400)
+    d = request.get_json(silent=True) or {}
+    documento = (d.get("documento") or "").strip()
+    nombre    = (d.get("nombre") or "").strip()
+    if not documento or not nombre:
+        return err("Documento y nombre son obligatorios", 400)
+    bid = CaBlacklistModel.agregar(cid, documento, nombre,
+                                   motivo=d.get("motivo", ""),
+                                   bloqueado_por=_usuario_id())
+    return ok({"id": bid}, status=201)
+
+
+@control_acceso_bp.route("/blacklist/<bid>", methods=["DELETE"])
+@requiere_login
+def eliminar_blacklist(bid):
+    if not _es_sistema():
+        return err("Acceso denegado", 403)
+    return ok(mensaje="Eliminado") if CaBlacklistModel.desactivar(bid) else err("No encontrado", 404)
+
+
+# ── Búsqueda express de residentes (sin foto) ──────────────────────────────
+
+@control_acceso_bp.route("/residentes/buscar", methods=["GET"])
+@requiere_login
+def buscar_residente():
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("Sin conjunto", 400)
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return err("Mínimo 2 caracteres", 400)
+    # Busca en asociaciones del conjunto y cruza con users
+    asocs = list(db["asociaciones"].find({
+        "empresa_id": ObjectId(cid), "activo": True
+    }))
+    resultados = []
+    for a in asocs:
+        uid = a.get("user_id")
+        if not uid:
+            continue
+        u = db["users"].find_one(
+            {"_id": uid},
+            # Sin foto, sin password, sin pin_coaccion — privacidad
+            {"nombre": 1, "apellido": 1, "email": 1, "vehiculos": 1}
+        ) or {}
+        nombre_completo = f"{u.get('nombre','')} {u.get('apellido','')}".strip()
+        unidad = f"Torre {a.get('torre','')} - {a.get('apartamento','')}".strip("- ")
+        if (q.lower() in nombre_completo.lower() or
+                q.lower() in unidad.lower() or
+                q.lower() in (a.get("apartamento") or "").lower()):
+            resultados.append({
+                "nombre":     nombre_completo,
+                "unidad":     unidad,
+                "torre":      a.get("torre", ""),
+                "apartamento": a.get("apartamento", ""),
+                "vehiculos":  u.get("vehiculos", []),
+            })
+        if len(resultados) >= 10:
+            break
+    return ok(resultados)
+
+
+# ── Estado de lockdown (para que portería pueda saber si está activo) ──────
+
+@control_acceso_bp.route("/lockdown/estado", methods=["GET"])
+@requiere_login
+def estado_lockdown():
+    cid = _conjunto_efectivo()
+    if not cid:
+        return ok({"activo": False})
+    return ok({"activo": CaConfigModel.lockdown_activo(cid)})
 
 
 # ── Bitácora / minuta ──────────────────────────────────────────────────────

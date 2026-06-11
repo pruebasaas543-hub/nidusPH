@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚙️ Control de Acceso — Configuración</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit','Segoe UI',sans-serif;}
+:root{--bg:#EEF2FF;--bg2:#fff;--text:#1E2756;--muted:#8A9CC8;--accent:#2787F5;--border:rgba(4,34,67,.12);
+  --red:#e53e3e;--green:#276749;--orange:#b7791f;}
+body{background:var(--bg);color:var(--text);padding:20px;}
+h3{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+.card{background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+.card-red{border-color:rgba(229,62,62,.3);background:rgba(229,62,62,.03);}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.lbl{font-size:.82rem;font-weight:600;color:var(--text);min-width:180px;}
+.hint{font-size:.72rem;color:var(--muted);margin-top:3px;}
+input[type=number],input[type=text]{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;width:120px;}
+input[type=text].wide{width:260px;}
+input:focus{border-color:var(--accent);}
+/* Toggle switch */
+.tog{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;}
+.tog-sl{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:34px;transition:.3s;}
+.tog-sl:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+input:checked+.tog-sl{background:var(--accent);}
+input:checked+.tog-sl:before{transform:translateX(18px);}
+input:checked+.tog-sl.red{background:var(--red);}
+/* Botones */
+.btn{padding:9px 18px;border-radius:10px;border:none;cursor:pointer;font-size:.84rem;font-weight:700;font-family:inherit;transition:all .2s;}
+.btn-pri{background:linear-gradient(135deg,#1a6de0,var(--accent));color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-red-outline{background:rgba(229,62,62,.08);border:1.5px solid rgba(229,62,62,.3);color:var(--red);}
+.btn-del{background:rgba(229,62,62,.08);border:1px solid rgba(229,62,62,.2);color:var(--red);padding:5px 10px;border-radius:7px;font-size:.74rem;font-weight:700;cursor:pointer;}
+.btn-sm{padding:7px 14px;font-size:.78rem;}
+/* Chips de documentos */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);font-size:.76rem;font-weight:700;cursor:pointer;user-select:none;transition:all .2s;}
+.chip.on{background:color-mix(in srgb,var(--accent) 15%,transparent);border-color:var(--accent);color:var(--accent);}
+/* Puntos de acceso */
+.punto{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);}
+/* Blacklist tabla */
+.bl-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#042243;color:#fff;
+  padding:10px 22px;border-radius:10px;font-size:.84rem;opacity:0;transition:opacity .3s;z-index:999;}
+.toast.show{opacity:1;}
+/* Lockdown banner */
+.lockdown-banner{background:#b00020;color:#fff;border-radius:12px;padding:18px 20px;margin-bottom:16px;
+  display:none;animation:flash 1s steps(1) infinite;}
+.lockdown-banner.on{display:flex;align-items:center;gap:14px;justify-content:space-between;}
+@keyframes flash{0%{background:#b00020;}50%{background:#7b0d1e;}}
+</style>
+</head>
+<body>
+
+<!-- Banner lockdown activo -->
+<div id="lockdownBanner" class="lockdown-banner">
+  <div>
+    <div style="font-size:1.1rem;font-weight:800;">🔴 MODO LOCKDOWN ACTIVO</div>
+    <div style="font-size:.78rem;opacity:.85;">Todos los accesos y salidas están bloqueados.</div>
+  </div>
+  <button class="btn" style="background:#fff;color:#b00020;font-weight:800;" onclick="toggleLockdown(false)">Desactivar</button>
+</div>
+
+<!-- 1. Métodos de autenticación + cronómetro -->
+<div class="card">
+  <h3>🔑 Métodos de autenticación y cronómetro</h3>
+  <div class="row">
+    <div class="lbl">QR activo<div class="hint">Genera imagen QR para visitantes</div></div>
+    <label class="tog"><input type="checkbox" id="qr_activo"><span class="tog-sl"></span></label>
+  </div>
+  <div class="row">
+    <div class="lbl">PIN alfanumérico activo<div class="hint">Código de 6 caracteres para digitar</div></div>
+    <label class="tog"><input type="checkbox" id="pin_activo"><span class="tog-sl"></span></label>
+  </div>
+  <div class="row">
+    <div class="lbl">Cronómetro de expiración<div class="hint">Minutos antes de que expire la credencial</div></div>
+    <input type="number" id="cronometro_minutos" min="5" max="9999" style="width:100px;">
+    <span style="font-size:.82rem;color:var(--muted);">minutos</span>
+  </div>
+</div>
+
+<!-- 2. Segmentación de acceso -->
+<div class="card">
+  <h3>🚶 Segmentación de acceso</h3>
+  <div class="row">
+    <div class="lbl">Peatonal<div class="hint">Ingreso a pie</div></div>
+    <label class="tog"><input type="checkbox" id="peatonal"><span class="tog-sl"></span></label>
+  </div>
+  <div class="row">
+    <div class="lbl">Vehicular<div class="hint">Ingreso en vehículo</div></div>
+    <label class="tog"><input type="checkbox" id="vehicular"><span class="tog-sl"></span></label>
+  </div>
+  <div style="margin-top:4px;">
+    <div class="lbl" style="margin-bottom:8px;">Tipos de visita habilitados</div>
+    <div class="chips" id="tipos_visita_chips">
+      <div class="chip" data-tipo="visita" onclick="this.classList.toggle('on')">👥 Visita / Familiar</div>
+      <div class="chip" data-tipo="contratista" onclick="this.classList.toggle('on')">🔧 Contratista</div>
+      <div class="chip" data-tipo="domicilio" onclick="this.classList.toggle('on')">📦 Domicilio / Courier</div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Puntos de acceso -->
+<div class="card">
+  <h3>🚪 Puntos de acceso (porterías)</h3>
+  <div id="puntosLista"></div>
+  <div class="row" style="margin-top:10px;gap:8px;">
+    <input type="text" id="nuevoPuntoNombre" placeholder="Nombre del punto (ej: Portería Norte)" class="wide">
+    <button class="btn btn-pri btn-sm" onclick="agregarPunto()">+ Agregar</button>
+  </div>
+</div>
+
+<!-- 4. Flujo contratistas -->
+<div class="card">
+  <h3>🔧 Flujo de aprobación para contratistas</h3>
+  <div class="row">
+    <div class="lbl">Requiere aprobación del admin<div class="hint">El admin debe aprobar antes de activar la credencial</div></div>
+    <label class="tog"><input type="checkbox" id="requiere_aprobacion"><span class="tog-sl"></span></label>
+  </div>
+  <div class="row">
+    <div class="lbl">SLA máximo<div class="hint">Tiempo máximo para que el admin apruebe</div></div>
+    <input type="number" id="sla_horas" min="1" max="72" style="width:80px;">
+    <span style="font-size:.82rem;color:var(--muted);">horas</span>
+  </div>
+  <div class="row">
+    <div class="lbl">Alerta de vencimiento SLA<div class="hint">Notificar cuando se llegue al X% del tiempo SLA</div></div>
+    <input type="number" id="alerta_porcentaje" min="10" max="95" style="width:80px;">
+    <span style="font-size:.82rem;color:var(--muted);">% del tiempo</span>
+  </div>
+  <div style="margin-top:4px;">
+    <div class="lbl" style="margin-bottom:8px;">Documentos requeridos al contratista</div>
+    <div class="chips" id="docs_chips">
+      <div class="chip" data-doc="ARL" onclick="this.classList.toggle('on')">ARL</div>
+      <div class="chip" data-doc="EPS" onclick="this.classList.toggle('on')">EPS</div>
+      <div class="chip" data-doc="Contrato" onclick="this.classList.toggle('on')">Contrato</div>
+      <div class="chip" data-doc="Cédula" onclick="this.classList.toggle('on')">Cédula</div>
+      <div class="chip" data-doc="Certificado alturas" onclick="this.classList.toggle('on')">Cert. Alturas</div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Courier / domicilios -->
+<div class="card">
+  <h3>📦 Flujo domicilios / courier</h3>
+  <div class="row">
+    <div class="lbl">Tiempo de espera<div class="hint">Minutos antes de cancelar si el residente no responde</div></div>
+    <input type="number" id="courier_timeout" min="1" max="30" style="width:80px;">
+    <span style="font-size:.82rem;color:var(--muted);">minutos</span>
+  </div>
+</div>
+
+<!-- 6. Notificaciones al residente -->
+<div class="card">
+  <h3>🔔 Notificaciones al residente</h3>
+  <div class="row">
+    <div class="lbl">WhatsApp al ingresar visita<div class="hint">Avisar al residente cuando su visita sea autorizada</div></div>
+    <label class="tog"><input type="checkbox" id="avisar_residente_ingreso"><span class="tog-sl"></span></label>
+  </div>
+</div>
+
+<!-- 7. Citofonía Twilio -->
+<div class="card">
+  <h3>📞 Citofonía virtual (Twilio)</h3>
+  <div class="row">
+    <div class="lbl">Servicio activo<div class="hint">Habilitar llamadas a residentes desde portería</div></div>
+    <label class="tog"><input type="checkbox" id="citofonia_activo"><span class="tog-sl"></span></label>
+  </div>
+  <div class="row">
+    <div class="lbl">Límite de llamadas por apartamento<div class="hint">Por mes — 0 = sin límite</div></div>
+    <input type="number" id="limite_llamadas_mes" min="0" max="9999" style="width:100px;">
+    <span style="font-size:.82rem;color:var(--muted);">llamadas/mes</span>
+  </div>
+</div>
+
+<!-- 8. Lockdown -->
+<div class="card card-red">
+  <h3 style="color:var(--red);">🔴 Modo Lockdown de emergencia</h3>
+  <div class="row">
+    <div class="lbl">Notificar por WhatsApp<div class="hint">Al activar, enviar mensaje a los números de emergencia</div></div>
+    <label class="tog"><input type="checkbox" id="lockdown_whatsapp"><span class="tog-sl red"></span></label>
+  </div>
+  <div class="row">
+    <div class="lbl">Notificar por llamada<div class="hint">Al activar, llamar a los números de emergencia</div></div>
+    <label class="tog"><input type="checkbox" id="lockdown_llamada"><span class="tog-sl red"></span></label>
+  </div>
+  <div style="margin-top:8px;">
+    <div class="lbl" style="margin-bottom:8px;">Números de emergencia</div>
+    <div id="numerosEmergencia"></div>
+    <div class="row" style="margin-top:6px;gap:8px;">
+      <input type="text" id="nuevoNumero" placeholder="+573001234567" class="wide">
+      <button class="btn btn-red-outline btn-sm" onclick="agregarNumero()">+ Agregar número</button>
+    </div>
+  </div>
+  <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+    <button class="btn btn-red" onclick="toggleLockdown(true)" id="btnActivarLockdown">🔴 Activar Lockdown</button>
+    <button class="btn" style="background:var(--green);color:#fff;" onclick="toggleLockdown(false)" id="btnDesactivarLockdown" style="display:none;">✅ Desactivar Lockdown</button>
+  </div>
+</div>
+
+<!-- 9. Lista negra -->
+<div class="card">
+  <h3>🚫 Lista negra (Blacklist)</h3>
+  <div class="row" style="gap:8px;flex-wrap:wrap;">
+    <input type="text" id="bl_documento" placeholder="N° Documento" style="width:160px;">
+    <input type="text" id="bl_nombre" placeholder="Nombre completo" class="wide">
+    <input type="text" id="bl_motivo" placeholder="Motivo (opcional)" style="width:180px;">
+    <button class="btn btn-red btn-sm" onclick="agregarBlacklist()">🚫 Bloquear</button>
+  </div>
+  <div id="blacklistLista" style="margin-top:12px;"></div>
+</div>
+
+<!-- Guardar configuración -->
+<div style="display:flex;justify-content:flex-end;margin-top:4px;margin-bottom:24px;">
+  <button class="btn btn-pri" onclick="guardarConfig()" style="padding:12px 32px;font-size:.92rem;">💾 Guardar configuración</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = '/servicios/control_acceso';
+const $ = id => document.getElementById(id);
+const EID = new URLSearchParams(location.search).get('empresa_id') || '';
+const Q = EID ? `?empresa_id=${encodeURIComponent(EID)}` : '';
+
+function toast(m, ok=true){
+  const t=$('toast'); t.textContent=m;
+  t.style.background = ok ? '#042243' : '#b00020';
+  t.className='toast show'; setTimeout(()=>t.className='toast',2800);
+}
+
+// ── Cargar config ──────────────────────────────────────────────────────────
+async function cargarConfig(){
+  if(!EID) return;
+  try{
+    const r=await fetch(`${API}/config${Q}`); const j=await r.json();
+    if(!j.ok){ toast('Error cargando configuración',false); return; }
+    const d=j.data;
+    const auth=d.autenticacion||{};
+    $('qr_activo').checked       = !!auth.qr_activo;
+    $('pin_activo').checked      = !!auth.pin_activo;
+    $('cronometro_minutos').value= auth.cronometro_minutos||120;
+
+    const seg=d.segmentacion||{};
+    $('peatonal').checked  = !!seg.peatonal;
+    $('vehicular').checked = !!seg.vehicular;
+    const tipos = seg.tipos_visita||[];
+    document.querySelectorAll('#tipos_visita_chips .chip').forEach(c=>{
+      c.classList.toggle('on', tipos.includes(c.dataset.tipo));
+    });
+
+    // Puntos de acceso
+    renderPuntos(d.puntos_acceso||[]);
+
+    const fc=d.flujo_contratistas||{};
+    $('requiere_aprobacion').checked = !!fc.requiere_aprobacion;
+    $('sla_horas').value             = fc.sla_horas||24;
+    $('alerta_porcentaje').value     = fc.alerta_porcentaje||75;
+    const docs = fc.documentos_requeridos||[];
+    document.querySelectorAll('#docs_chips .chip').forEach(c=>{
+      c.classList.toggle('on', docs.includes(c.dataset.doc));
+    });
+
+    const co=d.courier||{};
+    $('courier_timeout').value = co.timeout_minutos||5;
+
+    const nt=d.notificaciones||{};
+    $('avisar_residente_ingreso').checked = nt.avisar_residente_ingreso!==false;
+
+    const cito=d.citofonia||{};
+    $('citofonia_activo').checked  = !!cito.activo;
+    $('limite_llamadas_mes').value = cito.limite_llamadas_mes||50;
+
+    const lk=d.lockdown||{};
+    $('lockdown_whatsapp').checked = lk.notificar_whatsapp!==false;
+    $('lockdown_llamada').checked  = lk.notificar_llamada!==false;
+    renderNumeros(lk.numeros_emergencia||[]);
+    actualizarBannerLockdown(!!lk.activo);
+  }catch(e){ toast('Error de conexión',false); }
+}
+
+// ── Puntos de acceso ───────────────────────────────────────────────────────
+let _puntos = [];
+function renderPuntos(lista){
+  _puntos = lista;
+  const c=$('puntosLista');
+  if(!lista.length){ c.innerHTML='<div style="font-size:.78rem;color:var(--muted);">Sin puntos registrados. Agrega al menos uno.</div>'; return; }
+  c.innerHTML = lista.map((p,i)=>`
+    <div class="punto">
+      <label class="tog"><input type="checkbox" ${p.activo?'checked':''} onchange="_puntoCambiarActivo(${i},this.checked)"><span class="tog-sl"></span></label>
+      <div style="flex:1;font-size:.85rem;font-weight:600;">${p.nombre}</div>
+      <button class="btn-del" onclick="_puntoBorrar(${i})">Eliminar</button>
+    </div>`).join('');
+}
+function _puntoCambiarActivo(i,v){ _puntos[i].activo=v; }
+function _puntoBorrar(i){ _puntos.splice(i,1); renderPuntos(_puntos); }
+function agregarPunto(){
+  const n=$('nuevoPuntoNombre').value.trim();
+  if(!n){ toast('Escribe un nombre para el punto',false); return; }
+  _puntos.push({id: n.toLowerCase().replace(/\s+/g,'_'), nombre:n, activo:true});
+  renderPuntos(_puntos); $('nuevoPuntoNombre').value='';
+}
+
+// ── Números emergencia lockdown ────────────────────────────────────────────
+let _numeros = [];
+function renderNumeros(lista){
+  _numeros = lista;
+  const c=$('numerosEmergencia');
+  if(!lista.length){ c.innerHTML='<div style="font-size:.76rem;color:var(--muted);">Sin números registrados.</div>'; return; }
+  c.innerHTML = lista.map((n,i)=>`
+    <div class="punto" style="margin-bottom:5px;">
+      <div style="flex:1;font-size:.84rem;">${n}</div>
+      <button class="btn-del" onclick="_numBorrar(${i})">Eliminar</button>
+    </div>`).join('');
+}
+function _numBorrar(i){ _numeros.splice(i,1); renderNumeros(_numeros); }
+function agregarNumero(){
+  const n=$('nuevoNumero').value.trim();
+  if(!n){ toast('Escribe un número',false); return; }
+  _numeros.push(n); renderNumeros(_numeros); $('nuevoNumero').value='';
+}
+
+// ── Lockdown ───────────────────────────────────────────────────────────────
+function actualizarBannerLockdown(activo){
+  $('lockdownBanner').classList.toggle('on', activo);
+  if($('btnActivarLockdown'))   $('btnActivarLockdown').style.display   = activo ? 'none' : '';
+  if($('btnDesactivarLockdown')) $('btnDesactivarLockdown').style.display = activo ? ''     : 'none';
+}
+async function toggleLockdown(activar){
+  if(activar && !confirm('¿Activar MODO LOCKDOWN? Bloqueará TODOS los accesos y salidas del conjunto y enviará alertas.')) return;
+  try{
+    const r=await fetch(`${API}/lockdown`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({activar, empresa_id:EID})});
+    const j=await r.json();
+    if(j.ok){ actualizarBannerLockdown(activar); toast(activar?'🔴 Lockdown activado':'✅ Lockdown desactivado',!activar); }
+    else toast(j.error||'Error',false);
+  }catch{ toast('Error de conexión',false); }
+}
+
+// ── Guardar configuración ──────────────────────────────────────────────────
+async function guardarConfig(){
+  if(!EID){ toast('Selecciona una empresa primero',false); return; }
+  const tipos=[...document.querySelectorAll('#tipos_visita_chips .chip.on')].map(c=>c.dataset.tipo);
+  const docs =[...document.querySelectorAll('#docs_chips .chip.on')].map(c=>c.dataset.doc);
+  const payload = {
+    autenticacion:{
+      qr_activo:          $('qr_activo').checked,
+      pin_activo:         $('pin_activo').checked,
+      cronometro_minutos: parseInt($('cronometro_minutos').value)||120,
+    },
+    segmentacion:{
+      peatonal:    $('peatonal').checked,
+      vehicular:   $('vehicular').checked,
+      tipos_visita: tipos,
+    },
+    puntos_acceso: _puntos,
+    flujo_contratistas:{
+      requiere_aprobacion:   $('requiere_aprobacion').checked,
+      sla_horas:             parseInt($('sla_horas').value)||24,
+      alerta_porcentaje:     parseInt($('alerta_porcentaje').value)||75,
+      documentos_requeridos: docs,
+    },
+    courier:{ timeout_minutos: parseInt($('courier_timeout').value)||5 },
+    notificaciones:{ avisar_residente_ingreso: $('avisar_residente_ingreso').checked },
+    citofonia:{
+      activo:              $('citofonia_activo').checked,
+      limite_llamadas_mes: parseInt($('limite_llamadas_mes').value)||50,
+    },
+    lockdown:{
+      notificar_whatsapp: $('lockdown_whatsapp').checked,
+      notificar_llamada:  $('lockdown_llamada').checked,
+      numeros_emergencia: _numeros,
+    },
+  };
+  try{
+    const r=await fetch(`${API}/config${Q}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const j=await r.json();
+    toast(j.ok ? '✅ Configuración guardada' : (j.error||'Error'), j.ok);
+  }catch{ toast('Error de conexión',false); }
+}
+
+// ── Blacklist ──────────────────────────────────────────────────────────────
+async function cargarBlacklist(){
+  if(!EID) return;
+  try{
+    const r=await fetch(`${API}/blacklist${Q}`); const j=await r.json();
+    if(!j.ok) return;
+    const lista=j.data||[];
+    const c=$('blacklistLista');
+    if(!lista.length){ c.innerHTML='<div style="font-size:.76rem;color:var(--muted);">Sin personas bloqueadas.</div>'; return; }
+    c.innerHTML=lista.map(b=>`
+      <div class="bl-item">
+        <div style="flex:1;">
+          <div style="font-size:.85rem;font-weight:700;color:var(--red);">🚫 ${b.nombre}</div>
+          <div style="font-size:.72rem;color:var(--muted);">Doc: ${b.documento}${b.motivo?' · '+b.motivo:''}</div>
+        </div>
+        <button class="btn-del" onclick="eliminarBlacklist('${b._id}')">Eliminar</button>
+      </div>`).join('');
+  }catch{}
+}
+async function agregarBlacklist(){
+  const doc=$('bl_documento').value.trim(), nom=$('bl_nombre').value.trim();
+  if(!doc||!nom){ toast('Documento y nombre son obligatorios',false); return; }
+  try{
+    const r=await fetch(`${API}/blacklist`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({documento:doc,nombre:nom,motivo:$('bl_motivo').value.trim(),empresa_id:EID})});
+    const j=await r.json();
+    if(j.ok){ toast('🚫 Persona bloqueada'); $('bl_documento').value='';$('bl_nombre').value='';$('bl_motivo').value=''; cargarBlacklist(); }
+    else toast(j.error||'Error',false);
+  }catch{ toast('Error',false); }
+}
+async function eliminarBlacklist(id){
+  if(!confirm('¿Eliminar de la lista negra?')) return;
+  const r=await fetch(`${API}/blacklist/${id}${Q}`,{method:'DELETE'}); const j=await r.json();
+  toast(j.ok?'Eliminado':'Error',j.ok); cargarBlacklist();
+}
+
+// Arranque
+cargarConfig(); cargarBlacklist();
+</script>
+</body>
+</html>
