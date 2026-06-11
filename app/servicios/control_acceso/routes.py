@@ -407,7 +407,46 @@ def listar_logs():
     cid = _conjunto_efectivo()
     if not cid:
         return err("Sin conjunto en sesión", 400)
-    return ok(serializar(AccessLogModel.listar(cid, limite=int(request.args.get("limite", 50)))))
+    return ok(serializar(AccessLogModel.listar(
+        cid,
+        limite=int(request.args.get("limite", 50)),
+        residente_id=request.args.get("residente_id", ""),
+        tipo=request.args.get("tipo", ""),
+        fecha=request.args.get("fecha", ""),
+    )))
+
+
+# ── Historial de accesos a mi unidad (residente) ───────────────────────────
+@control_acceso_bp.route("/mis-accesos", methods=["GET"])
+@requiere_login
+def mis_accesos():
+    """Devuelve el historial de quién accedió a la unidad del residente activo."""
+    cid = _conjunto_efectivo()
+    uid = _usuario_id()
+    if not cid or not uid:
+        return err("Sin sesión válida", 400)
+    # Obtener torre/apartamento del residente
+    asoc = db["asociaciones"].find_one(
+        {"empresa_id": ObjectId(cid), "user_id": ObjectId(uid), "activo": True},
+        {"torre": 1, "apartamento": 1}
+    ) or {}
+    torre = asoc.get("torre", "")
+    apto  = asoc.get("apartamento", "")
+    logs  = AccessLogModel.listar_por_unidad(
+        cid, torre, apto,
+        limite=int(request.args.get("limite", 40))
+    )
+    return ok(serializar(logs))
+
+
+# ── Dashboard de estadísticas ──────────────────────────────────────────────
+@control_acceso_bp.route("/estadisticas", methods=["GET"])
+@requiere_login
+def estadisticas():
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("Sin conjunto en sesión", 400)
+    return ok(AccessLogModel.estadisticas(cid))
 
 
 # ══════════════════════════════════════════════════════════════════════════

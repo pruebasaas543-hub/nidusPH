@@ -24,6 +24,7 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 .btn-pri{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;width:100%;margin-top:12px;}
 .btn-sec{background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid var(--border);color:var(--accent);}
 .btn-warn{background:rgba(183,121,31,.12);border:1px solid rgba(183,121,31,.3);color:var(--orange);}
+.btn-cam{background:linear-gradient(135deg,#276749,#3aab6e);color:#fff;border:none;border-radius:11px;padding:12px 18px;font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;width:100%;margin-top:8px;}
 .resultado{margin-top:16px;border-radius:14px;padding:22px;text-align:center;display:none;}
 .resultado.show{display:block;}
 .resultado .big{font-size:1.6rem;font-weight:800;margin-bottom:6px;}
@@ -40,9 +41,37 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 .modal{display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.45);align-items:center;justify-content:center;}
 .modal.show{display:flex;}
 .modal-box{background:var(--bg2);border-radius:16px;padding:24px;max-width:440px;width:92%;position:relative;}
+/* Lockdown banner */
+.lockdown-banner{display:none;background:#b00020;color:#fff;border-radius:14px;padding:16px 20px;margin-bottom:18px;
+  animation:ldflash 1s steps(1) infinite;box-shadow:0 0 0 4px rgba(176,0,32,.3);}
+.lockdown-banner.activo{display:flex;align-items:center;gap:14px;}
+@keyframes ldflash{50%{background:#7b0d1e;}}
+.lockdown-banner .ic{font-size:2rem;flex-shrink:0;}
+.lockdown-banner .txt{flex:1;}
+.lockdown-banner .txt h2{font-size:1rem;font-weight:800;margin-bottom:3px;}
+.lockdown-banner .txt p{font-size:.78rem;opacity:.9;}
+/* Scanner modal */
+.scan-modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;}
+.scan-modal.open{display:flex;}
+.scan-wrap{position:relative;width:min(94vw,480px);}
+#scanVideo{width:100%;border-radius:16px;display:block;}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.scan-box{width:200px;height:200px;border:3px solid #2787F5;border-radius:18px;box-shadow:0 0 0 4000px rgba(0,0,0,.35);}
+.scan-hint{color:#fff;font-size:.82rem;text-align:center;margin-top:12px;opacity:.85;}
+.btn-scan-close{margin-top:16px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:11px;padding:11px 28px;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;}
 </style>
 </head>
 <body>
+
+<!-- BANNER LOCKDOWN -->
+<div id="lockdownBanner" class="lockdown-banner">
+  <div class="ic">🔒</div>
+  <div class="txt">
+    <h2>LOCKDOWN ACTIVO — ACCESO RESTRINGIDO</h2>
+    <p>El conjunto está en modo bloqueo. Solo se permite salida. Ningún ingreso autorizado hasta nuevo aviso.</p>
+  </div>
+</div>
+
 <div class="ca-page">
   <div class="ca-grid">
     <!-- Columna izquierda: validación -->
@@ -52,8 +81,9 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
         <input id="codigo" class="code-input" maxlength="6" autocomplete="off"
                placeholder="------" oninput="this.value=this.value.toUpperCase()"
                onkeydown="if(event.key==='Enter')validar()">
-        <button class="btn btn-pri" onclick="validar()">✅ Validar</button>
-        <div class="hint">Escanea el QR (lectura como teclado) o digita el código. <b>F2</b> = Ingreso manual rápido.</div>
+        <button class="btn btn-pri" onclick="validar()">✅ Validar código</button>
+        <button class="btn-cam" onclick="abrirScanner()">📷 Escanear QR con cámara</button>
+        <div class="hint">Escanea el QR del visitante o digita el código de 6 caracteres. <b>F2</b> = Ingreso manual rápido.</div>
         <div id="resultado" class="resultado"></div>
       </div>
 
@@ -75,7 +105,6 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 <div id="modalManual" class="modal">
   <div class="modal-box" style="max-width:500px;max-height:90vh;overflow-y:auto;">
     <div class="card-title">⚡ Ingreso manual</div>
-    <!-- Tipo de visita -->
     <div class="field">
       <label>Tipo de visita *</label>
       <select id="m-tipo" onchange="renderCamposDinamicos()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;">
@@ -85,9 +114,7 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
         <option value="proveedor">🏢 Proveedor</option>
       </select>
     </div>
-    <!-- Campos dinámicos según tipo -->
     <div id="campos-dinamicos"></div>
-    <!-- Unidad destino (siempre presente) -->
     <div class="row2">
       <div class="field"><label>Torre / Bloque</label><input id="m-torre" autocomplete="off"></div>
       <div class="field"><label>Apartamento *</label><input id="m-apto" autocomplete="off"></div>
@@ -100,12 +127,40 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
   </div>
 </div>
 
+<!-- Modal escáner QR con cámara -->
+<div id="scanModal" class="scan-modal">
+  <div class="scan-wrap">
+    <video id="scanVideo" playsinline autoplay muted></video>
+    <div class="scan-overlay"><div class="scan-box"></div></div>
+  </div>
+  <canvas id="scanCanvas" style="display:none;"></canvas>
+  <div class="scan-hint">Apunta el QR del visitante al recuadro azul</div>
+  <button class="btn-scan-close" onclick="cerrarScanner()">✕ Cerrar cámara</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
 const API = '/servicios/control_acceso';
 const $ = id => document.getElementById(id);
 const EID = new URLSearchParams(location.search).get('empresa_id') || '';
 const Q = EID ? ('&empresa_id='+encodeURIComponent(EID)) : '';
 
+// ── Lockdown polling ──────────────────────────────────────────────────────
+async function pollLockdown(){
+  try{
+    const r=await fetch(`${API}/lockdown/estado?_t=${Date.now()}${Q}`); const j=await r.json();
+    const banner=$('lockdownBanner');
+    if(j.ok && j.data && j.data.activo){
+      banner.classList.add('activo');
+    } else {
+      banner.classList.remove('activo');
+    }
+  }catch{}
+}
+pollLockdown();
+setInterval(pollLockdown, 10000);
+
+// ── Validar código ────────────────────────────────────────────────────────
 async function validar(){
   const codigo = $('codigo').value.trim();
   if(codigo.length < 4){ return; }
@@ -122,7 +177,6 @@ async function validar(){
 
 function pintarResultado(d){
   const box = $('resultado');
-  // COACCIÓN: la pantalla SIEMPRE muestra éxito genérico (comportamiento silencioso)
   if(d.resultado === 'AUTORIZADO'){
     const v = d.visitante||{}; const nom = v.nombre ? `<div style="font-size:.9rem;margin-top:6px;">${v.nombre}</div>` : '';
     box.className='resultado show r-ok';
@@ -137,7 +191,48 @@ function pintarResultado(d){
   cargarMinuta();
 }
 
-// ── Formularios dinámicos ──────────────────────────────────────────────────
+// ── Escáner QR con cámara (jsQR) ─────────────────────────────────────────
+let _scanStream=null, _scanTimer=null;
+
+async function abrirScanner(){
+  $('scanModal').classList.add('open');
+  try{
+    _scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const vid = $('scanVideo'); vid.srcObject = _scanStream;
+    vid.play();
+    _scanTimer = setInterval(_leerFrame, 200);
+  }catch(e){
+    cerrarScanner();
+    alert('No se pudo acceder a la cámara: '+e.message);
+  }
+}
+
+function cerrarScanner(){
+  clearInterval(_scanTimer); _scanTimer=null;
+  if(_scanStream){ _scanStream.getTracks().forEach(t=>t.stop()); _scanStream=null; }
+  $('scanModal').classList.remove('open');
+  $('scanVideo').srcObject=null;
+}
+
+function _leerFrame(){
+  const vid=$('scanVideo'); const can=$('scanCanvas');
+  if(!vid.videoWidth) return;
+  can.width=vid.videoWidth; can.height=vid.videoHeight;
+  const ctx=can.getContext('2d');
+  ctx.drawImage(vid,0,0);
+  const img=ctx.getImageData(0,0,can.width,can.height);
+  const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+  if(code && code.data){
+    const txt=(code.data||'').trim().toUpperCase();
+    if(txt.length>=4){
+      cerrarScanner();
+      $('codigo').value=txt;
+      validar();
+    }
+  }
+}
+
+// ── Formularios dinámicos ─────────────────────────────────────────────────
 let _formsConfig = {visita:[],contratista:[],domicilio:[],proveedor:[]};
 
 async function cargarFormsConfig(){
@@ -174,8 +269,7 @@ function renderCamposDinamicos(){
         <option value="">— Seleccionar —</option>${opts}
       </select>`;
     } else {
-      const ktype = f.tipo === 'numero' ? 'text' : 'text';
-      input = `<input type="${ktype}" id="${id}" autocomplete="off"
+      input = `<input type="text" id="${id}" autocomplete="off"
         style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;outline:none;color:var(--text);background:var(--bg2);"
         ${f.tipo==='numero'?'inputmode="numeric"':''}>`;
     }
@@ -202,7 +296,7 @@ function _recogerCamposDinamicos(){
   return datos;
 }
 
-// ── Ingreso manual ──
+// ── Ingreso manual ─────────────────────────────────────────────────────────
 function abrirManual(){
   $('modalManual').classList.add('show');
   $('manualResult').innerHTML='';
@@ -217,7 +311,6 @@ async function guardarManual(){
   let camposDinamicos = {};
   try{ camposDinamicos = _recogerCamposDinamicos(); }
   catch(e){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${e.message}</div>`; return; }
-  // Nombre y documento desde campos dinámicos si existen, si no, pide los fijos
   const nombre   = camposDinamicos['Nombre completo'] || camposDinamicos['Nombre mensajero'] || '—';
   const documento= camposDinamicos['N° Documento'] || camposDinamicos['N° Doc'] || '';
   const unidad   = {torre:$('m-torre').value.trim(), apartamento:apto};
@@ -235,7 +328,7 @@ async function guardarManual(){
   }catch{ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">Error de conexión</div>'; }
 }
 
-// ── Citofonía ──
+// ── Citofonía ─────────────────────────────────────────────────────────────
 let _citoTimer=null;
 async function llamarCitofono(logId, nombreVisita){
   const numero = prompt('Número celular del residente (ej. 3213895559):','');
@@ -245,7 +338,6 @@ async function llamarCitofono(logId, nombreVisita){
     const r=await fetch(`${API}/citofonia/llamar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({log_id:logId,numero,nombre_visita:nombreVisita,empresa_id:EID})});
     const j=await r.json();
     if(!j.ok){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${j.error}</div>`; return; }
-    // Polling del estado (sin recargar)
     clearInterval(_citoTimer);
     _citoTimer=setInterval(()=>pollCito(logId),3000);
   }catch{ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">Error</div>'; }
@@ -260,7 +352,7 @@ async function pollCito(logId){
   }catch{}
 }
 
-// ── Minuta ──
+// ── Minuta ─────────────────────────────────────────────────────────────────
 async function cargarMinuta(){
   try{
     const r=await fetch(`${API}/logs?limite=12&_t=${Date.now()}${Q}`); const j=await r.json();
@@ -268,7 +360,7 @@ async function cargarMinuta(){
     const list=j.data||[];
     if(!list.length){ $('minuta').innerHTML='<div class="hint">Sin registros aún.</div>'; return; }
     const color=e=>e.includes('autorizado')?'var(--green)':e.includes('rechazado')?'var(--red)':e==='coaccion'?'#7b0d1e':e==='ingreso_manual'?'var(--orange)':'var(--muted)';
-    const label=e=>({autorizado:'Autorizado',rechazado:'Rechazado',ingreso_manual:'Ingreso manual',autorizado_citofonia:'Autorizado (citófono)',rechazado_citofonia:'Rechazado (citófono)',coaccion:'⚠️',registrado:'Registrado'}[e]||e);
+    const label=e=>({autorizado:'Autorizado',rechazado:'Rechazado',ingreso_manual:'Ingreso manual',autorizado_citofonia:'Autorizado (citófono)',rechazado_citofonia:'Rechazado (citófono)',coaccion:'⚠️ Coacción',registrado:'Registrado'}[e]||e);
     $('minuta').innerHTML=list.map(l=>{
       const v=l.visitante||{}; const u=l.unidad||{};
       const f=l.creado_en?new Date(l.creado_en.includes('T')?l.creado_en:l.creado_en+'Z').toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
@@ -280,7 +372,6 @@ async function cargarMinuta(){
   }catch{}
 }
 
-// Atajos de teclado
 document.addEventListener('keydown',e=>{ if(e.key==='F2'){ e.preventDefault(); abrirManual(); } });
 $('codigo').focus();
 cargarMinuta();

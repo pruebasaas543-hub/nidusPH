@@ -12,10 +12,15 @@
 :root{--bg:#EEF2FF;--bg2:#FFFFFF;--accent:#2787F5;--text:#1E2756;--muted:#8A9CC8;--border:rgba(39,135,245,.18);--red:#e53e3e;--green:#276749;--orange:#b7791f;}
 html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 .ca-page{max-width:1000px;margin:0 auto;padding:20px;}
-.ca-top{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,#042243,#0a4a8c);color:#fff;border-radius:14px;padding:14px 20px;margin-bottom:18px;}
-.ca-top .ic{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
-.card{background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:18px;}
-.card-title{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;padding:14px 12px;text-align:center;}
+.stat-card .val{font-size:1.7rem;font-weight:800;line-height:1.1;}
+.stat-card .lbl{font-size:.65rem;font-weight:700;color:var(--muted);margin-top:4px;}
+.stat-card.ok .val{color:var(--green);}
+.stat-card.danger .val{color:var(--red);}
+.stat-card.warn .val{color:var(--orange);}
+/* Alerta coacción */
 .estado-ok{background:rgba(39,103,73,.08);border:1.5px solid var(--green);border-radius:14px;padding:26px;text-align:center;color:var(--green);}
 .alerta{border-radius:16px;padding:26px;text-align:center;color:#fff;background:#b00020;animation:flash 1s steps(1) infinite;box-shadow:0 0 0 4px rgba(176,0,32,.25);}
 @keyframes flash{0%{background:#b00020;}50%{background:#7b0d1e;}}
@@ -24,18 +29,59 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 .coaccion-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:14px;width:100%;max-width:420px;}
 .btn{padding:10px 18px;border-radius:11px;border:none;cursor:pointer;font-size:.85rem;font-weight:700;font-family:inherit;}
 .btn-atender{background:#fff;color:#b00020;}
+/* Bitácora */
+.card{background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.05);margin-bottom:18px;}
+.card-title{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
 .minuta-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:7px;background:var(--bg);}
 .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.hint{font-size:.74rem;color:var(--muted);}
+/* Filtros */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.filtros select,.filtros input[type=date]{padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:.78rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;}
+.filtros select:focus,.filtros input[type=date]:focus{border-color:var(--accent);}
+.btn-fil{padding:7px 14px;border-radius:9px;border:1.5px solid var(--border);background:transparent;font-size:.78rem;font-weight:700;font-family:inherit;color:var(--text);cursor:pointer;}
+.btn-fil:hover{background:rgba(39,135,245,.08);border-color:var(--accent);}
+.btn-csv{padding:7px 14px;border-radius:9px;border:none;background:rgba(39,103,73,.12);font-size:.78rem;font-weight:700;font-family:inherit;color:var(--green);cursor:pointer;}
+.btn-csv:hover{background:rgba(39,103,73,.2);}
 </style>
 </head>
 <body>
 <div class="ca-page">
-  <div id="alertaZona"></div>
 
+  <!-- Estadísticas del día -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card ok"><div class="val" id="s-entradas">—</div><div class="lbl">Entradas hoy</div></div>
+    <div class="stat-card"><div class="val" id="s-total">—</div><div class="lbl">Registros hoy</div></div>
+    <div class="stat-card danger"><div class="val" id="s-rechazados">—</div><div class="lbl">Rechazados hoy</div></div>
+    <div class="stat-card danger"><div class="val" id="s-coacciones">—</div><div class="lbl">Coacciones activas</div></div>
+    <div class="stat-card warn"><div class="val" id="s-pendientes">—</div><div class="lbl">Pend. aprobación</div></div>
+  </div>
+
+  <!-- Zona alertas coacción -->
+  <div id="alertaZona" style="margin-bottom:18px;"></div>
+
+  <!-- Bitácora con filtros -->
   <div class="card">
     <div class="card-title">📋 Bitácora de ingresos (minuta)</div>
-    <div id="minuta"><div style="font-size:.74rem;color:var(--muted);">Cargando…</div></div>
+
+    <!-- Filtros -->
+    <div class="filtros">
+      <select id="fil-tipo" onchange="aplicarFiltros()">
+        <option value="">Todos los tipos</option>
+        <option value="visita">Visita</option>
+        <option value="contratista">Contratista</option>
+        <option value="domicilio">Domicilio</option>
+        <option value="proveedor">Proveedor</option>
+      </select>
+      <input type="date" id="fil-fecha" onchange="aplicarFiltros()" title="Filtrar por fecha">
+      <button class="btn-fil" onclick="limpiarFiltros()">✕ Limpiar filtros</button>
+      <button class="btn-csv" onclick="exportarCSV()">⬇️ Exportar CSV</button>
+      <span class="hint" id="fil-count" style="margin-left:4px;"></span>
+    </div>
+
+    <div id="minuta"><div class="hint">Cargando…</div></div>
   </div>
+
 </div>
 
 <audio id="sirena" preload="auto">
@@ -48,7 +94,23 @@ const $=id=>document.getElementById(id);
 const EID=new URLSearchParams(location.search).get('empresa_id')||'';
 const Q=EID?('&empresa_id='+encodeURIComponent(EID)):'';
 let _ultimaCoaccion=null;
+let _logsCache=[];
 
+// ── Estadísticas ──────────────────────────────────────────────────────────
+async function cargarEstadisticas(){
+  try{
+    const r=await fetch(`${API}/estadisticas?_t=${Date.now()}${Q}`); const j=await r.json();
+    if(!j.ok) return;
+    const d=j.data;
+    $('s-entradas').textContent  = d.entradas_hoy ?? '—';
+    $('s-total').textContent     = d.total_hoy ?? '—';
+    $('s-rechazados').textContent= d.rechazados_hoy ?? '—';
+    $('s-coacciones').textContent= d.coacciones_activas ?? '—';
+    $('s-pendientes').textContent= d.contratistas_pendientes ?? '—';
+  }catch{}
+}
+
+// ── Coacciones ────────────────────────────────────────────────────────────
 async function pollCoacciones(){
   try{
     const r=await fetch(`${API}/coacciones-activas?_t=${Date.now()}${Q}`); const j=await r.json();
@@ -60,8 +122,11 @@ async function pollCoacciones(){
       _ultimaCoaccion=null;
       return;
     }
-    // Sonar al detectar una nueva
-    if(list[0]._id !== _ultimaCoaccion){ _ultimaCoaccion=list[0]._id; try{$('sirena').play();}catch{} if(navigator.vibrate)navigator.vibrate([300,100,300]); }
+    if(list[0]._id !== _ultimaCoaccion){
+      _ultimaCoaccion=list[0]._id;
+      try{$('sirena').play();}catch{}
+      if(navigator.vibrate) navigator.vibrate([300,100,300]);
+    }
     zona.innerHTML='<div class="alerta"><div class="big">🚨 ¡EMERGENCIA DE SEGURIDAD — COACCIÓN!</div>'
       +'<div style="font-size:.85rem;">Acceso bajo coacción en desarrollo. Proceder según protocolo de seguridad armada.</div>'
       +'<div class="row">'+list.map(c=>{
@@ -76,32 +141,80 @@ async function pollCoacciones(){
       }).join('')+'</div></div>';
   }catch{}
 }
+
 async function atender(id){
   try{
     const r=await fetch(`${API}/coaccion/atender`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({log_id:id})});
-    await r.json(); pollCoacciones();
+    await r.json(); pollCoacciones(); cargarEstadisticas();
   }catch{}
 }
+
+// ── Bitácora con filtros ──────────────────────────────────────────────────
+function aplicarFiltros(){ cargarMinuta(); }
+function limpiarFiltros(){
+  $('fil-tipo').value=''; $('fil-fecha').value='';
+  cargarMinuta();
+}
+
 async function cargarMinuta(){
   try{
-    const r=await fetch(`${API}/logs?limite=15&_t=${Date.now()}${Q}`); const j=await r.json();
+    const tipo=$('fil-tipo').value;
+    const fecha=$('fil-fecha').value;
+    let qs=`${API}/logs?limite=60&_t=${Date.now()}${Q}`;
+    if(tipo) qs+=`&tipo=${encodeURIComponent(tipo)}`;
+    if(fecha) qs+=`&fecha=${encodeURIComponent(fecha)}`;
+    const r=await fetch(qs); const j=await r.json();
     if(!j.ok) return;
-    const list=j.data||[];
-    if(!list.length){ $('minuta').innerHTML='<div style="font-size:.74rem;color:var(--muted);">Sin registros.</div>'; return; }
-    const color=e=>e.includes('autorizado')?'var(--green)':e.includes('rechazado')?'var(--red)':e.includes('coaccion')?'#b00020':e==='ingreso_manual'?'var(--orange)':'var(--muted)';
-    $('minuta').innerHTML=list.map(l=>{
-      const v=l.visitante||{},u=l.unidad||{};
-      const f=l.creado_en?new Date(l.creado_en.includes('T')?l.creado_en:l.creado_en+'Z').toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-      return `<div class="minuta-item"><div class="dot" style="background:${color(l.estado)};"></div>
-        <div style="flex:1;min-width:0;"><div style="font-size:.82rem;font-weight:700;">${v.nombre||'—'} ${u.apartamento?('· Apto '+u.apartamento):''}</div>
-        <div style="font-size:.68rem;color:var(--muted);">${l.metodo||''} · ${l.estado||''}</div></div>
-        <div style="font-size:.66rem;color:var(--muted);">${f}</div></div>`;
-    }).join('');
+    _logsCache=j.data||[];
+    renderMinuta(_logsCache);
   }catch{}
 }
-pollCoacciones(); cargarMinuta();
+
+const colorDot=e=>e.includes('autorizado')?'var(--green)':e.includes('rechazado')?'var(--red)':e.includes('coaccion')?'#b00020':e==='ingreso_manual'?'var(--orange)':'var(--muted)';
+const labelEst=e=>({autorizado:'Autorizado',rechazado:'Rechazado',ingreso_manual:'Ingreso manual',
+  autorizado_citofonia:'Autorizado (citófono)',rechazado_citofonia:'Rechazado (citófono)',
+  coaccion:'⚠️ Coacción',registrado:'Registrado',courier_esperando:'Domicilio'}[e]||e);
+
+function renderMinuta(list){
+  $('fil-count').textContent=list.length?`${list.length} registro(s)`:'';
+  if(!list.length){ $('minuta').innerHTML='<div class="hint">Sin registros para estos filtros.</div>'; return; }
+  $('minuta').innerHTML=list.map(l=>{
+    const v=l.visitante||{},u=l.unidad||{};
+    const f=l.creado_en?new Date(l.creado_en.includes('T')?l.creado_en:l.creado_en+'Z').toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    return `<div class="minuta-item"><div class="dot" style="background:${colorDot(l.estado)};"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.82rem;font-weight:700;">${v.nombre||'—'} ${u.apartamento?('· Apto '+u.apartamento):''} ${u.torre?('T'+u.torre):''}</div>
+        <div class="hint">${l.metodo||''} · ${labelEst(l.estado)}${v.tipo?' · '+v.tipo:''}</div>
+      </div>
+      <div style="font-size:.66rem;color:var(--muted);text-align:right;">${f}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Exportar CSV ──────────────────────────────────────────────────────────
+function exportarCSV(){
+  if(!_logsCache.length){ alert('No hay datos para exportar'); return; }
+  const cols=['Nombre','Tipo','Torre','Apartamento','Método','Estado','Fecha'];
+  const rows=_logsCache.map(l=>{
+    const v=l.visitante||{},u=l.unidad||{};
+    const f=l.creado_en?new Date(l.creado_en.includes('T')?l.creado_en:l.creado_en+'Z').toLocaleString('es-CO'):'';
+    return [v.nombre||'',v.tipo||'',u.torre||'',u.apartamento||'',l.metodo||'',l.estado||'',f]
+      .map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv='﻿'+[cols.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`accesos_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// Inicio
+cargarEstadisticas();
+pollCoacciones();
+cargarMinuta();
 setInterval(pollCoacciones, 4000);
-setInterval(cargarMinuta, 12000);
+setInterval(cargarMinuta, 20000);
+setInterval(cargarEstadisticas, 60000);
 </script>
 </body>
 </html>
