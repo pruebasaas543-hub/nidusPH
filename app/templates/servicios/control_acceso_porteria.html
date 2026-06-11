@@ -73,12 +73,23 @@ html,body{height:100%;}body{background:var(--bg);color:var(--text);}
 
 <!-- Modal ingreso manual -->
 <div id="modalManual" class="modal">
-  <div class="modal-box">
-    <div class="card-title">⚡ Ingreso manual rápido</div>
-    <div class="field"><label>Nombre del visitante *</label><input id="m-nombre" autocomplete="off"></div>
-    <div class="field"><label>Documento *</label><input id="m-doc" autocomplete="off"></div>
+  <div class="modal-box" style="max-width:500px;max-height:90vh;overflow-y:auto;">
+    <div class="card-title">⚡ Ingreso manual</div>
+    <!-- Tipo de visita -->
+    <div class="field">
+      <label>Tipo de visita *</label>
+      <select id="m-tipo" onchange="renderCamposDinamicos()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;">
+        <option value="visita">👥 Visita / Familiar</option>
+        <option value="contratista">🔧 Contratista</option>
+        <option value="domicilio">📦 Domicilio / Courier</option>
+        <option value="proveedor">🏢 Proveedor</option>
+      </select>
+    </div>
+    <!-- Campos dinámicos según tipo -->
+    <div id="campos-dinamicos"></div>
+    <!-- Unidad destino (siempre presente) -->
     <div class="row2">
-      <div class="field"><label>Torre/Bloque</label><input id="m-torre" autocomplete="off"></div>
+      <div class="field"><label>Torre / Bloque</label><input id="m-torre" autocomplete="off"></div>
       <div class="field"><label>Apartamento *</label><input id="m-apto" autocomplete="off"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:6px;">
@@ -126,20 +137,100 @@ function pintarResultado(d){
   cargarMinuta();
 }
 
-// ── Ingreso manual ──
-function abrirManual(){ $('modalManual').classList.add('show'); $('manualResult').innerHTML=''; setTimeout(()=>$('m-nombre').focus(),50); }
-function cerrarManual(){ $('modalManual').classList.remove('show'); }
-async function guardarManual(){
-  const nombre=$('m-nombre').value.trim(), documento=$('m-doc').value.trim(), apto=$('m-apto').value.trim();
-  if(!nombre||!documento||!apto){ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">Nombre, documento y apartamento son obligatorios.</div>'; return; }
-  const unidad={torre:$('m-torre').value.trim(),apartamento:apto};
+// ── Formularios dinámicos ──────────────────────────────────────────────────
+let _formsConfig = {visita:[],contratista:[],domicilio:[],proveedor:[]};
+
+async function cargarFormsConfig(){
+  if(!EID) return;
   try{
-    const r=await fetch(`${API}/ingreso-manual`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre,documento,unidad,empresa_id:EID})});
+    const r = await fetch(`${API}/config?empresa_id=${encodeURIComponent(EID)}`);
+    const j = await r.json();
+    if(j.ok && j.data && j.data.formularios){
+      _formsConfig = j.data.formularios;
+    }
+  }catch{}
+  renderCamposDinamicos();
+}
+
+function renderCamposDinamicos(){
+  const tipo  = $('m-tipo').value;
+  const campos = _formsConfig[tipo] || [];
+  const c = $('campos-dinamicos');
+  if(!campos.length){ c.innerHTML=''; return; }
+  c.innerHTML = campos.map(f => {
+    const req = f.requerido ? '*' : '';
+    const id  = `df_${f.id}`;
+    let input;
+    if(f.tipo === 'booleano'){
+      input = `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="${id}" style="width:18px;height:18px;cursor:pointer;">
+          <span style="font-size:.88rem;color:var(--text);">${f.label}${req?` <span style="color:var(--red);">${req}</span>`:''}</span>
+        </label>
+      </div>`;
+    } else if(f.tipo === 'lista'){
+      const opts = (f.opciones||[]).map(o=>`<option value="${o}">${o}</option>`).join('');
+      input = `<select id="${id}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;">
+        <option value="">— Seleccionar —</option>${opts}
+      </select>`;
+    } else {
+      const ktype = f.tipo === 'numero' ? 'text' : 'text';
+      input = `<input type="${ktype}" id="${id}" autocomplete="off"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;outline:none;color:var(--text);background:var(--bg2);"
+        ${f.tipo==='numero'?'inputmode="numeric"':''}>`;
+    }
+    return `<div class="field">
+      <label>${f.label}${req?` <span style="color:var(--red);">${req}</span>`:''}</label>
+      ${input}
+    </div>`;
+  }).join('');
+}
+
+function _recogerCamposDinamicos(){
+  const tipo   = $('m-tipo').value;
+  const campos = _formsConfig[tipo] || [];
+  const datos  = {};
+  for(const f of campos){
+    const el = document.getElementById(`df_${f.id}`);
+    if(!el) continue;
+    const val = f.tipo === 'booleano' ? el.checked : el.value.trim();
+    if(f.requerido && !val && val !== false){
+      throw new Error(`El campo "${f.label}" es obligatorio`);
+    }
+    datos[f.label] = val;
+  }
+  return datos;
+}
+
+// ── Ingreso manual ──
+function abrirManual(){
+  $('modalManual').classList.add('show');
+  $('manualResult').innerHTML='';
+  renderCamposDinamicos();
+  setTimeout(()=>{ const first=document.querySelector('#campos-dinamicos input'); if(first) first.focus(); },60);
+}
+function cerrarManual(){ $('modalManual').classList.remove('show'); }
+
+async function guardarManual(){
+  const apto = $('m-apto').value.trim();
+  if(!apto){ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">El apartamento es obligatorio.</div>'; return; }
+  let camposDinamicos = {};
+  try{ camposDinamicos = _recogerCamposDinamicos(); }
+  catch(e){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${e.message}</div>`; return; }
+  // Nombre y documento desde campos dinámicos si existen, si no, pide los fijos
+  const nombre   = camposDinamicos['Nombre completo'] || camposDinamicos['Nombre mensajero'] || '—';
+  const documento= camposDinamicos['N° Documento'] || camposDinamicos['N° Doc'] || '';
+  const unidad   = {torre:$('m-torre').value.trim(), apartamento:apto};
+  const payload  = {nombre, documento, unidad, tipo_visita:$('m-tipo').value, campos_extra:camposDinamicos, empresa_id:EID};
+  try{
+    const r=await fetch(`${API}/ingreso-manual`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json();
     if(!j.ok){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${j.error}</div>`; return; }
-    $('manualResult').innerHTML=`<div class="hint" style="color:var(--green);">✅ Registrado. Log: ${j.data.log_id}</div>
-      <button class="btn btn-pri" style="margin-top:8px;" onclick="llamarCitofono('${j.data.log_id}','${nombre.replace(/'/g,'')}')">📞 Llamar a citófono del residente</button>`;
-    $('m-nombre').value='';$('m-doc').value='';$('m-torre').value='';$('m-apto').value='';
+    const nomEsc = nombre.replace(/'/g,'');
+    $('manualResult').innerHTML=`<div class="hint" style="color:var(--green);">✅ Registrado correctamente</div>
+      <button class="btn btn-pri" style="margin-top:8px;" onclick="llamarCitofono('${j.data.log_id}','${nomEsc}')">📞 Llamar a citófono del residente</button>`;
+    $('m-torre').value=''; $('m-apto').value='';
+    renderCamposDinamicos();
     cargarMinuta();
   }catch{ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">Error de conexión</div>'; }
 }
@@ -193,6 +284,7 @@ async function cargarMinuta(){
 document.addEventListener('keydown',e=>{ if(e.key==='F2'){ e.preventDefault(); abrirManual(); } });
 $('codigo').focus();
 cargarMinuta();
+cargarFormsConfig();
 setInterval(cargarMinuta, 15000);
 </script>
 </body>

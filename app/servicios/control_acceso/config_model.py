@@ -59,6 +59,29 @@ class CaConfigModel:
         "notificaciones": {
             "avisar_residente_ingreso": True,
         },
+        "formularios": {
+            "visita": [
+                {"id": "f_nombre",    "label": "Nombre completo",  "tipo": "texto",   "requerido": True},
+                {"id": "f_documento", "label": "N° Documento",     "tipo": "numero",  "requerido": True},
+                {"id": "f_motivo",    "label": "Motivo de visita", "tipo": "texto",   "requerido": False},
+            ],
+            "contratista": [
+                {"id": "f_nombre",   "label": "Nombre completo", "tipo": "texto",  "requerido": True},
+                {"id": "f_doc",      "label": "N° Documento",    "tipo": "numero", "requerido": True},
+                {"id": "f_empresa",  "label": "Empresa",         "tipo": "texto",  "requerido": True},
+                {"id": "f_trabajo",  "label": "Trabajo a realizar", "tipo": "texto", "requerido": False},
+            ],
+            "domicilio": [
+                {"id": "f_empresa",  "label": "Empresa / App",   "tipo": "texto",  "requerido": True},
+                {"id": "f_nombre",   "label": "Nombre mensajero","tipo": "texto",  "requerido": False},
+                {"id": "f_unidad",   "label": "Unidad destino",  "tipo": "texto",  "requerido": True},
+            ],
+            "proveedor": [
+                {"id": "f_nombre",   "label": "Nombre completo", "tipo": "texto",  "requerido": True},
+                {"id": "f_doc",      "label": "N° Documento",    "tipo": "numero", "requerido": True},
+                {"id": "f_empresa",  "label": "Empresa",         "tipo": "texto",  "requerido": True},
+            ],
+        },
     }
 
     @staticmethod

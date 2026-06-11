@@ -43,6 +43,14 @@ input:checked+.tog-sl.red{background:var(--red);}
 .punto{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);}
 /* Blacklist tabla */
 .bl-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);}
+/* Formulario dinámico */
+.form-tipo-btn{padding:7px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg2);color:var(--muted);font-size:.8rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s;}
+.form-tipo-btn.active{background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:var(--accent);color:var(--accent);}
+.campo-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:7px;background:var(--bg2);}
+.campo-row .drag-handle{cursor:grab;color:var(--muted);font-size:1rem;user-select:none;}
+.campo-tipo-badge{font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(39,135,245,.1);color:var(--accent);white-space:nowrap;}
+.campo-req-badge{font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(229,62,62,.1);color:var(--red);}
+.campo-opt-badge{font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(138,156,200,.12);color:var(--muted);}
 /* Tarjeta contratista pendiente */
 .pend-card{border:1.5px solid rgba(183,121,31,.35);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:rgba(255,250,235,.6);}
 .pend-card .nombre{font-size:.92rem;font-weight:700;color:var(--text);}
@@ -241,6 +249,53 @@ input:checked+.tog-sl.red{background:var(--red);}
   <div id="blacklistLista" style="margin-top:12px;"></div>
 </div>
 
+<!-- Formularios dinámicos -->
+<div class="card">
+  <h3>📋 Formularios de registro por tipo de visita</h3>
+  <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Define qué campos debe completar la portería al registrar cada tipo de visitante.</p>
+
+  <!-- Tabs de tipo de visita -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1.5px solid var(--border);padding-bottom:12px;">
+    <button class="form-tipo-btn active" data-tipo="visita"       onclick="_fTipo(this)">👥 Visita</button>
+    <button class="form-tipo-btn"        data-tipo="contratista"  onclick="_fTipo(this)">🔧 Contratista</button>
+    <button class="form-tipo-btn"        data-tipo="domicilio"    onclick="_fTipo(this)">📦 Domicilio</button>
+    <button class="form-tipo-btn"        data-tipo="proveedor"    onclick="_fTipo(this)">🏢 Proveedor</button>
+  </div>
+
+  <!-- Lista de campos del tipo activo -->
+  <div id="form-campos-lista" style="margin-bottom:14px;min-height:60px;"></div>
+
+  <!-- Agregar campo -->
+  <div style="background:var(--bg);border:1.5px dashed var(--border);border-radius:12px;padding:14px;">
+    <div style="font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">+ Nuevo campo</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <div>
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">Etiqueta</div>
+        <input type="text" id="fc-label" placeholder="Ej: Placa vehículo" style="width:200px;">
+      </div>
+      <div>
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">Tipo</div>
+        <select id="fc-tipo" onchange="_fMostrarOpciones()" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;">
+          <option value="texto">Texto libre</option>
+          <option value="numero">Número / Documento</option>
+          <option value="booleano">Sí / No</option>
+          <option value="lista">Lista de opciones</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-bottom:2px;">
+        <label class="tog"><input type="checkbox" id="fc-requerido" checked><span class="tog-sl"></span></label>
+        <span style="font-size:.78rem;color:var(--text);">Requerido</span>
+      </div>
+      <button class="btn btn-pri btn-sm" onclick="_fAgregarCampo()">+ Agregar</button>
+    </div>
+    <!-- Opciones para tipo lista -->
+    <div id="fc-opciones-wrap" style="display:none;margin-top:10px;">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">Opciones (una por línea)</div>
+      <textarea id="fc-opciones" rows="3" style="width:100%;max-width:400px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.83rem;font-family:inherit;resize:vertical;outline:none;" placeholder="Ej:&#10;Visita familiar&#10;Reunión de negocios&#10;Otro"></textarea>
+    </div>
+  </div>
+</div>
+
 <!-- Guardar configuración -->
 <div style="display:flex;justify-content:flex-end;margin-top:4px;margin-bottom:24px;">
   <button class="btn btn-pri" onclick="guardarConfig()" style="padding:12px 32px;font-size:.92rem;">💾 Guardar configuración</button>
@@ -301,6 +356,16 @@ async function cargarConfig(){
     const cito=d.citofonia||{};
     $('citofonia_activo').checked  = !!cito.activo;
     $('limite_llamadas_mes').value = cito.limite_llamadas_mes||50;
+
+    // Formularios dinámicos
+    const fms = d.formularios || {};
+    _formularios = {
+      visita:       fms.visita       || [],
+      contratista:  fms.contratista  || [],
+      domicilio:    fms.domicilio    || [],
+      proveedor:    fms.proveedor    || [],
+    };
+    _fRenderCampos();
 
     const lk=d.lockdown||{};
     $('lockdown_whatsapp').checked = lk.notificar_whatsapp!==false;
@@ -402,6 +467,7 @@ async function guardarConfig(){
       notificar_llamada:  $('lockdown_llamada').checked,
       numeros_emergencia: _numeros,
     },
+    formularios: _formularios,
   };
   try{
     const r=await fetch(`${API}/config${Q}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -539,6 +605,76 @@ async function confirmarRechazo(){
     if(j.ok){ toast('❌ Solicitud rechazada — Se notificó al residente'); cargarPendientes(); }
     else toast(j.error||'Error al rechazar', false);
   }catch{ toast('Error de conexión',false); }
+}
+
+// ── Formularios dinámicos ─────────────────────────────────────────────────
+const _TIPO_LBL = {texto:'Texto',numero:'Número',booleano:'Sí/No',lista:'Lista'};
+let _formularios = {visita:[],contratista:[],domicilio:[],proveedor:[]};
+let _tipoActivo  = 'visita';
+
+function _fTipo(btn){
+  document.querySelectorAll('.form-tipo-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _tipoActivo = btn.dataset.tipo;
+  _fRenderCampos();
+}
+
+function _fRenderCampos(){
+  const campos = _formularios[_tipoActivo] || [];
+  const c = $('form-campos-lista');
+  if(!campos.length){
+    c.innerHTML='<div style="font-size:.78rem;color:var(--muted);padding:8px 0;">Sin campos configurados. Agrega al menos uno.</div>';
+    return;
+  }
+  c.innerHTML = campos.map((f,i) => {
+    const tipoBadge  = `<span class="campo-tipo-badge">${_TIPO_LBL[f.tipo]||f.tipo}</span>`;
+    const reqBadge   = f.requerido
+      ? `<span class="campo-req-badge">Requerido</span>`
+      : `<span class="campo-opt-badge">Opcional</span>`;
+    const opciones   = (f.opciones||[]).length ? `<div style="font-size:.68rem;color:var(--muted);margin-top:2px;">Opciones: ${f.opciones.join(', ')}</div>` : '';
+    return `<div class="campo-row">
+      <span class="drag-handle">⠿</span>
+      <div style="flex:1;">
+        <div style="font-size:.85rem;font-weight:700;">${f.label}</div>${opciones}
+      </div>
+      ${tipoBadge}${reqBadge}
+      <button class="btn-del" onclick="_fEliminarCampo(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function _fMostrarOpciones(){
+  $('fc-opciones-wrap').style.display = $('fc-tipo').value==='lista' ? 'block' : 'none';
+}
+
+function _fAgregarCampo(){
+  const label = $('fc-label').value.trim();
+  if(!label){ toast('Escribe una etiqueta para el campo', false); return; }
+  const tipo  = $('fc-tipo').value;
+  const campo = {
+    id:         'f_' + Date.now(),
+    label,
+    tipo,
+    requerido:  $('fc-requerido').checked,
+  };
+  if(tipo === 'lista'){
+    const raw = ($('fc-opciones').value || '').trim();
+    if(!raw){ toast('Agrega al menos una opción para la lista', false); return; }
+    campo.opciones = raw.split('\n').map(o=>o.trim()).filter(Boolean);
+  }
+  if(!_formularios[_tipoActivo]) _formularios[_tipoActivo] = [];
+  _formularios[_tipoActivo].push(campo);
+  _fRenderCampos();
+  $('fc-label').value = '';
+  $('fc-opciones').value = '';
+  $('fc-opciones-wrap').style.display = 'none';
+  $('fc-tipo').value = 'texto';
+  $('fc-requerido').checked = true;
+}
+
+function _fEliminarCampo(idx){
+  _formularios[_tipoActivo].splice(idx, 1);
+  _fRenderCampos();
 }
 
 // Arranque
