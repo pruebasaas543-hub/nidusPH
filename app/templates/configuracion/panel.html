@@ -6899,15 +6899,42 @@ function _dirRenderGrid() {
         PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#059669' },
         LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#d97706' },
         LOCAL:       { icon:'📍', label:'Locales',            color:'#7c3aed' },
+        RESIDENTES:  { icon:'🏠', label:'Residentes',         color:'#276749' },
     };
     grid.innerHTML = _dirContactos.map((c, i) => {
         const m      = BLOQUE_META[c.bloque] || { icon:'👤', label:c.bloque, color:'#042243' };
         const panico = c.vinculado_al_boton_de_panico;
+        const esRes  = c.bloque === 'RESIDENTES';
         const fotoTs  = c.actualizado_en || c.creado_en || Date.now();
         const fotoSrc = c.tiene_foto ? `/config/directorio/${c._id}/foto?_t=${fotoTs}` : '';
         const avatar  = fotoSrc
             ? `<img class="dir-avatar" src="${fotoSrc}" alt="${c.nombre}" style="--dc-color:${m.color}">`
             : `<div class="dir-avatar-placeholder" style="--dc-color:${m.color}">${m.icon}</div>`;
+
+        // Nombre completo para residentes
+        const nombreCompleto = esRes && c.apellidos
+            ? `${c.nombre} ${c.apellidos}`
+            : c.nombre;
+
+        // Info adicional de residente
+        const residenteInfo = esRes ? (() => {
+            const tipo = c.tipo_residente || '';
+            const ubicacion = [c.torre ? `Torre ${c.torre}` : '', c.apartamento ? `Apto ${c.apartamento}` : ''].filter(Boolean).join(' · ');
+            const veh = c.tiene_parqueadero && c.vehiculo && c.vehiculo.placa
+                ? `<div class="dir-contact-row" style="margin-top:4px;">
+                    <span class="dir-contact-icon">🚗</span>
+                    <span style="font-size:.77rem;color:#042243;">${[c.vehiculo.marca, c.vehiculo.color, c.vehiculo.placa].filter(Boolean).join(' · ')}</span>
+                   </div>`
+                : '';
+            return `
+                ${tipo ? `<div style="font-size:.74rem;color:#276749;font-weight:700;margin-top:2px;">${tipo}</div>` : ''}
+                ${ubicacion ? `<div class="dir-contact-row" style="margin-top:6px;">
+                    <span class="dir-contact-icon">🏢</span>
+                    <span style="font-size:.78rem;color:#042243;font-weight:600;">${ubicacion}</span>
+                </div>` : ''}
+                ${veh}`;
+        })() : '';
+
         const tels = (c.telefonos||[]).slice(0,2).map(t => {
             const num = typeof t === 'object' ? (t.numero||'') : t;
             const pre = typeof t === 'object' ? (t.prefijo||'+57') : '+57';
@@ -6932,11 +6959,12 @@ function _dirRenderGrid() {
                 <div class="dir-card-header">
                     ${avatar}
                     <div class="dir-card-info">
-                        <div class="dir-card-name">${c.nombre}</div>
+                        <div class="dir-card-name">${nombreCompleto}</div>
                         ${c.cargo_titulo ? `<div class="dir-card-cargo">${c.cargo_titulo}</div>` : ''}
                         <span class="dir-badge dir-badge-${c.bloque}">${m.icon} ${m.label}</span>
                     </div>
                 </div>
+                ${esRes ? `<div class="dir-contacts">${residenteInfo}</div>` : ''}
                 ${(tels||correoHtml) ? `<div class="dir-contacts">${tels}${correoHtml}</div>` : ''}
                 <div class="dir-flags">
                     ${flagChip(c.es_visible_para_residentes,    '👁 Residentes')}
