@@ -207,9 +207,76 @@ class AccessLogModel:
             return {}
 
     @staticmethod
-    def listar(conjunto_id: str, limite: int = 50) -> list:
-        return list(_logs().find({"conjunto_id": ObjectId(conjunto_id)})
-                    .sort("creado_en", -1).limit(limite))
+    def listar(conjunto_id: str, limite: int = 50,
+               residente_id: str = "", tipo: str = "", fecha: str = "") -> list:
+        filtro: dict = {"conjunto_id": ObjectId(conjunto_id)}
+        if residente_id:
+            try:
+                filtro["solicitante_id"] = ObjectId(residente_id)
+            except Exception:
+                pass
+        if tipo:
+            filtro["visitante.tipo"] = tipo
+        if fecha:
+            try:
+                desde = datetime.strptime(fecha, "%Y-%m-%d")
+                hasta = desde + timedelta(days=1)
+                filtro["creado_en"] = {"$gte": desde, "$lt": hasta}
+            except Exception:
+                pass
+        return list(_logs().find(filtro).sort("creado_en", -1).limit(limite))
+
+    @staticmethod
+    def listar_por_unidad(conjunto_id: str, torre: str, apartamento: str, limite: int = 40) -> list:
+        """Logs de acceso a una unidad específica (para historial del residente)."""
+        filtro: dict = {"conjunto_id": ObjectId(conjunto_id)}
+        if torre:
+            filtro["unidad.torre"] = torre
+        if apartamento:
+            filtro["unidad.apartamento"] = apartamento
+        return list(_logs().find(filtro).sort("creado_en", -1).limit(limite))
+
+    @staticmethod
+    def estadisticas(conjunto_id: str) -> dict:
+        """Métricas del día para el dashboard de administración."""
+        ahora = datetime.utcnow()
+        hoy_inicio = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+        hoy_fin = hoy_inicio + timedelta(days=1)
+
+        base = {"conjunto_id": ObjectId(conjunto_id)}
+        hoy_q = {"creado_en": {"$gte": hoy_inicio, "$lt": hoy_fin}}
+
+        entradas_hoy = _logs().count_documents({
+            **base, **hoy_q,
+            "estado": {"$in": ["autorizado", "autorizado_citofonia", "ingreso_manual"]},
+        })
+        rechazados_hoy = _logs().count_documents({
+            **base, **hoy_q,
+            "estado": {"$regex": "rechazado"},
+        })
+        total_hoy = _logs().count_documents({**base, **hoy_q})
+        coacciones_activas = _logs().count_documents({**base, "coaccion_activa": True})
+
+        pipeline = [
+            {"$match": {**base, **hoy_q}},
+            {"$group": {"_id": "$visitante.tipo", "total": {"$sum": 1}}},
+        ]
+        por_tipo = {(r["_id"] or "otro"): r["total"] for r in _logs().aggregate(pipeline)}
+
+        # Credenciales pendientes de aprobación
+        contratistas_pendientes = db["access_credentials"].count_documents({
+            "conjunto_id": ObjectId(conjunto_id),
+            "estado": "pendiente_aprobacion",
+        })
+
+        return {
+            "entradas_hoy": entradas_hoy,
+            "rechazados_hoy": rechazados_hoy,
+            "total_hoy": total_hoy,
+            "coacciones_activas": coacciones_activas,
+            "contratistas_pendientes": contratistas_pendientes,
+            "por_tipo": por_tipo,
+        }
 
     @staticmethod
     def coacciones_activas(conjunto_id: str, minutos: int = 30) -> list:

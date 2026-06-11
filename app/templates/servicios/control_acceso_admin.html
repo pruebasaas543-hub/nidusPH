@@ -11,35 +11,49 @@
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit','Segoe UI',sans-serif;}
 html,body{height:100%;background:#FFFFFF;color:#1E2756;}
 
-/* form-control (replica Bootstrap para el select) */
 .form-control{display:block;width:100%;padding:.375rem .75rem;font-size:1rem;line-height:1.5;color:#495057;
   background-color:#fff;background-clip:padding-box;border:1px solid #ced4da;border-radius:.25rem;
   transition:border-color .15s ease-in-out,box-shadow .15s ease-in-out;font-family:inherit;}
 .form-control:focus{color:#495057;background-color:#fff;border-color:#80bdff;outline:0;
   box-shadow:0 0 0 .2rem rgba(0,123,255,.25);}
 
-/* Tabs (idéntico a dir-tab-btn en panel.html) */
 .dir-tab-btn{padding:6px 14px;border-radius:20px;border:1.5px solid rgba(4,34,67,.25);background:transparent;
   color:#042243;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;}
 .dir-tab-btn:hover{background:rgba(4,34,67,.08);}
 .dir-tab-btn.active{background:#042243;color:#fff;border-color:#042243;}
 
-/* Badge coacción */
 .ca-badge{display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;margin-left:4px;}
 .ca-badge.on{display:inline-block;animation:pulse .8s infinite;}
 @keyframes pulse{50%{opacity:.4;}}
 
-/* iframe contenedor */
+/* Stats cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:#EEF2FF;border:1.5px solid rgba(39,135,245,.18);border-radius:14px;padding:16px 14px;text-align:center;}
+.stat-card .val{font-size:1.8rem;font-weight:800;line-height:1.1;}
+.stat-card .lbl{font-size:.68rem;font-weight:700;color:#8A9CC8;margin-top:4px;letter-spacing:.3px;}
+.stat-card.danger{border-color:rgba(229,62,62,.35);background:rgba(229,62,62,.06);}
+.stat-card.danger .val{color:#e53e3e;}
+.stat-card.warn{border-color:rgba(183,121,31,.35);background:rgba(183,121,31,.06);}
+.stat-card.warn .val{color:#b7791f;}
+.stat-card.ok{border-color:rgba(39,103,73,.35);background:rgba(39,103,73,.06);}
+.stat-card.ok .val{color:#276749;}
+
 .ca-iframe-wrap{border:1px solid rgba(4,34,67,.1);border-radius:12px;overflow:hidden;margin-top:14px;}
 .ca-iframe-wrap iframe{width:100%;height:800px;border:none;display:block;background:#EEF2FF;}
 .ca-aviso{padding:70px 20px;text-align:center;color:#8A9CC8;font-size:.92rem;}
 .hidden{display:none;}
+
+/* Pendientes inline */
+.pend-card{border:1.5px solid rgba(183,121,31,.3);border-radius:12px;padding:14px;margin-bottom:10px;background:rgba(255,250,235,.6);}
+.btn-apr{background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.35);color:#276749;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;}
+.btn-rec{background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.25);color:#e53e3e;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;margin-left:6px;}
+.hint{font-size:.74rem;color:#8A9CC8;}
 </style>
 </head>
 <body>
 <div style="padding:24px;">
 
-  <!-- Cabecera: idéntica a cfg-boton-panico en panel.html -->
+  <!-- Cabecera -->
   <div style="display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;">
     <a href="{{ url_for('auth.dashboard') }}"
        onclick="(window.top||window).location.href='{{ url_for('auth.dashboard') }}';return false;"
@@ -57,7 +71,7 @@ html,body{height:100%;background:#FFFFFF;color:#1E2756;}
     </div>
   </div>
 
-  <!-- Selector empresa: idéntico al de cfg-boton-panico en panel.html -->
+  <!-- Selector empresa (SuperAdmin) -->
   {% if es_sistema %}
   <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
@@ -75,15 +89,28 @@ html,body{height:100%;background:#FFFFFF;color:#1E2756;}
   </div>
   {% endif %}
 
-  <!-- Tabs: idénticos a cfg-boton-panico en panel.html -->
+  <!-- Dashboard de estadísticas -->
+  <div id="stats-section" style="display:none;margin-bottom:20px;">
+    <div style="font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#2787F5;margin-bottom:10px;">📊 Estadísticas del día</div>
+    <div class="stats-grid">
+      <div class="stat-card ok"><div class="val" id="s-entradas">—</div><div class="lbl">Entradas hoy</div></div>
+      <div class="stat-card"><div class="val" id="s-total">—</div><div class="lbl">Registros hoy</div></div>
+      <div class="stat-card danger"><div class="val" id="s-rechazados">—</div><div class="lbl">Rechazados hoy</div></div>
+      <div class="stat-card danger"><div class="val" id="s-coacciones">—</div><div class="lbl">Coacciones activas</div></div>
+      <div class="stat-card warn"><div class="val" id="s-pendientes">—</div><div class="lbl">Pend. aprobación</div></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
     <button class="dir-tab-btn active" data-tab="monitoreo" onclick="cambiar('monitoreo',this)">🛡️ Monitoreo <span class="ca-badge" id="badgeCoaccion">!</span></button>
     <button class="dir-tab-btn" data-tab="porteria" onclick="cambiar('porteria',this)">🚪 Portería</button>
     <button class="dir-tab-btn" data-tab="credenciales" onclick="cambiar('credenciales',this)">🪪 Credenciales</button>
+    <button class="dir-tab-btn" data-tab="pendientes" onclick="cambiar('pendientes',this)">⏳ Pendientes <span class="ca-badge" id="badgePend"></span></button>
   </div>
 
-  <!-- Contenido -->
-  <div class="ca-iframe-wrap">
+  <!-- Contenido con iframes -->
+  <div class="ca-iframe-wrap" id="iframe-wrap">
     {% if es_sistema %}
     <div id="aviso" class="ca-aviso">👆 Selecciona una empresa arriba para comenzar.</div>
     {% endif %}
@@ -92,7 +119,13 @@ html,body{height:100%;background:#FFFFFF;color:#1E2756;}
     <iframe id="f-credenciales" class="hidden"></iframe>
   </div>
 
+  <!-- Panel pendientes (inline, no iframe) -->
+  <div id="panel-pendientes" style="display:none;margin-top:14px;">
+    <div style="font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#b7791f;margin-bottom:12px;">⏳ Credenciales pendientes de aprobación</div>
+    <div id="pend-lista"><div class="hint">Cargando…</div></div>
+  </div>
 </div>
+
 <script>
 const API='/servicios/control_acceso';
 const ES_SISTEMA={{ 'true' if es_sistema else 'false' }};
@@ -107,18 +140,30 @@ async function cargarConjuntos(){
     (j.data||[]).forEach(e=>{const o=document.createElement('option');o.value=e._id;o.textContent=e.razon_social||e.nombre||e._id;sel.appendChild(o);});
   }catch{}
 }
+
 function seleccionarConjunto(eid){
   EID=eid;
   ['monitoreo','porteria','credenciales'].forEach(t=>{cargado[t]=false;const f=document.getElementById('f-'+t);f.src='about:blank';f.classList.add('hidden');});
   const av=document.getElementById('aviso'); if(av) av.style.display=eid?'none':'block';
-  if(eid) mostrarTab(tabActual);
+  document.getElementById('stats-section').style.display=eid?'block':'none';
+  if(eid){ cargarEstadisticas(); mostrarTab(tabActual); }
 }
+
 function cambiar(tab,el){
   document.querySelectorAll('.dir-tab-btn').forEach(t=>t.classList.remove('active'));
   el.classList.add('active'); tabActual=tab;
+  // Mostrar panel correcto
+  ['monitoreo','porteria','credenciales'].forEach(t=>{
+    const f=document.getElementById('f-'+t);
+    if(f) f.classList.add('hidden');
+  });
+  document.getElementById('iframe-wrap').style.display = tab==='pendientes'?'none':'block';
+  document.getElementById('panel-pendientes').style.display = tab==='pendientes'?'block':'none';
+  if(tab==='pendientes'){ cargarPendientes(); return; }
   if(EID) mostrarTab(tab);
-  else{const av=document.getElementById('aviso');if(av) av.style.display='block';}
+  else{ const av=document.getElementById('aviso');if(av) av.style.display='block'; }
 }
+
 function mostrarTab(tab){
   const av=document.getElementById('aviso'); if(av) av.style.display='none';
   ['monitoreo','porteria','credenciales'].forEach(t=>{
@@ -129,6 +174,74 @@ function mostrarTab(tab){
     } else f.classList.add('hidden');
   });
 }
+
+// ── Estadísticas ──────────────────────────────────────────────────────────
+async function cargarEstadisticas(){
+  if(!EID) return;
+  try{
+    const r=await fetch(`${API}/estadisticas?empresa_id=${encodeURIComponent(EID)}&_t=${Date.now()}`);
+    const j=await r.json();
+    if(!j.ok) return;
+    const d=j.data;
+    document.getElementById('s-entradas').textContent  = d.entradas_hoy ?? '—';
+    document.getElementById('s-total').textContent     = d.total_hoy ?? '—';
+    document.getElementById('s-rechazados').textContent= d.rechazados_hoy ?? '—';
+    document.getElementById('s-coacciones').textContent= d.coacciones_activas ?? '—';
+    document.getElementById('s-pendientes').textContent= d.contratistas_pendientes ?? '—';
+    // Badge pestaña pendientes
+    const bp=document.getElementById('badgePend');
+    if(bp){ bp.textContent=d.contratistas_pendientes||''; bp.className='ca-badge'+(d.contratistas_pendientes>0?' on':''); }
+  }catch{}
+}
+
+// ── Pendientes ────────────────────────────────────────────────────────────
+async function cargarPendientes(){
+  const box=document.getElementById('pend-lista');
+  box.innerHTML='<div class="hint">Cargando…</div>';
+  const qs=EID?`?empresa_id=${encodeURIComponent(EID)}`:'';
+  try{
+    const r=await fetch(`${API}/credenciales/pendientes${qs}`); const j=await r.json();
+    if(!j.ok){ box.innerHTML='<div class="hint" style="color:#e53e3e;">Error: '+(j.error||'')+'</div>'; return; }
+    const list=j.data||[];
+    if(!list.length){ box.innerHTML='<div class="hint">No hay credenciales pendientes.</div>'; return; }
+    box.innerHTML=list.map(c=>{
+      const v=c.visitante||{};
+      const uni=c.unidad||{};
+      const f=c.creado_en?new Date(c.creado_en.includes('T')?c.creado_en:c.creado_en+'Z').toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="pend-card">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:160px;">
+            <div style="font-weight:800;font-size:.9rem;">${v.nombre||'—'} <span class="hint">${v.documento||''}</span></div>
+            <div class="hint">Contratista · Torre ${uni.torre||'—'} Apto ${uni.apartamento||'—'}</div>
+            <div class="hint">${f}</div>
+          </div>
+          <div>
+            <button class="btn-apr" onclick="aprobar('${c._id}')">✔ Aprobar</button>
+            <button class="btn-rec" onclick="rechazar('${c._id}')">✗ Rechazar</button>
+          </div>
+        </div>
+        ${(c.documentos&&c.documentos.length)?`<div class="hint" style="margin-top:6px;">📎 ${c.documentos.map(d=>`<a href="${d.url}" target="_blank" style="color:#2787F5;">${d.tipo}</a>`).join(' · ')}</div>`:''}
+      </div>`;
+    }).join('');
+  }catch{ box.innerHTML='<div class="hint" style="color:#e53e3e;">Error de conexión</div>'; }
+}
+
+async function aprobar(credId){
+  const r=await fetch(`${API}/credenciales/${credId}/aprobar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({empresa_id:EID})});
+  const j=await r.json();
+  alert(j.ok?'✅ Credencial aprobada':'Error: '+(j.error||''));
+  cargarPendientes(); cargarEstadisticas();
+}
+async function rechazar(credId){
+  const motivo=prompt('Motivo del rechazo:','');
+  if(motivo===null) return;
+  const r=await fetch(`${API}/credenciales/${credId}/rechazar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({motivo,empresa_id:EID})});
+  const j=await r.json();
+  alert(j.ok?'Credencial rechazada':'Error: '+(j.error||''));
+  cargarPendientes(); cargarEstadisticas();
+}
+
+// ── Polling coacción ──────────────────────────────────────────────────────
 async function chequeoCoaccion(){
   const b=document.getElementById('badgeCoaccion');
   if(ES_SISTEMA&&!EID){if(b)b.className='ca-badge';return;}
@@ -138,9 +251,17 @@ async function chequeoCoaccion(){
     if(b) b.className='ca-badge'+((j.ok&&(j.data||[]).length>0)?' on':'');
   }catch{}
 }
+
 if(ES_SISTEMA){cargarConjuntos();}
-else{mostrarTab('monitoreo');}
-chequeoCoaccion(); setInterval(chequeoCoaccion,5000);
+else{
+  EID='';
+  document.getElementById('stats-section').style.display='block';
+  cargarEstadisticas();
+  mostrarTab('monitoreo');
+}
+chequeoCoaccion();
+setInterval(chequeoCoaccion, 5000);
+setInterval(()=>{ if(EID) cargarEstadisticas(); }, 30000);
 </script>
 </body>
 </html>
