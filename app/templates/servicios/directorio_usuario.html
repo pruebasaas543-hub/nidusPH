@@ -705,8 +705,8 @@ function _cardHTML(c, i) {
       const ubicacion = (c.torre || c.apartamento)
         ? `<div class="card-contact-row" style="margin-top:4px;"><span class="card-contact-icon">🏢</span><span class="card-contact-val">${[c.torre ? 'Torre '+esc(c.torre) : '', c.apartamento ? 'Apto '+esc(c.apartamento) : ''].filter(Boolean).join(' · ')}</span></div>`
         : '';
-      const veh = (c.tiene_parqueadero && c.vehiculo && c.vehiculo.placa)
-        ? `<div class="card-contact-row"><span class="card-contact-icon">🚗</span><span class="card-contact-val">${[esc(c.vehiculo.marca||''), esc(c.vehiculo.color||''), esc(c.vehiculo.placa||'')].filter(Boolean).join(' · ')}</span></div>`
+      const veh = c.tiene_parqueadero && (c.vehiculos||[]).length
+        ? (c.vehiculos||[]).map(v=>`<div class="card-contact-row"><span class="card-contact-icon">${v.tipo==='moto'?'🏍️':'🚗'}</span><span class="card-contact-val">${[esc(v.marca||''),esc(v.color||''),esc(v.placa||'')].filter(Boolean).join(' · ')}</span></div>`).join('')
         : '';
       return { tipo, ubicacion, veh };
     })() : null;
@@ -762,7 +762,7 @@ function _cardHTML(c, i) {
       (c.correo||'').toLowerCase().includes(q) ||
       (c.torre||'').toLowerCase().includes(q) ||
       (c.apartamento||'').toLowerCase().includes(q) ||
-      (c.vehiculo?.placa||'').toLowerCase().includes(q)
+      (c.vehiculos||[]).some(v => (v.placa||'').toLowerCase().includes(q))
     );
   }
 

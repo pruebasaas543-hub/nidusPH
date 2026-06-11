@@ -75,13 +75,15 @@ def _parse_payload():
             continue
         datos[flag] = str(val).lower() in ("true", "1", "on")
 
-    # vehiculo puede llegar como JSON string en multipart
-    if isinstance(datos.get("vehiculo"), str):
+    # vehiculos puede llegar como JSON string en multipart
+    if isinstance(datos.get("vehiculos"), str):
         try:
             import json as _json2
-            datos["vehiculo"] = _json2.loads(datos["vehiculo"])
+            datos["vehiculos"] = _json2.loads(datos["vehiculos"])
         except Exception:
-            datos["vehiculo"] = {}
+            datos["vehiculos"] = []
+    if not isinstance(datos.get("vehiculos"), list):
+        datos["vehiculos"] = []
 
     return empresa_id, datos, foto
 

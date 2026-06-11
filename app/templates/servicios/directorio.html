@@ -529,9 +529,9 @@
         </div>
       </div>
 
-      <!-- Parqueadero -->
+      <!-- Parqueadero / Vehículos -->
       <div class="toggle-section dynamic-field dc-field-residente" style="display:none;">
-        <div class="toggle-section-title">🚗 Parqueadero / Vehículo</div>
+        <div class="toggle-section-title">🚗 Parqueadero / Vehículos</div>
         <label class="toggle-label">
           <input type="checkbox" id="f-parqueadero" onchange="DC.toggleParqueadero()" />
           <span class="toggle-track"></span>
@@ -539,20 +539,11 @@
         </label>
       </div>
       <div id="f-vehiculo-wrap" style="display:none;">
-        <div class="row2">
-          <div class="form-group">
-            <label>Placa *</label>
-            <input id="f-placa" type="text" placeholder="Ej: ABC123" style="text-transform:uppercase;" />
-          </div>
-          <div class="form-group">
-            <label>Color *</label>
-            <input id="f-color" type="text" placeholder="Ej: Blanco" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Marca *</label>
-          <input id="f-marca" type="text" placeholder="Ej: Chevrolet Spark" />
-        </div>
+        <div id="f-vehiculos-lista"></div>
+        <button type="button" onclick="DC.agregarVehiculo()"
+          style="width:100%;margin-top:4px;background:none;border:1.5px dashed rgba(4,34,67,.25);border-radius:9px;padding:7px;cursor:pointer;color:#042243;font-size:.8rem;font-family:inherit;">
+          + Agregar vehículo
+        </button>
       </div>
 
       <div class="form-group dynamic-field dc-field-cargo" style="display:none;">
@@ -745,7 +736,7 @@ const DC = (() => {
         (c.correo||'').toLowerCase().includes(q) ||
         (c.torre||'').toLowerCase().includes(q) ||
         (c.apartamento||'').toLowerCase().includes(q) ||
-        (c.vehiculo?.placa||'').toLowerCase().includes(q));
+        (c.vehiculos||[]).some(v => (v.placa||'').toLowerCase().includes(q)));
     }
     label.textContent = _bloqueActual === 'TODOS'
       ? `Todos los contactos (${lista.length})`
@@ -781,7 +772,7 @@ const DC = (() => {
                 ${c.cargo_titulo ? `<div class="card-cargo">${esc(c.cargo_titulo)}</div>` : ''}
                 ${c.tipo_residente ? `<div class="card-cargo" style="color:${m.color};">${c.tipo_residente === 'Propietario' ? '🏡' : '🔑'} ${esc(c.tipo_residente)}</div>` : ''}
                 ${(c.torre||c.apartamento) ? `<div class="card-cargo">🏢 ${c.torre ? 'Torre '+esc(c.torre)+' ' : ''}${c.apartamento ? 'Apto '+esc(c.apartamento) : ''}</div>` : ''}
-                ${c.tiene_parqueadero && c.vehiculo ? `<div class="card-cargo">🚗 ${esc(c.vehiculo.marca||'')} ${esc(c.vehiculo.color||'')} · ${esc(c.vehiculo.placa||'')}</div>` : ''}
+                ${c.tiene_parqueadero && (c.vehiculos||[]).length ? (c.vehiculos||[]).map(v=>`<div class="card-cargo">${v.tipo==='moto'?'🏍️':'🚗'} ${esc(v.marca||'')} ${esc(v.color||'')} · ${esc(v.placa||'')}</div>`).join('') : ''}
                 <span class="card-bloque-badge" style="background:${m.color}18;color:${m.color};">
                   ${m.icon} ${m.label}
                 </span>
@@ -880,11 +871,48 @@ const DC = (() => {
   function toggleParqueadero() {
     const checked = document.getElementById('f-parqueadero').checked;
     document.getElementById('f-vehiculo-wrap').style.display = checked ? '' : 'none';
-    if (!checked) {
-      document.getElementById('f-placa').value  = '';
-      document.getElementById('f-color').value  = '';
-      document.getElementById('f-marca').value  = '';
+    if (checked && !document.querySelectorAll('#f-vehiculos-lista .v-row').length) {
+      _renderVehiculoFila({});
     }
+    if (!checked) document.getElementById('f-vehiculos-lista').innerHTML = '';
+  }
+
+  function _renderVehiculoFila(v) {
+    const lista = document.getElementById('f-vehiculos-lista');
+    const div = document.createElement('div');
+    div.className = 'v-row';
+    div.style.cssText = 'border:1px solid rgba(4,34,67,.15);border-radius:10px;padding:10px;margin-bottom:8px;background:#f8faff;position:relative;';
+    div.innerHTML = `
+      <div style="display:grid;grid-template-columns:120px 1fr auto;gap:7px;margin-bottom:7px;align-items:center;">
+        <select class="v-tipo" style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 6px;font-family:inherit;font-size:.8rem;background:#fff;">
+          <option value="carro" ${(v.tipo||'carro')==='carro'?'selected':''}>🚗 Carro</option>
+          <option value="moto"  ${v.tipo==='moto'?'selected':''}>🏍️ Moto</option>
+        </select>
+        <input class="v-placa" type="text" placeholder="Placa (ABC123)" value="${esc(v.placa||'')}"
+          style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:.8rem;text-transform:uppercase;background:#fff;width:100%;">
+        <button type="button" onclick="DC.quitarVehiculo(this)"
+          style="background:rgba(192,48,74,.1);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#C0304A;font-size:.85rem;flex-shrink:0;">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+        <input class="v-color" type="text" placeholder="Color" value="${esc(v.color||'')}"
+          style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:.8rem;background:#fff;width:100%;">
+        <input class="v-marca" type="text" placeholder="Marca / Modelo" value="${esc(v.marca||'')}"
+          style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:.8rem;background:#fff;width:100%;">
+      </div>`;
+    lista.appendChild(div);
+  }
+
+  function agregarVehiculo() { _renderVehiculoFila({}); }
+
+  function quitarVehiculo(btn) { btn.closest('.v-row').remove(); }
+
+  function _leerVehiculos() {
+    return [...document.querySelectorAll('#f-vehiculos-lista .v-row')].map(row => ({
+      tipo:  row.querySelector('.v-tipo').value,
+      placa: row.querySelector('.v-placa').value.trim().toUpperCase(),
+      color: row.querySelector('.v-color').value.trim(),
+      marca: row.querySelector('.v-marca').value.trim(),
+    })).filter(v => v.placa);
   }
 
   async function _cargarCargos(bloque, valorActual = '') {
@@ -933,12 +961,15 @@ const DC = (() => {
     document.getElementById('f-tipo-residente').value     = contacto ? (contacto.tipo_residente||'Propietario') : 'Propietario';
     document.getElementById('f-torre').value              = contacto ? (contacto.torre||'') : '';
     document.getElementById('f-apartamento').value        = contacto ? (contacto.apartamento||'') : '';
-    const _veh = contacto ? (contacto.vehiculo || {}) : {};
     const _tieneParq = contacto ? !!contacto.tiene_parqueadero : false;
     document.getElementById('f-parqueadero').checked = _tieneParq;
-    document.getElementById('f-placa').value  = _veh.placa  || '';
-    document.getElementById('f-color').value  = _veh.color  || '';
-    document.getElementById('f-marca').value  = _veh.marca  || '';
+    document.getElementById('f-vehiculos-lista').innerHTML = '';
+    if (_tieneParq) {
+      const _vehs = contacto.vehiculos && contacto.vehiculos.length
+        ? contacto.vehiculos
+        : (contacto.vehiculo && contacto.vehiculo.placa ? [contacto.vehiculo] : [{}]);
+      _vehs.forEach(v => _renderVehiculoFila(v));
+    }
     const _cargoVal = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('f-correo').value             = contacto ? (contacto.correo||'') : '';
     document.getElementById('f-visible').checked          = contacto ? !!contacto.es_visible_para_residentes : true;
@@ -1044,12 +1075,7 @@ const DC = (() => {
       const tieneParq = document.getElementById('f-parqueadero').checked;
       fd.append('tiene_parqueadero', tieneParq);
       if (tieneParq) {
-        const veh = {
-          placa: document.getElementById('f-placa').value.trim().toUpperCase(),
-          color: document.getElementById('f-color').value.trim(),
-          marca: document.getElementById('f-marca').value.trim(),
-        };
-        fd.append('vehiculo', JSON.stringify(veh));
+        fd.append('vehiculos', JSON.stringify(_leerVehiculos()));
       }
     }
     const fotoInput = document.getElementById('f-foto');
@@ -1148,7 +1174,7 @@ const DC = (() => {
   document.addEventListener('DOMContentLoaded', cargar);
 
   return { abrirModal, cerrarModal, cambioBloque, guardar, editar, eliminar, setBloque, filtrar,
-           agregarTelefono, previewFoto, toggleParqueadero,
+           agregarTelefono, previewFoto, toggleParqueadero, agregarVehiculo, quitarVehiculo,
            abrirImportar, cerrarImportar, seleccionarArchivo, dropArchivo, ejecutarImportacion };
 })();
 

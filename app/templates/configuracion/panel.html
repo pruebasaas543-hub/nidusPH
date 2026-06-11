@@ -2226,21 +2226,12 @@
                             🚗 ¿Tiene parqueadero?
                         </label>
                     </div>
-                    <div id="dir-vehiculo-wrap" style="display:none;margin-bottom:14px;border:1px solid rgba(4,34,67,.12);border-radius:10px;padding:12px;background:#f8faff;">
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-                            <div>
-                                <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Placa *</label>
-                                <input class="form-control" id="dir-placa" type="text" placeholder="ABC123" style="text-transform:uppercase;">
-                            </div>
-                            <div>
-                                <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Color *</label>
-                                <input class="form-control" id="dir-color" type="text" placeholder="Blanco, Negro...">
-                            </div>
-                        </div>
-                        <div>
-                            <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Marca *</label>
-                            <input class="form-control" id="dir-marca" type="text" placeholder="Toyota Corolla...">
-                        </div>
+                    <div id="dir-vehiculo-wrap" style="display:none;margin-bottom:14px;">
+                        <div id="dir-vehiculos-lista"></div>
+                        <button type="button" onclick="dirAgregarVehiculo()"
+                            style="width:100%;margin-top:4px;background:none;border:1.5px dashed rgba(4,34,67,.25);border-radius:9px;padding:7px;cursor:pointer;color:#042243;font-size:.8rem;font-family:inherit;">
+                            + Agregar vehículo
+                        </button>
                     </div>
 
                     <!-- Cargo (solo ADMIN / LOGISTICA) -->
@@ -6920,11 +6911,11 @@ function _dirRenderGrid() {
         const residenteInfo = esRes ? (() => {
             const tipo = c.tipo_residente || '';
             const ubicacion = [c.torre ? `Torre ${c.torre}` : '', c.apartamento ? `Apto ${c.apartamento}` : ''].filter(Boolean).join(' · ');
-            const veh = c.tiene_parqueadero && c.vehiculo && c.vehiculo.placa
-                ? `<div class="dir-contact-row" style="margin-top:4px;">
-                    <span class="dir-contact-icon">🚗</span>
-                    <span style="font-size:.77rem;color:#042243;">${[c.vehiculo.marca, c.vehiculo.color, c.vehiculo.placa].filter(Boolean).join(' · ')}</span>
-                   </div>`
+            const veh = c.tiene_parqueadero && (c.vehiculos||[]).length
+                ? (c.vehiculos||[]).map(v=>`<div class="dir-contact-row" style="margin-top:4px;">
+                    <span class="dir-contact-icon">${v.tipo==='moto'?'🏍️':'🚗'}</span>
+                    <span style="font-size:.77rem;color:#042243;">${[v.marca,v.color,v.placa].filter(Boolean).join(' · ')}</span>
+                   </div>`).join('')
                 : '';
             return `
                 ${tipo ? `<div style="font-size:.74rem;color:#276749;font-weight:700;margin-top:2px;">${tipo}</div>` : ''}
@@ -7090,10 +7081,13 @@ async function dirAbrirModal(contacto = null) {
     document.getElementById('dir-apartamento').value    = contacto ? (contacto.apartamento||'') : '';
     const _tieneParq = contacto ? !!contacto.tiene_parqueadero : false;
     document.getElementById('dir-parqueadero').checked = _tieneParq;
-    const _veh = contacto ? (contacto.vehiculo||{}) : {};
-    document.getElementById('dir-placa').value  = _veh.placa  || '';
-    document.getElementById('dir-color').value  = _veh.color  || '';
-    document.getElementById('dir-marca').value  = _veh.marca  || '';
+    document.getElementById('dir-vehiculos-lista').innerHTML = '';
+    if (_tieneParq) {
+        const _vehs = contacto.vehiculos && contacto.vehiculos.length
+            ? contacto.vehiculos
+            : (contacto.vehiculo && contacto.vehiculo.placa ? [contacto.vehiculo] : [{}]);
+        _vehs.forEach(v => _dirRenderVehiculoFila(v));
+    }
     document.getElementById('dir-vehiculo-wrap').style.display = _tieneParq ? '' : 'none';
     const tels = contacto && contacto.telefonos && contacto.telefonos.length
         ? contacto.telefonos
@@ -7110,11 +7104,46 @@ function dirCerrarModal() {
 function dirToggleParqueadero() {
     const checked = document.getElementById('dir-parqueadero').checked;
     document.getElementById('dir-vehiculo-wrap').style.display = checked ? '' : 'none';
-    if (!checked) {
-        document.getElementById('dir-placa').value = '';
-        document.getElementById('dir-color').value = '';
-        document.getElementById('dir-marca').value = '';
+    if (checked && !document.querySelectorAll('#dir-vehiculos-lista .dir-v-row').length) {
+        _dirRenderVehiculoFila({});
     }
+    if (!checked) document.getElementById('dir-vehiculos-lista').innerHTML = '';
+}
+
+function _dirRenderVehiculoFila(v) {
+    const lista = document.getElementById('dir-vehiculos-lista');
+    const div = document.createElement('div');
+    div.className = 'dir-v-row';
+    div.style.cssText = 'border:1px solid rgba(4,34,67,.15);border-radius:10px;padding:10px;margin-bottom:8px;background:#f8faff;position:relative;';
+    div.innerHTML = `
+        <div style="display:grid;grid-template-columns:130px 1fr auto;gap:7px;margin-bottom:7px;align-items:center;">
+            <select class="form-control dir-v-tipo" style="font-size:.8rem;padding:7px 6px;">
+                <option value="carro" ${(v.tipo||'carro')==='carro'?'selected':''}>🚗 Carro</option>
+                <option value="moto"  ${v.tipo==='moto'?'selected':''}>🏍️ Moto</option>
+            </select>
+            <input class="form-control dir-v-placa" type="text" placeholder="Placa (ABC123)" value="${_esc(v.placa||'')}"
+                style="font-size:.8rem;text-transform:uppercase;">
+            <button type="button" onclick="dirQuitarVehiculo(this)"
+                style="background:rgba(192,48,74,.1);border:1.5px solid rgba(192,48,74,.25);border-radius:8px;padding:6px 10px;cursor:pointer;color:#C0304A;font-size:.85rem;white-space:nowrap;">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+            <input class="form-control dir-v-color" type="text" placeholder="Color" value="${_esc(v.color||'')}" style="font-size:.8rem;">
+            <input class="form-control dir-v-marca" type="text" placeholder="Marca / Modelo" value="${_esc(v.marca||'')}" style="font-size:.8rem;">
+        </div>`;
+    lista.appendChild(div);
+}
+
+function dirAgregarVehiculo() { _dirRenderVehiculoFila({}); }
+
+function dirQuitarVehiculo(btn) { btn.closest('.dir-v-row').remove(); }
+
+function _dirLeerVehiculos() {
+    return [...document.querySelectorAll('#dir-vehiculos-lista .dir-v-row')].map(row => ({
+        tipo:  row.querySelector('.dir-v-tipo').value,
+        placa: row.querySelector('.dir-v-placa').value.trim().toUpperCase(),
+        color: row.querySelector('.dir-v-color').value.trim(),
+        marca: row.querySelector('.dir-v-marca').value.trim(),
+    })).filter(v => v.placa);
 }
 
 // ── Importación masiva de residentes ────────────────────────────────────────
@@ -7271,11 +7300,7 @@ async function dirGuardar() {
         const tieneParq = document.getElementById('dir-parqueadero').checked;
         fd.append('tiene_parqueadero', tieneParq ? 'true' : 'false');
         if (tieneParq) {
-            fd.append('vehiculo', JSON.stringify({
-                placa: document.getElementById('dir-placa').value.trim().toUpperCase(),
-                color: document.getElementById('dir-color').value.trim(),
-                marca: document.getElementById('dir-marca').value.trim(),
-            }));
+            fd.append('vehiculos', JSON.stringify(_dirLeerVehiculos()));
         }
     }
     const fotoFile = document.getElementById('dir-foto').files[0];

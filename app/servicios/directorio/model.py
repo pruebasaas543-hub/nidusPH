@@ -201,7 +201,7 @@ class ContactoModel:
             "torre":                         datos.get("torre", ""),
             "apartamento":                   datos.get("apartamento", ""),
             "tiene_parqueadero":             bool(datos.get("tiene_parqueadero", False)),
-            "vehiculo":                      datos.get("vehiculo") or {},
+            "vehiculos":                     datos.get("vehiculos") or [],
         }
         return str(_contactos().insert_one(doc).inserted_id)
 
@@ -245,7 +245,7 @@ class ContactoModel:
             "torre":                         datos.get("torre", ""),
             "apartamento":                   datos.get("apartamento", ""),
             "tiene_parqueadero":             bool(datos.get("tiene_parqueadero", False)),
-            "vehiculo":                      datos.get("vehiculo") or {},
+            "vehiculos":                     datos.get("vehiculos") or [],
         }
         if datos.get("foto_data") is not None:
             sets["foto_data"]     = datos["foto_data"]
