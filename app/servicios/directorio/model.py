@@ -14,7 +14,7 @@ from bson import ObjectId
 import base64
 
 
-BLOQUES_VALIDOS = {"EMERGENCIAS", "ADMIN", "PUBLICOS", "LOGISTICA", "LOCAL"}
+BLOQUES_VALIDOS = {"EMERGENCIAS", "ADMIN", "PUBLICOS", "LOGISTICA", "LOCAL", "RESIDENTES"}
 
 _BLOQUES_DEFAULT = [
     {"codigo": "EMERGENCIAS", "nombre": "Emergencias",        "emoji": "🚨", "orden": 1},
@@ -22,6 +22,7 @@ _BLOQUES_DEFAULT = [
     {"codigo": "PUBLICOS",    "nombre": "Servicios Públicos", "emoji": "💡", "orden": 3},
     {"codigo": "LOGISTICA",   "nombre": "Logística",          "emoji": "🔧", "orden": 4},
     {"codigo": "LOCAL",       "nombre": "Locales",            "emoji": "📍", "orden": 5},
+    {"codigo": "RESIDENTES",  "nombre": "Residentes",         "emoji": "🏠", "orden": 6},
 ]
 
 
@@ -194,6 +195,13 @@ class ContactoModel:
             "creado_en":                     datetime.utcnow(),
             "creado_por":                    creado_por,
             "actualizado_en":                None,
+            # Campos específicos de residentes
+            "apellidos":                     (datos.get("apellidos") or "").strip(),
+            "tipo_residente":                datos.get("tipo_residente", ""),
+            "torre":                         datos.get("torre", ""),
+            "apartamento":                   datos.get("apartamento", ""),
+            "tiene_parqueadero":             bool(datos.get("tiene_parqueadero", False)),
+            "vehiculos":                     datos.get("vehiculos") or [],
         }
         return str(_contactos().insert_one(doc).inserted_id)
 
@@ -231,6 +239,13 @@ class ContactoModel:
             "orden":                         int(datos.get("orden", 0)),
             "activo":                        bool(datos.get("activo", True)),
             "actualizado_en":                datetime.utcnow(),
+            # Campos específicos de residentes
+            "apellidos":                     (datos.get("apellidos") or "").strip(),
+            "tipo_residente":                datos.get("tipo_residente", ""),
+            "torre":                         datos.get("torre", ""),
+            "apartamento":                   datos.get("apartamento", ""),
+            "tiene_parqueadero":             bool(datos.get("tiene_parqueadero", False)),
+            "vehiculos":                     datos.get("vehiculos") or [],
         }
         if datos.get("foto_data") is not None:
             sets["foto_data"]     = datos["foto_data"]

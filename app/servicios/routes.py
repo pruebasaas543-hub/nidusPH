@@ -14,7 +14,18 @@ servicios_admin_bp = Blueprint("servicios_admin", __name__, url_prefix="/config/
 
 @servicios_bp.route("/<codigo>/")
 def panel_servicio(codigo):
-    """Renderiza el panel de un servicio por su código."""
+    """Renderiza el panel de un servicio/módulo por su código.
+
+    ─── CONTRATO PARA AGREGAR UN MÓDULO NUEVO (que no se vuelva a olvidar) ───
+    1. Crear el doc en la colección `servicios` (con su `codigo`).
+    2. Crear el blueprint bajo `/servicios/<codigo>/...` y registrarlo en app/__init__.py.
+    3. Agregar aquí un `if codigo == "<codigo>": return render_template(...)`.
+       Si no se agrega, cae al fallback `panel_servicio.html` ("EN DESARROLLO").
+    NO hace falta tocar configuracion/panel.html: el panel del SuperAdmin abre
+    CUALQUIER módulo con un iframe genérico a /servicios/<codigo>/ (ver
+    ServiciosInicio.renderPaneles / _abrirModuloGenerico). El frontend es
+    genérico; este dispatcher es la única fuente de verdad de qué se renderiza.
+    """
     from app.servicios.model import ServicioModel
     from flask import abort
     srv = ServicioModel.buscar_por_codigo(codigo)
@@ -56,6 +67,34 @@ def panel_servicio(codigo):
         logging.getLogger(__name__).info("boton_panico → rol=%r es_sistema=%s permisos=%s", rol, es_sistema, permisos)
         return render_template("servicios/boton_panico.html", servicio=srv,
                                es_sistema=es_sistema, empresa_id=empresa_id, permisos=permisos,
+                               tema_clave=tema_clave, tema_css=tema_css, tema_vars=tema_vars)
+    if codigo == "control_acceso":
+        from app.configuracion.roles.model import RolModel
+        from app.autenticacion.routes import _tema_efectivo
+        rol = session.get("rol", "")
+        es_sistema = rol in RolModel.nombres_sistema()
+        empresa_id = session.get("empresa_id", "")
+        tema_clave, tema_css, tema_vars = _tema_efectivo(empresa_id)
+        # ?vista= fuerza una vista (lo usan los iframes del dashboard admin).
+        # Si no, se elige por rol: Residente → credenciales; Admin/Sistema → dashboard
+        # completo (todas las pestañas); Vigilancia y demás → portería.
+        vista = request.args.get("vista", "")
+        _mapa = {
+            "porteria":       "servicios/control_acceso_porteria.html",
+            "credenciales":   "servicios/control_acceso_residente.html",
+            "monitoreo":      "servicios/control_acceso_monitoreo.html",
+            "configuracion":  "servicios/control_acceso_config.html",
+        }
+        if vista in _mapa:
+            plantilla = _mapa[vista]
+        elif rol == "Residente":
+            plantilla = "servicios/control_acceso_residente.html"
+        elif es_sistema or rol == "Administrador de la Copropiedad":
+            plantilla = "servicios/control_acceso_admin.html"
+        else:
+            plantilla = "servicios/control_acceso_porteria.html"
+        return render_template(plantilla, servicio=srv,
+                               es_sistema=es_sistema, empresa_id=empresa_id, rol=rol,
                                tema_clave=tema_clave, tema_css=tema_css, tema_vars=tema_vars)
     return render_template("servicios/panel_servicio.html", servicio=srv)
 

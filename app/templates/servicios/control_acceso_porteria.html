@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="{{ tema_clave }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🪪 Control de Acceso — Portería</title>
+<style id="nidus-tema">{{ tema_css | safe }}</style>
+{% if tema_vars %}<style id="nidus-vars">{{ tema_vars | safe }}</style>{% endif %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit','Segoe UI',sans-serif;}
+:root{--bg:#EEF2FF;--bg2:#FFFFFF;--bg3:#D8E4F5;--accent:#2787F5;--accent2:#1a6de0;--text:#1E2756;--muted:#8A9CC8;--border:rgba(39,135,245,.18);--red:#e53e3e;--green:#276749;--orange:#b7791f;}
+html,body{height:100%;}body{background:var(--bg);color:var(--text);}
+.ca-page{max-width:1080px;margin:0 auto;padding:20px;}
+.ca-top{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,#042243,#0a4a8c);color:#fff;border-radius:14px;padding:14px 20px;margin-bottom:18px;}
+.ca-top .ic{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.ca-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;}
+@media(max-width:820px){.ca-grid{grid-template-columns:1fr;}}
+.card{background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.05);}
+.card-title{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+.code-input{width:100%;font-size:2rem;font-weight:800;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:16px;border:2px solid var(--border);border-radius:12px;color:var(--text);outline:none;background:var(--bg);}
+.code-input:focus{border-color:var(--accent);}
+.btn{padding:12px 18px;border-radius:11px;border:none;cursor:pointer;font-size:.9rem;font-weight:700;font-family:inherit;}
+.btn-pri{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;width:100%;margin-top:12px;}
+.btn-sec{background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid var(--border);color:var(--accent);}
+.btn-warn{background:rgba(183,121,31,.12);border:1px solid rgba(183,121,31,.3);color:var(--orange);}
+.resultado{margin-top:16px;border-radius:14px;padding:22px;text-align:center;display:none;}
+.resultado.show{display:block;}
+.resultado .big{font-size:1.6rem;font-weight:800;margin-bottom:6px;}
+.r-ok{background:rgba(39,103,73,.1);border:2px solid var(--green);color:var(--green);}
+.r-err{background:rgba(229,62,62,.1);border:2px solid var(--red);color:var(--red);}
+.hint{font-size:.74rem;color:var(--muted);margin-top:8px;text-align:center;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:5px;}
+.field input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;outline:none;color:var(--text);background:var(--bg2);}
+.field input:focus{border-color:var(--accent);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.minuta-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:7px;background:var(--bg);}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.modal{display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.45);align-items:center;justify-content:center;}
+.modal.show{display:flex;}
+.modal-box{background:var(--bg2);border-radius:16px;padding:24px;max-width:440px;width:92%;position:relative;}
+</style>
+</head>
+<body>
+<div class="ca-page">
+  <div class="ca-grid">
+    <!-- Columna izquierda: validación -->
+    <div>
+      <div class="card">
+        <div class="card-title">🔑 Validar acceso (QR / PIN 6 dígitos)</div>
+        <input id="codigo" class="code-input" maxlength="6" autocomplete="off"
+               placeholder="------" oninput="this.value=this.value.toUpperCase()"
+               onkeydown="if(event.key==='Enter')validar()">
+        <button class="btn btn-pri" onclick="validar()">✅ Validar</button>
+        <div class="hint">Escanea el QR (lectura como teclado) o digita el código. <b>F2</b> = Ingreso manual rápido.</div>
+        <div id="resultado" class="resultado"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">⚡ Ingreso manual rápido <span style="color:var(--muted);font-weight:600;">(F2)</span></div>
+        <button class="btn btn-warn" style="width:100%;" onclick="abrirManual()">➕ Registrar visitante imprevisto</button>
+      </div>
+    </div>
+
+    <!-- Columna derecha: minuta -->
+    <div class="card">
+      <div class="card-title">📋 Últimos registros (minuta)</div>
+      <div id="minuta"><div class="hint">Cargando…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ingreso manual -->
+<div id="modalManual" class="modal">
+  <div class="modal-box" style="max-width:500px;max-height:90vh;overflow-y:auto;">
+    <div class="card-title">⚡ Ingreso manual</div>
+    <!-- Tipo de visita -->
+    <div class="field">
+      <label>Tipo de visita *</label>
+      <select id="m-tipo" onchange="renderCamposDinamicos()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;">
+        <option value="visita">👥 Visita / Familiar</option>
+        <option value="contratista">🔧 Contratista</option>
+        <option value="domicilio">📦 Domicilio / Courier</option>
+        <option value="proveedor">🏢 Proveedor</option>
+      </select>
+    </div>
+    <!-- Campos dinámicos según tipo -->
+    <div id="campos-dinamicos"></div>
+    <!-- Unidad destino (siempre presente) -->
+    <div class="row2">
+      <div class="field"><label>Torre / Bloque</label><input id="m-torre" autocomplete="off"></div>
+      <div class="field"><label>Apartamento *</label><input id="m-apto" autocomplete="off"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-sec" style="flex:1;" onclick="cerrarManual()">Cancelar</button>
+      <button class="btn btn-pri" style="flex:1;margin-top:0;" onclick="guardarManual()">Guardar e ingresar</button>
+    </div>
+    <div id="manualResult" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<script>
+const API = '/servicios/control_acceso';
+const $ = id => document.getElementById(id);
+const EID = new URLSearchParams(location.search).get('empresa_id') || '';
+const Q = EID ? ('&empresa_id='+encodeURIComponent(EID)) : '';
+
+async function validar(){
+  const codigo = $('codigo').value.trim();
+  if(codigo.length < 4){ return; }
+  const box = $('resultado');
+  box.className = 'resultado show'; box.innerHTML = 'Validando…';
+  try{
+    const r = await fetch(`${API}/validar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({codigo,empresa_id:EID})});
+    const j = await r.json();
+    if(!j.ok){ box.className='resultado show r-err'; box.innerHTML=`<div class="big">⚠️ Error</div>${j.error||''}`; return; }
+    pintarResultado(j.data);
+  }catch{ box.className='resultado show r-err'; box.innerHTML='Error de conexión'; }
+  $('codigo').value=''; $('codigo').focus();
+}
+
+function pintarResultado(d){
+  const box = $('resultado');
+  // COACCIÓN: la pantalla SIEMPRE muestra éxito genérico (comportamiento silencioso)
+  if(d.resultado === 'AUTORIZADO'){
+    const v = d.visitante||{}; const nom = v.nombre ? `<div style="font-size:.9rem;margin-top:6px;">${v.nombre}</div>` : '';
+    box.className='resultado show r-ok';
+    box.innerHTML = `<div class="big">✅ Acceso Autorizado</div>${nom}<div class="hint" style="color:var(--green);">Bienvenido. Talanquera abierta.</div>`;
+  } else if(d.resultado === 'RECHAZADO_HORARIO'){
+    box.className='resultado show r-err';
+    box.innerHTML = `<div class="big">⛔ Fuera de horario</div><div class="hint" style="color:var(--red);">Se notificó al residente. Acceso bloqueado.</div>`;
+  } else {
+    box.className='resultado show r-err';
+    box.innerHTML = `<div class="big">⛔ Acceso Rechazado</div><div class="hint" style="color:var(--red);">${d.motivo||''}</div>`;
+  }
+  cargarMinuta();
+}
+
+// ── Formularios dinámicos ──────────────────────────────────────────────────
+let _formsConfig = {visita:[],contratista:[],domicilio:[],proveedor:[]};
+
+async function cargarFormsConfig(){
+  if(!EID) return;
+  try{
+    const r = await fetch(`${API}/config?empresa_id=${encodeURIComponent(EID)}`);
+    const j = await r.json();
+    if(j.ok && j.data && j.data.formularios){
+      _formsConfig = j.data.formularios;
+    }
+  }catch{}
+  renderCamposDinamicos();
+}
+
+function renderCamposDinamicos(){
+  const tipo  = $('m-tipo').value;
+  const campos = _formsConfig[tipo] || [];
+  const c = $('campos-dinamicos');
+  if(!campos.length){ c.innerHTML=''; return; }
+  c.innerHTML = campos.map(f => {
+    const req = f.requerido ? '*' : '';
+    const id  = `df_${f.id}`;
+    let input;
+    if(f.tipo === 'booleano'){
+      input = `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="${id}" style="width:18px;height:18px;cursor:pointer;">
+          <span style="font-size:.88rem;color:var(--text);">${f.label}${req?` <span style="color:var(--red);">${req}</span>`:''}</span>
+        </label>
+      </div>`;
+    } else if(f.tipo === 'lista'){
+      const opts = (f.opciones||[]).map(o=>`<option value="${o}">${o}</option>`).join('');
+      input = `<select id="${id}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit;color:var(--text);background:var(--bg2);outline:none;">
+        <option value="">— Seleccionar —</option>${opts}
+      </select>`;
+    } else {
+      const ktype = f.tipo === 'numero' ? 'text' : 'text';
+      input = `<input type="${ktype}" id="${id}" autocomplete="off"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;outline:none;color:var(--text);background:var(--bg2);"
+        ${f.tipo==='numero'?'inputmode="numeric"':''}>`;
+    }
+    return `<div class="field">
+      <label>${f.label}${req?` <span style="color:var(--red);">${req}</span>`:''}</label>
+      ${input}
+    </div>`;
+  }).join('');
+}
+
+function _recogerCamposDinamicos(){
+  const tipo   = $('m-tipo').value;
+  const campos = _formsConfig[tipo] || [];
+  const datos  = {};
+  for(const f of campos){
+    const el = document.getElementById(`df_${f.id}`);
+    if(!el) continue;
+    const val = f.tipo === 'booleano' ? el.checked : el.value.trim();
+    if(f.requerido && !val && val !== false){
+      throw new Error(`El campo "${f.label}" es obligatorio`);
+    }
+    datos[f.label] = val;
+  }
+  return datos;
+}
+
+// ── Ingreso manual ──
+function abrirManual(){
+  $('modalManual').classList.add('show');
+  $('manualResult').innerHTML='';
+  renderCamposDinamicos();
+  setTimeout(()=>{ const first=document.querySelector('#campos-dinamicos input'); if(first) first.focus(); },60);
+}
+function cerrarManual(){ $('modalManual').classList.remove('show'); }
+
+async function guardarManual(){
+  const apto = $('m-apto').value.trim();
+  if(!apto){ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">El apartamento es obligatorio.</div>'; return; }
+  let camposDinamicos = {};
+  try{ camposDinamicos = _recogerCamposDinamicos(); }
+  catch(e){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${e.message}</div>`; return; }
+  // Nombre y documento desde campos dinámicos si existen, si no, pide los fijos
+  const nombre   = camposDinamicos['Nombre completo'] || camposDinamicos['Nombre mensajero'] || '—';
+  const documento= camposDinamicos['N° Documento'] || camposDinamicos['N° Doc'] || '';
+  const unidad   = {torre:$('m-torre').value.trim(), apartamento:apto};
+  const payload  = {nombre, documento, unidad, tipo_visita:$('m-tipo').value, campos_extra:camposDinamicos, empresa_id:EID};
+  try{
+    const r=await fetch(`${API}/ingreso-manual`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!j.ok){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${j.error}</div>`; return; }
+    const nomEsc = nombre.replace(/'/g,'');
+    $('manualResult').innerHTML=`<div class="hint" style="color:var(--green);">✅ Registrado correctamente</div>
+      <button class="btn btn-pri" style="margin-top:8px;" onclick="llamarCitofono('${j.data.log_id}','${nomEsc}')">📞 Llamar a citófono del residente</button>`;
+    $('m-torre').value=''; $('m-apto').value='';
+    renderCamposDinamicos();
+    cargarMinuta();
+  }catch{ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">Error de conexión</div>'; }
+}
+
+// ── Citofonía ──
+let _citoTimer=null;
+async function llamarCitofono(logId, nombreVisita){
+  const numero = prompt('Número celular del residente (ej. 3213895559):','');
+  if(!numero) return;
+  $('manualResult').innerHTML='<div class="hint">📞 Llamando al residente…</div>';
+  try{
+    const r=await fetch(`${API}/citofonia/llamar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({log_id:logId,numero,nombre_visita:nombreVisita,empresa_id:EID})});
+    const j=await r.json();
+    if(!j.ok){ $('manualResult').innerHTML=`<div class="hint" style="color:var(--red);">${j.error}</div>`; return; }
+    // Polling del estado (sin recargar)
+    clearInterval(_citoTimer);
+    _citoTimer=setInterval(()=>pollCito(logId),3000);
+  }catch{ $('manualResult').innerHTML='<div class="hint" style="color:var(--red);">Error</div>'; }
+}
+async function pollCito(logId){
+  try{
+    const r=await fetch(`${API}/citofonia/estado/${logId}`); const j=await r.json();
+    if(!j.ok) return;
+    const e=j.data.estado;
+    if(e==='autorizado_citofonia'){ clearInterval(_citoTimer); $('manualResult').innerHTML='<div class="resultado show r-ok"><div class="big">✅ INGRESO AUTORIZADO POR EL RESIDENTE</div></div>'; cargarMinuta(); }
+    else if(e==='rechazado_citofonia'){ clearInterval(_citoTimer); $('manualResult').innerHTML='<div class="resultado show r-err"><div class="big">⛔ Rechazado por el residente</div></div>'; cargarMinuta(); }
+  }catch{}
+}
+
+// ── Minuta ──
+async function cargarMinuta(){
+  try{
+    const r=await fetch(`${API}/logs?limite=12&_t=${Date.now()}${Q}`); const j=await r.json();
+    if(!j.ok) return;
+    const list=j.data||[];
+    if(!list.length){ $('minuta').innerHTML='<div class="hint">Sin registros aún.</div>'; return; }
+    const color=e=>e.includes('autorizado')?'var(--green)':e.includes('rechazado')?'var(--red)':e==='coaccion'?'#7b0d1e':e==='ingreso_manual'?'var(--orange)':'var(--muted)';
+    const label=e=>({autorizado:'Autorizado',rechazado:'Rechazado',ingreso_manual:'Ingreso manual',autorizado_citofonia:'Autorizado (citófono)',rechazado_citofonia:'Rechazado (citófono)',coaccion:'⚠️',registrado:'Registrado'}[e]||e);
+    $('minuta').innerHTML=list.map(l=>{
+      const v=l.visitante||{}; const u=l.unidad||{};
+      const f=l.creado_en?new Date(l.creado_en.includes('T')?l.creado_en:l.creado_en+'Z').toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="minuta-item"><div class="dot" style="background:${color(l.estado)};"></div>
+        <div style="flex:1;min-width:0;"><div style="font-size:.82rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${v.nombre||'—'} ${u.apartamento?('· Apto '+u.apartamento):''}</div>
+        <div style="font-size:.68rem;color:var(--muted);">${l.metodo||''} · ${label(l.estado)}</div></div>
+        <div style="font-size:.66rem;color:var(--muted);">${f}</div></div>`;
+    }).join('');
+  }catch{}
+}
+
+// Atajos de teclado
+document.addEventListener('keydown',e=>{ if(e.key==='F2'){ e.preventDefault(); abrirManual(); } });
+$('codigo').focus();
+cargarMinuta();
+cargarFormsConfig();
+setInterval(cargarMinuta, 15000);
+</script>
+</body>
+</html>

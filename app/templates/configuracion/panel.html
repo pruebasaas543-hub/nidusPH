@@ -1747,8 +1747,9 @@
                 </div>
 
                 <!-- Tabs de bloque (generados dinámicamente) -->
-                <div id="dir-tabs-wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+                <div id="dir-tabs-wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;align-items:center;">
                     <button class="dir-tab-btn active" data-bloque="TODOS" onclick="dirCambiarBloque(this)">Todos</button>
+                    <button id="dir-btn-importar" onclick="dirAbrirImportar()" style="display:none;margin-left:auto;background:linear-gradient(135deg,#276749,#38a169);color:#fff;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;font-size:.82rem;font-weight:700;font-family:inherit;">📥 Importar Residentes</button>
                     <button class="btn btn-primary" style="margin-left:auto;" onclick="dirAbrirModal()">+ Nuevo Contacto</button>
                 </div>
 
@@ -2027,6 +2028,68 @@
 
         </div><!-- /cfg-boton-panico -->
 
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- cfg-control-acceso                                         -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <div id="cfg-control-acceso" class="config-panel">
+
+            <!-- Cabecera -->
+            <div style="display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid rgba(4,34,67,.1);margin-bottom:24px;">
+                <button onclick="setActive(document.getElementById('nav-inicio'));mostrarPanel('cfg-inicio')"
+                    style="display:inline-flex;align-items:center;gap:6px;background:none;border:1.5px solid rgba(4,34,67,.22);border-radius:10px;padding:8px 16px;cursor:pointer;font-size:.82rem;color:#042243;font-weight:600;transition:all .2s;white-space:nowrap;"
+                    onmouseover="this.style.background='rgba(4,34,67,.06)'" onmouseout="this.style.background='none'">
+                    &#8592; Volver a Inicio
+                </button>
+                <div style="width:1px;height:32px;background:rgba(4,34,67,.12);flex-shrink:0;"></div>
+                <div style="display:flex;align-items:center;gap:12px;flex:1;">
+                    <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#0a4a8c,#2787F5);display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 4px 12px rgba(39,135,245,.3);flex-shrink:0;">🪪</div>
+                    <div>
+                        <div style="font-size:1.05rem;font-weight:800;color:#042243;line-height:1.2;">Control de Acceso</div>
+                        <div style="font-size:.75rem;color:#8A9CC8;margin-top:2px;">Portería, credenciales y monitoreo de seguridad</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selector empresa -->
+            <div style="background:rgba(4,34,67,.04);border:1.5px solid rgba(4,34,67,.1);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                    <span style="font-size:1.4rem;">🏢</span>
+                    <div>
+                        <div style="font-size:.78rem;font-weight:700;color:#042243;letter-spacing:.3px;">Empresa / Propiedad</div>
+                        <div style="font-size:.72rem;color:#8A9CC8;margin-top:1px;">Selecciona para ver su configuración</div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:220px;">
+                    <select class="form-control" id="ca-empresa-sel" onchange="_caAccesoSeleccionarEmpresa(this.value)" style="width:100%;">
+                        <option value="">— Selecciona una empresa —</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1.5px solid rgba(4,34,67,.08);padding-bottom:14px;">
+                <button class="dir-tab-btn active" data-catab="configuracion" onclick="_caAccesoTab(this)">⚙️ Configuración</button>
+                <button class="dir-tab-btn" data-catab="credenciales" onclick="_caAccesoTab(this)">🪪 Credenciales</button>
+                <button class="dir-tab-btn" data-catab="porteria" onclick="_caAccesoTab(this)">🚪 Portería</button>
+                <button class="dir-tab-btn" data-catab="monitoreo" onclick="_caAccesoTab(this)">🛡️ Monitoreo <span id="ca-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:99px;font-size:.6rem;padding:1px 6px;font-weight:800;">!</span></button>
+            </div>
+
+            <!-- Panes -->
+            <div id="ca-pane-configuracion">
+                <iframe id="ca-frame-configuracion" style="width:100%;height:800px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Configuración"></iframe>
+            </div>
+            <div id="ca-pane-credenciales" style="display:none;">
+                <iframe id="ca-frame-credenciales" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Credenciales"></iframe>
+            </div>
+            <div id="ca-pane-porteria" style="display:none;">
+                <iframe id="ca-frame-porteria" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Portería"></iframe>
+            </div>
+            <div id="ca-pane-monitoreo" style="display:none;">
+                <iframe id="ca-frame-monitoreo" style="width:100%;height:700px;border:none;display:block;background:#EEF2FF;border-radius:12px;" title="Monitoreo"></iframe>
+            </div>
+
+        </div><!-- /cfg-control-acceso -->
+
         <!-- Modal Confirmación Botón de Pánico -->
         <div id="modal-panico-confirm" style="display:none;position:fixed;inset:0;background:rgba(4,34,67,.55);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);">
             <div style="background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(4,34,67,.22);width:clamp(300px,90vw,440px);overflow:hidden;">
@@ -2135,6 +2198,42 @@
                         <input class="form-control" id="dir-nombre" type="text" placeholder="Nombre del contacto">
                     </div>
 
+                    <!-- Campos exclusivos de RESIDENTES -->
+                    <div class="form-row dir-field-residente dir-dynamic-field" style="margin-bottom:14px;display:none;">
+                        <label>Apellidos *</label>
+                        <input class="form-control" id="dir-apellidos" type="text" placeholder="Apellidos del residente">
+                    </div>
+                    <div class="form-row dir-field-residente dir-dynamic-field" style="margin-bottom:14px;display:none;">
+                        <label>Tipo de residente *</label>
+                        <select class="form-control" id="dir-tipo-residente">
+                            <option value="Propietario">Propietario</option>
+                            <option value="Arrendatario">Arrendatario</option>
+                        </select>
+                    </div>
+                    <div class="dir-field-residente dir-dynamic-field" style="display:none;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div>
+                            <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Torre / Bloque</label>
+                            <input class="form-control" id="dir-torre" type="text" placeholder="A, 1, Norte...">
+                        </div>
+                        <div>
+                            <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Apartamento *</label>
+                            <input class="form-control" id="dir-apartamento" type="text" placeholder="101, 202...">
+                        </div>
+                    </div>
+                    <div class="dir-field-residente dir-dynamic-field" style="display:none;margin-bottom:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;color:#042243;font-weight:600;">
+                            <input type="checkbox" id="dir-parqueadero" onchange="dirToggleParqueadero()">
+                            🚗 ¿Tiene parqueadero?
+                        </label>
+                    </div>
+                    <div id="dir-vehiculo-wrap" style="display:none;margin-bottom:14px;">
+                        <div id="dir-vehiculos-lista"></div>
+                        <button type="button" onclick="dirAgregarVehiculo()"
+                            style="width:100%;margin-top:4px;background:none;border:1.5px dashed rgba(4,34,67,.25);border-radius:9px;padding:7px;cursor:pointer;color:#042243;font-size:.8rem;font-family:inherit;">
+                            + Agregar vehículo
+                        </button>
+                    </div>
+
                     <!-- Cargo (solo ADMIN / LOGISTICA) -->
                     <div class="form-row dir-field-cargo dir-dynamic-field" style="margin-bottom:14px;display:none;">
                         <label>Cargo *</label>
@@ -2150,8 +2249,8 @@
                     </div>
 
                     <!-- Teléfonos -->
-                    <div class="form-row" style="margin-bottom:14px;">
-                        <label>Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small></label>
+                    <div class="form-row" id="dir-tel-label-row" style="margin-bottom:14px;">
+                        <label id="dir-tel-label">Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small></label>
                         <div id="dir-telefonos-wrap" style="display:flex;flex-direction:column;gap:6px;"></div>
                         <button type="button" onclick="dirAgregarTelefono()" style="margin-top:7px;background:none;border:1.5px dashed rgba(4,34,67,.25);border-radius:8px;padding:6px 12px;cursor:pointer;color:#042243;font-size:.8rem;width:100%;font-family:inherit;">+ Agregar teléfono</button>
                     </div>
@@ -2210,6 +2309,39 @@
                 </div>
             </div>
         </div><!-- /modal-dir -->
+
+        <!-- Modal importación masiva residentes -->
+        <div class="modal-overlay" id="modal-dir-importar">
+            <div style="width:clamp(340px,95vw,500px);border-radius:18px;background:#fff;box-shadow:0 24px 64px rgba(4,34,67,.22);overflow:hidden;">
+                <div style="background:linear-gradient(135deg,#276749,#38a169);padding:18px 22px 16px;display:flex;align-items:center;justify-content:space-between;">
+                    <div style="color:#fff;font-size:.96rem;font-weight:700;">📥 Importar Residentes</div>
+                    <button onclick="dirCerrarImportar()" style="background:rgba(255,255,255,.22);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;">×</button>
+                </div>
+                <div style="padding:20px 22px;">
+                    <p style="font-size:.82rem;color:#042243;margin:0 0 14px;">Sube un archivo CSV o Excel con los residentes. <a href="/servicios/directorio/residentes/plantilla" style="color:#276749;font-weight:700;">Descargar plantilla</a></p>
+                    <div id="dir-imp-drop" onclick="document.getElementById('dir-imp-archivo').click()"
+                        style="border:2.5px dashed #93b8e8;border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:#f8faff;transition:background .2s;"
+                        ondragover="event.preventDefault();this.style.background='#dde8f8'"
+                        ondragleave="this.style.background='#f8faff'"
+                        ondrop="dirDropArchivo(event)">
+                        <div style="font-size:2rem;margin-bottom:6px;">📂</div>
+                        <div id="dir-imp-nombre" style="font-size:.82rem;color:#2563a8;font-weight:600;">Haz clic o arrastra tu archivo CSV / XLSX aquí</div>
+                    </div>
+                    <input type="file" id="dir-imp-archivo" accept=".csv,.xlsx,.xls" hidden onchange="dirSeleccionarArchivo(this)">
+                    <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:#042243;margin-bottom:8px;">Visibilidad por defecto:</div>
+                    <div style="display:flex;flex-direction:column;gap:7px;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;"><input type="checkbox" id="dir-imp-res" checked> Visible para residentes</label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;"><input type="checkbox" id="dir-imp-seg"> Visible para seguridad</label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;"><input type="checkbox" id="dir-imp-adm"> Visible para administración</label>
+                    </div>
+                    <div id="dir-imp-resultado" style="margin-top:12px;font-size:.82rem;"></div>
+                </div>
+                <div style="padding:12px 22px 18px;display:flex;justify-content:flex-end;gap:10px;background:#fafbfc;border-top:1px solid rgba(4,34,67,.08);">
+                    <button onclick="dirCerrarImportar()" style="padding:8px 20px;border-radius:8px;border:none;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;background:#e2e8f0;color:#042243;">Cancelar</button>
+                    <button onclick="dirEjecutarImportacion()" style="padding:8px 20px;border-radius:8px;border:none;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#276749,#38a169);color:#fff;">📥 Importar</button>
+                </div>
+            </div>
+        </div><!-- /modal-dir-importar -->
 
     </div><!-- /main-content -->
 </div><!-- /main-layout -->
@@ -5045,9 +5177,12 @@ const SRV = {
             borde:'rgba(0,200,240,.4)', hsh:'rgba(4,34,67,.3)', desc:'rgba(255,255,255,.75)'
         };
         const _panelDestino = (codigo) => {
-            if (codigo === 'directorio')   return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
-            if (codigo === 'boton_panico') return `mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()`;
-            return `mostrarPanel('srv-panel-${codigo}')`;
+            // Bespoke (configuración propia): directorio y botón de pánico
+            if (codigo === 'directorio')    return `mostrarPanel('cfg-directorio');_dirPoblarEmpresas()`;
+            if (codigo === 'boton_panico')  return `mostrarPanel('cfg-boton-panico');_panicoPoblarEmpresas()`;
+            if (codigo === 'control_acceso') return `mostrarPanel('cfg-control-acceso');_caAccesoPoblarEmpresas()`;
+            // Resto: apertura genérica (iframe a /servicios/<codigo>/, carga perezosa)
+            return `_abrirModuloGenerico('${codigo}')`;
         };
         grid.innerHTML = activos.map((s, i) => {
             return `<div onclick="setActive(document.getElementById('nav-inicio'));${_panelDestino(s.codigo)}"
@@ -5066,22 +5201,19 @@ const SRV = {
     renderPaneles() {
         const container = document.getElementById('servicios-paneles-container');
         if (!container) return;
-        container.innerHTML = this._data.filter(s => s.activo).map(s => `
+        // CONVENCIÓN ÚNICA: cada módulo se abre con un iframe genérico a
+        // /servicios/<codigo>/ (carga perezosa). El backend (dispatcher
+        // panel_servicio) decide qué renderiza: la página real del módulo o,
+        // si aún no está implementado, panel_servicio.html ("EN DESARROLLO").
+        // Así un módulo NUEVO funciona sin cablear nada aquí.
+        // (Directorio y Botón de Pánico siguen usando su panel bespoke cfg-*.)
+        // Módulos con panel bespoke propio: no generan iframe genérico aquí
+        const BESPOKE = ['directorio', 'boton_panico', 'control_acceso'];
+        container.innerHTML = this._data.filter(s => s.activo && !BESPOKE.includes(s.codigo)).map(s => `
             <div id="srv-panel-${s.codigo}" class="config-panel">
                 <div class="config-panel-title">${s.icono || '📋'} <span>${s.nombre}</span></div>
-                <div class="config-panel-subtitle">${s.descripcion || 'Módulo en desarrollo.'}</div>
-                <div style="margin-top:60px;text-align:center;">
-                    <div style="font-size:4rem;margin-bottom:20px;">${s.icono || '📋'}</div>
-                    <h2 style="font-size:1.6rem;font-weight:700;">${s.nombre}</h2>
-                    <p style="opacity:.5;margin-top:10px;font-size:.9rem;">
-                        ${s.descripcion || 'Este módulo está en construcción. Pronto estará disponible.'}
-                    </p>
-                    <div style="display:inline-block;margin-top:24px;padding:6px 20px;border-radius:20px;
-                         background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);
-                         color:#00c8f0;font-size:.78rem;font-weight:600;letter-spacing:1px;">
-                        EN DESARROLLO
-                    </div>
-                </div>
+                <iframe id="srv-iframe-${s.codigo}" data-src="/servicios/${s.codigo}/" title="${s.nombre}"
+                    style="width:100%;height:800px;border:none;border-radius:12px;display:block;margin-top:12px;background:#EEF2FF;"></iframe>
             </div>`).join('');
     },
 
@@ -6455,8 +6587,9 @@ async function _dirCargarBloques() {
 function _dirRenderTabsBloques() {
     const wrap = document.getElementById('dir-tabs-wrap');
     if (!wrap) return;
-    const btnTodos = wrap.querySelector('[data-bloque="TODOS"]');
-    const btnNuevo = wrap.querySelector('.btn-primary');
+    const btnTodos   = wrap.querySelector('[data-bloque="TODOS"]');
+    const btnImportar = wrap.querySelector('#dir-btn-importar');
+    const btnNuevo   = wrap.querySelector('.btn-primary');
     wrap.innerHTML = '';
     if (btnTodos) wrap.appendChild(btnTodos);
     _dirBloques.filter(b => b.activo).forEach(b => {
@@ -6467,6 +6600,7 @@ function _dirRenderTabsBloques() {
         btn.textContent = `${b.emoji || ''} ${b.nombre}`.trim();
         wrap.appendChild(btn);
     });
+    if (btnImportar) wrap.appendChild(btnImportar);
     if (btnNuevo) wrap.appendChild(btnNuevo);
 }
 
@@ -6756,15 +6890,42 @@ function _dirRenderGrid() {
         PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#059669' },
         LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#d97706' },
         LOCAL:       { icon:'📍', label:'Locales',            color:'#7c3aed' },
+        RESIDENTES:  { icon:'🏠', label:'Residentes',         color:'#276749' },
     };
     grid.innerHTML = _dirContactos.map((c, i) => {
         const m      = BLOQUE_META[c.bloque] || { icon:'👤', label:c.bloque, color:'#042243' };
         const panico = c.vinculado_al_boton_de_panico;
+        const esRes  = c.bloque === 'RESIDENTES';
         const fotoTs  = c.actualizado_en || c.creado_en || Date.now();
         const fotoSrc = c.tiene_foto ? `/config/directorio/${c._id}/foto?_t=${fotoTs}` : '';
         const avatar  = fotoSrc
             ? `<img class="dir-avatar" src="${fotoSrc}" alt="${c.nombre}" style="--dc-color:${m.color}">`
             : `<div class="dir-avatar-placeholder" style="--dc-color:${m.color}">${m.icon}</div>`;
+
+        // Nombre completo para residentes
+        const nombreCompleto = esRes && c.apellidos
+            ? `${c.nombre} ${c.apellidos}`
+            : c.nombre;
+
+        // Info adicional de residente
+        const residenteInfo = esRes ? (() => {
+            const tipo = c.tipo_residente || '';
+            const ubicacion = [c.torre ? `Torre ${c.torre}` : '', c.apartamento ? `Apto ${c.apartamento}` : ''].filter(Boolean).join(' · ');
+            const veh = c.tiene_parqueadero && (c.vehiculos||[]).length
+                ? (c.vehiculos||[]).map(v=>`<div class="dir-contact-row" style="margin-top:4px;">
+                    <span class="dir-contact-icon">${v.tipo==='moto'?'🏍️':'🚗'}</span>
+                    <span style="font-size:.77rem;color:#042243;">${[v.marca,v.color,v.placa].filter(Boolean).join(' · ')}</span>
+                   </div>`).join('')
+                : '';
+            return `
+                ${tipo ? `<div style="font-size:.74rem;color:#276749;font-weight:700;margin-top:2px;">${tipo}</div>` : ''}
+                ${ubicacion ? `<div class="dir-contact-row" style="margin-top:6px;">
+                    <span class="dir-contact-icon">🏢</span>
+                    <span style="font-size:.78rem;color:#042243;font-weight:600;">${ubicacion}</span>
+                </div>` : ''}
+                ${veh}`;
+        })() : '';
+
         const tels = (c.telefonos||[]).slice(0,2).map(t => {
             const num = typeof t === 'object' ? (t.numero||'') : t;
             const pre = typeof t === 'object' ? (t.prefijo||'+57') : '+57';
@@ -6789,11 +6950,12 @@ function _dirRenderGrid() {
                 <div class="dir-card-header">
                     ${avatar}
                     <div class="dir-card-info">
-                        <div class="dir-card-name">${c.nombre}</div>
+                        <div class="dir-card-name">${nombreCompleto}</div>
                         ${c.cargo_titulo ? `<div class="dir-card-cargo">${c.cargo_titulo}</div>` : ''}
                         <span class="dir-badge dir-badge-${c.bloque}">${m.icon} ${m.label}</span>
                     </div>
                 </div>
+                ${esRes ? `<div class="dir-contacts">${residenteInfo}</div>` : ''}
                 ${(tels||correoHtml) ? `<div class="dir-contacts">${tels}${correoHtml}</div>` : ''}
                 <div class="dir-flags">
                     ${flagChip(c.es_visible_para_residentes,    '👁 Residentes')}
@@ -6816,17 +6978,20 @@ function dirCambiarBloque(btn) {
     document.querySelectorAll('.dir-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     _dirBloqueAct = btn.dataset.bloque;
+    const btnImp = document.getElementById('dir-btn-importar');
+    if (btnImp) btnImp.style.display = (_dirBloqueAct === 'RESIDENTES') ? '' : 'none';
     _dirCargar();
 }
 
 // ── Modal ────────────────────────────────────────────────────────────────
 
 const _DIR_META = {
-    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#e53e3e', cargo:false, correo:false, panico:false },
-    ADMIN:       { icon:'🏢', label:'Administración',     color:'#2b6cb0', cargo:true,  correo:true,  panico:true  },
-    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#276749', cargo:false, correo:true,  panico:false },
-    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#b7791f', cargo:true,  correo:false, panico:true  },
-    LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false },
+    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#e53e3e', cargo:false, correo:false, panico:false, residente:false },
+    ADMIN:       { icon:'🏢', label:'Administración',     color:'#2b6cb0', cargo:true,  correo:true,  panico:true,  residente:false },
+    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#276749', cargo:false, correo:true,  panico:false, residente:false },
+    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#b7791f', cargo:true,  correo:false, panico:true,  residente:false },
+    LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false, residente:false },
+    RESIDENTES:  { icon:'🏠', label:'Residentes',         color:'#276749', cargo:false, correo:false, panico:false, residente:true  },
 };
 
 function _dirPoblarSelectBloques(codigoSeleccionado) {
@@ -6856,6 +7021,16 @@ function dirCambioBloque(cargoActual = '') {
     document.querySelectorAll('.dir-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
     document.querySelectorAll('.dir-field-correo').forEach(el => el.style.display = m.correo ? '' : 'none');
     document.querySelectorAll('.dir-field-panico').forEach(el => el.style.display = m.panico ? '' : 'none');
+    const esRes = bloque === 'RESIDENTES';
+    document.querySelectorAll('.dir-field-residente').forEach(el => el.style.display = esRes ? '' : 'none');
+    const vehWrap = document.getElementById('dir-vehiculo-wrap');
+    if (vehWrap) {
+        vehWrap.style.display = (esRes && document.getElementById('dir-parqueadero').checked) ? '' : 'none';
+    }
+    const telLbl = document.getElementById('dir-tel-label');
+    if (telLbl) telLbl.innerHTML = esRes
+        ? 'Teléfono <small style="color:#8A9CC8;">(opcional)</small>'
+        : 'Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small>';
     if (m.cargo) _dirCargarCargos(bloque, cargoActual);
 }
 
@@ -6899,6 +7074,21 @@ async function dirAbrirModal(contacto = null) {
         prev.src = ''; prev.style.display = 'none'; ph.style.display = '';
     }
     document.getElementById('dir-foto').value = '';
+    // Campos residentes
+    document.getElementById('dir-apellidos').value      = contacto ? (contacto.apellidos||'') : '';
+    document.getElementById('dir-tipo-residente').value = contacto ? (contacto.tipo_residente||'Propietario') : 'Propietario';
+    document.getElementById('dir-torre').value          = contacto ? (contacto.torre||'') : '';
+    document.getElementById('dir-apartamento').value    = contacto ? (contacto.apartamento||'') : '';
+    const _tieneParq = contacto ? !!contacto.tiene_parqueadero : false;
+    document.getElementById('dir-parqueadero').checked = _tieneParq;
+    document.getElementById('dir-vehiculos-lista').innerHTML = '';
+    if (_tieneParq) {
+        const _vehs = contacto.vehiculos && contacto.vehiculos.length
+            ? contacto.vehiculos
+            : (contacto.vehiculo && contacto.vehiculo.placa ? [contacto.vehiculo] : [{}]);
+        _vehs.forEach(v => _dirRenderVehiculoFila(v));
+    }
+    document.getElementById('dir-vehiculo-wrap').style.display = _tieneParq ? '' : 'none';
     const tels = contacto && contacto.telefonos && contacto.telefonos.length
         ? contacto.telefonos
         : [{ numero: '', prefijo: '+57' }];
@@ -6909,6 +7099,107 @@ async function dirAbrirModal(contacto = null) {
 
 function dirCerrarModal() {
     document.getElementById('modal-dir').classList.remove('show');
+}
+
+function dirToggleParqueadero() {
+    const checked = document.getElementById('dir-parqueadero').checked;
+    document.getElementById('dir-vehiculo-wrap').style.display = checked ? '' : 'none';
+    if (checked && !document.querySelectorAll('#dir-vehiculos-lista .dir-v-row').length) {
+        _dirRenderVehiculoFila({});
+    }
+    if (!checked) document.getElementById('dir-vehiculos-lista').innerHTML = '';
+}
+
+function _dirRenderVehiculoFila(v) {
+    const lista = document.getElementById('dir-vehiculos-lista');
+    const div = document.createElement('div');
+    div.className = 'dir-v-row';
+    div.style.cssText = 'border:1px solid rgba(4,34,67,.15);border-radius:10px;padding:10px;margin-bottom:8px;background:#f8faff;position:relative;';
+    div.innerHTML = `
+        <div style="display:grid;grid-template-columns:130px 1fr auto;gap:7px;margin-bottom:7px;align-items:center;">
+            <select class="form-control dir-v-tipo" style="font-size:.8rem;padding:7px 6px;">
+                <option value="carro" ${(v.tipo||'carro')==='carro'?'selected':''}>🚗 Carro</option>
+                <option value="moto"  ${v.tipo==='moto'?'selected':''}>🏍️ Moto</option>
+            </select>
+            <input class="form-control dir-v-placa" type="text" placeholder="Placa (ABC123)" value="${_esc(v.placa||'')}"
+                style="font-size:.8rem;text-transform:uppercase;">
+            <button type="button" onclick="dirQuitarVehiculo(this)"
+                style="background:rgba(192,48,74,.1);border:1.5px solid rgba(192,48,74,.25);border-radius:8px;padding:6px 10px;cursor:pointer;color:#C0304A;font-size:.85rem;white-space:nowrap;">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+            <input class="form-control dir-v-color" type="text" placeholder="Color" value="${_esc(v.color||'')}" style="font-size:.8rem;">
+            <input class="form-control dir-v-marca" type="text" placeholder="Marca / Modelo" value="${_esc(v.marca||'')}" style="font-size:.8rem;">
+        </div>`;
+    lista.appendChild(div);
+}
+
+function dirAgregarVehiculo() { _dirRenderVehiculoFila({}); }
+
+function dirQuitarVehiculo(btn) { btn.closest('.dir-v-row').remove(); }
+
+function _dirLeerVehiculos() {
+    return [...document.querySelectorAll('#dir-vehiculos-lista .dir-v-row')].map(row => ({
+        tipo:  row.querySelector('.dir-v-tipo').value,
+        placa: row.querySelector('.dir-v-placa').value.trim().toUpperCase(),
+        color: row.querySelector('.dir-v-color').value.trim(),
+        marca: row.querySelector('.dir-v-marca').value.trim(),
+    })).filter(v => v.placa);
+}
+
+// ── Importación masiva de residentes ────────────────────────────────────────
+
+let _dirImpArchivo = null;
+
+function dirAbrirImportar() {
+    _dirImpArchivo = null;
+    document.getElementById('dir-imp-nombre').textContent = 'Haz clic o arrastra tu archivo CSV / XLSX aquí';
+    document.getElementById('dir-imp-resultado').innerHTML = '';
+    document.getElementById('dir-imp-archivo').value = '';
+    document.getElementById('modal-dir-importar').classList.add('show');
+}
+
+function dirCerrarImportar() {
+    document.getElementById('modal-dir-importar').classList.remove('show');
+    _dirImpArchivo = null;
+}
+
+function dirSeleccionarArchivo(input) {
+    if (input.files && input.files[0]) {
+        _dirImpArchivo = input.files[0];
+        document.getElementById('dir-imp-nombre').textContent = '📄 ' + _dirImpArchivo.name;
+    }
+}
+
+function dirDropArchivo(event) {
+    event.preventDefault();
+    document.getElementById('dir-imp-drop').style.background = '#f8faff';
+    const f = event.dataTransfer.files[0];
+    if (f) { _dirImpArchivo = f; document.getElementById('dir-imp-nombre').textContent = '📄 ' + f.name; }
+}
+
+async function dirEjecutarImportacion() {
+    if (!_dirImpArchivo) { showToast('❌ Selecciona un archivo primero', true); return; }
+    const res = document.getElementById('dir-imp-resultado');
+    res.innerHTML = '<span style="color:#2563a8;">⏳ Importando...</span>';
+    const fd = new FormData();
+    fd.append('archivo', _dirImpArchivo);
+    fd.append('propiedad_id', _dirEmpresaId);
+    fd.append('visible_res', document.getElementById('dir-imp-res').checked);
+    fd.append('visible_seg', document.getElementById('dir-imp-seg').checked);
+    fd.append('visible_admin', document.getElementById('dir-imp-adm').checked);
+    try {
+        const r = await fetch('/servicios/directorio/residentes/importar', { method: 'POST', body: fd });
+        const j = await r.json();
+        if (j.ok) {
+            res.innerHTML = `<div style="color:#276749;font-weight:700;">✅ ${j.data.mensaje}</div>` +
+                (j.data.errores?.length ? `<ul style="color:#b7791f;font-size:.76rem;margin:6px 0 0 14px;">${j.data.errores.map(e=>`<li>${e}</li>`).join('')}</ul>` : '');
+            showToast('✅ Importación completada');
+            await _dirCargar();
+            setTimeout(dirCerrarImportar, 3000);
+        } else {
+            res.innerHTML = `<div style="color:#C0304A;">❌ ${j.error||'Error al importar'}</div>`;
+        }
+    } catch(e) { res.innerHTML = '<div style="color:#C0304A;">❌ Error de red</div>'; }
 }
 
 let _dirPaises = [];
@@ -6987,7 +7278,7 @@ async function dirGuardar() {
     const meta = _DIR_META[bloque] || {};
     if (!nombre)  { showToast('❌ El nombre es obligatorio', true); return; }
     if (meta.cargo && !cargo) { showToast('❌ El cargo es obligatorio para este bloque', true); return; }
-    if (!telefonos.length)    { showToast('❌ Debe ingresar al menos un teléfono', true); return; }
+    if (bloque !== 'RESIDENTES' && !telefonos.length) { showToast('❌ Debe ingresar al menos un teléfono', true); return; }
     const fd = new FormData();
     fd.append('propiedad_id',                _dirEmpresaId);
     fd.append('bloque',                      bloque);
@@ -7000,6 +7291,18 @@ async function dirGuardar() {
     fd.append('vinculado_al_boton_de_panico',document.getElementById('dir-flag-panico').checked   ? 'true' : 'false');
     fd.append('orden',                        parseInt(document.getElementById('dir-orden').value) || 0);
     fd.append('telefonos', JSON.stringify(telefonos));
+    // Campos exclusivos de residentes
+    if (bloque === 'RESIDENTES') {
+        fd.append('apellidos',       document.getElementById('dir-apellidos').value.trim());
+        fd.append('tipo_residente',  document.getElementById('dir-tipo-residente').value);
+        fd.append('torre',           document.getElementById('dir-torre').value.trim());
+        fd.append('apartamento',     document.getElementById('dir-apartamento').value.trim());
+        const tieneParq = document.getElementById('dir-parqueadero').checked;
+        fd.append('tiene_parqueadero', tieneParq ? 'true' : 'false');
+        if (tieneParq) {
+            fd.append('vehiculos', JSON.stringify(_dirLeerVehiculos()));
+        }
+    }
     const fotoFile = document.getElementById('dir-foto').files[0];
     if (fotoFile) fd.append('foto', fotoFile);
 
@@ -7245,6 +7548,75 @@ async function _panicoSeleccionarEmpresa(empresaId) {
 
 function _abrirModuloPanico() {
     // activado desde sidebar — el tab panico ya se activó via _panicoTab
+}
+
+// ── Control de Acceso ────────────────────────────────────────────────────────
+let _caAccesoEmpresaId = null;
+const _caAccesoTabs = ['configuracion','credenciales','porteria','monitoreo'];
+
+async function _caAccesoPoblarEmpresas() {
+    const sel = document.getElementById('ca-empresa-sel');
+    if (!sel) return;
+    if (sel.options.length > 1) return; // ya cargado
+    try {
+        const r = await fetch('/config/empresas?solo_activas=1&_t=' + Date.now());
+        const d = await r.json();
+        if (d.ok) {
+            (d.data || []).forEach(e => {
+                const o = document.createElement('option');
+                o.value = e._id; o.textContent = e.razon_social || e.nombre || e._id;
+                sel.appendChild(o);
+            });
+        }
+    } catch {}
+}
+
+function _caAccesoTab(btn) {
+    const tab = btn.dataset.catab;
+    document.querySelectorAll('[data-catab]').forEach(b => b.classList.toggle('active', b === btn));
+    _caAccesoTabs.forEach(t => {
+        const p = document.getElementById('ca-pane-' + t);
+        if (p) p.style.display = t === tab ? 'block' : 'none';
+    });
+    if (_caAccesoEmpresaId) _caAccesoCargarFrame(tab);
+}
+
+function _caAccesoCargarFrame(tab) {
+    const f = document.getElementById('ca-frame-' + tab);
+    if (!f) return;
+    const url = `/servicios/control_acceso/?vista=${tab}&empresa_id=${encodeURIComponent(_caAccesoEmpresaId)}&embed=1`;
+    if (f.src !== url) f.src = url;
+}
+
+function _caAccesoSeleccionarEmpresa(eid) {
+    _caAccesoEmpresaId = eid || null;
+    if (!eid) return;
+    // Cargar solo el tab activo ahora; los demás se cargan al hacer click
+    const tabActivo = document.querySelector('[data-catab].active');
+    if (tabActivo) _caAccesoCargarFrame(tabActivo.dataset.catab);
+    // Badge coacción
+    _caAccesoChequeoCoaccion();
+}
+
+async function _caAccesoChequeoCoaccion() {
+    const b = document.getElementById('ca-badge');
+    if (!b || !_caAccesoEmpresaId) return;
+    try {
+        const r = await fetch(`/servicios/control_acceso/coacciones-activas?empresa_id=${encodeURIComponent(_caAccesoEmpresaId)}&_t=${Date.now()}`);
+        const j = await r.json();
+        const hay = j.ok && (j.data || []).length > 0;
+        b.style.display = hay ? 'inline-block' : 'none';
+    } catch {}
+}
+setInterval(() => { if (_caAccesoEmpresaId) _caAccesoChequeoCoaccion(); }, 5000);
+
+// Apertura GENÉRICA de cualquier módulo: muestra su panel y carga el iframe
+// (/servicios/<codigo>/) la primera vez (perezoso). Cualquier módulo nuevo
+// funciona sin tocar este archivo — ver convención en ServiciosInicio.renderPaneles.
+function _abrirModuloGenerico(codigo) {
+    if (typeof mostrarPanel === 'function') mostrarPanel('srv-panel-' + codigo);
+    const f = document.getElementById('srv-iframe-' + codigo);
+    if (f && !f.src && f.dataset.src) f.src = f.dataset.src;
 }
 
 function _actualizarIframePanico() {

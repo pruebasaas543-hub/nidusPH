@@ -628,6 +628,7 @@ const DC = (() => {
     PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#00e676', cargo:false, correo:true  },
     LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#ffd600', cargo:true,  correo:false },
     LOCAL:       { icon:'📍', label:'Locales',            color:'#bf5af2', cargo:false, correo:false },
+    RESIDENTES:  { icon:'🏠', label:'Residentes',         color:'#38a169', cargo:false, correo:false },
   };
 
   let _todos         = [];
@@ -685,6 +686,8 @@ function _cardHTML(c, i) {
     const m     = _meta(c.bloque);
     const tels  = _tels(c);
     const delay = (i % 12) * 0.04;
+    const esRes = c.bloque === 'RESIDENTES';
+    const nombreCompleto = esRes && c.apellidos ? `${esc(c.nombre)} ${esc(c.apellidos)}` : esc(c.nombre);
     const avatar = c.tiene_foto
       ? `<img src="/servicios/directorio/contactos/${c._id}/foto?_t=${c.actualizado_en||c.creado_en||0}" alt="${esc(c.nombre)}" />`
       : `<div class="card-avatar-initials">${esc((c.nombre||'?')[0].toUpperCase())}</div>`;
@@ -693,6 +696,21 @@ function _cardHTML(c, i) {
         ${PERMISOS.editar   ? `<button class="btn-edit"   onclick="DC.editar('${c._id}')">✏️ Editar</button>` : ''}
         ${PERMISOS.eliminar ? `<button class="btn-delete" onclick="DC.eliminar('${c._id}','${esc(c.nombre)}')">🗑 Eliminar</button>` : ''}
       </div>` : '';
+
+    // Info extra para residentes
+    const resInfo = esRes ? (() => {
+      const tipo = c.tipo_residente
+        ? `<div class="card-cargo" style="color:${m.color};font-weight:700;">${c.tipo_residente === 'Propietario' ? '🏡' : '🔑'} ${esc(c.tipo_residente)}</div>`
+        : '';
+      const ubicacion = (c.torre || c.apartamento)
+        ? `<div class="card-contact-row" style="margin-top:4px;"><span class="card-contact-icon">🏢</span><span class="card-contact-val">${[c.torre ? 'Torre '+esc(c.torre) : '', c.apartamento ? 'Apto '+esc(c.apartamento) : ''].filter(Boolean).join(' · ')}</span></div>`
+        : '';
+      const veh = c.tiene_parqueadero && (c.vehiculos||[]).length
+        ? (c.vehiculos||[]).map(v=>`<div class="card-contact-row"><span class="card-contact-icon">${v.tipo==='moto'?'🏍️':'🚗'}</span><span class="card-contact-val">${[esc(v.marca||''),esc(v.color||''),esc(v.placa||'')].filter(Boolean).join(' · ')}</span></div>`).join('')
+        : '';
+      return { tipo, ubicacion, veh };
+    })() : null;
+
     return `
       <div class="contact-card" style="--card-color:${m.color};animation-delay:${delay}s">
         <div class="card-inner">
@@ -700,12 +718,22 @@ function _cardHTML(c, i) {
             <div class="card-header">
               <div class="card-avatar">${avatar}</div>
               <div class="card-info">
-                <div class="card-name">${esc(c.nombre)}</div>
+                <div class="card-name">${nombreCompleto}</div>
                 ${c.cargo_titulo ? `<div class="card-cargo">${esc(c.cargo_titulo)}</div>` : ''}
+                ${resInfo ? resInfo.tipo : ''}
                 <span class="card-bloque" style="background:${m.color}18;color:${m.color};">${m.icon} ${m.label}</span>
               </div>
             </div>
-            ${(tels.length || c.correo) ? `
+            ${(resInfo && (resInfo.ubicacion || resInfo.veh || tels.length)) ? `
+            <div class="card-contacts">
+              ${resInfo.ubicacion}
+              ${tels.slice(0,2).map(t => `
+                <div class="card-contact-row">
+                  <span class="card-contact-icon">📞</span>
+                  <span class="card-contact-val">${esc(t)}</span>
+                </div>`).join('')}
+              ${resInfo.veh}
+            </div>` : (tels.length || c.correo) ? `
             <div class="card-contacts">
               ${tels.slice(0,2).map(t => `
                 <div class="card-contact-row">
@@ -729,8 +757,12 @@ function _cardHTML(c, i) {
     const q = _busqueda.toLowerCase();
     return lista.filter(c =>
       (c.nombre||'').toLowerCase().includes(q) ||
+      (c.apellidos||'').toLowerCase().includes(q) ||
       (c.cargo_titulo||'').toLowerCase().includes(q) ||
-      (c.correo||'').toLowerCase().includes(q)
+      (c.correo||'').toLowerCase().includes(q) ||
+      (c.torre||'').toLowerCase().includes(q) ||
+      (c.apartamento||'').toLowerCase().includes(q) ||
+      (c.vehiculos||[]).some(v => (v.placa||'').toLowerCase().includes(q))
     );
   }
 

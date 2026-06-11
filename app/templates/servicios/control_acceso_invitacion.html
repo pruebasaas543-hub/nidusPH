@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tu Invitación de Acceso — Nidus</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f4f6fa;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(4, 34, 67, 0.12);
+    max-width: 380px;
+    width: 100%;
+    padding: 2rem 1.75rem;
+    text-align: center;
+  }
+  .logo {
+    font-size: 2.2rem;
+    margin-bottom: .25rem;
+  }
+  .conjunto-nombre {
+    color: #042243;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+  }
+  .label {
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #7a8baa;
+    margin-bottom: .4rem;
+  }
+  .qr-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+  }
+  .qr-wrap img {
+    width: 200px;
+    height: 200px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+  }
+  .pin-badge {
+    display: inline-block;
+    background: #042243;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: .25em;
+    padding: .6rem 1.4rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    user-select: all;
+  }
+  .nombre-visitante {
+    font-size: 1rem;
+    color: #374151;
+    margin-bottom: .5rem;
+  }
+  .info-row {
+    font-size: .82rem;
+    color: #6b7280;
+    margin-bottom: .25rem;
+  }
+  .divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 1.25rem 0;
+  }
+  .footer {
+    font-size: .75rem;
+    color: #9ca3af;
+  }
+  .badge-tipo {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1a56db;
+    font-size: .72rem;
+    font-weight: 600;
+    padding: .2rem .65rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
+    letter-spacing: .03em;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🏠</div>
+  <div class="conjunto-nombre">{{ conjunto_nombre }}</div>
+
+  {% set tipo_map = {"unico": "Visita única", "recurrente": "Acceso recurrente",
+                     "contratista": "Contratista", "domicilio": "Domicilio",
+                     "proveedor": "Proveedor"} %}
+  <span class="badge-tipo">{{ tipo_map.get(cred.tipo_credencial, cred.tipo_credencial) }}</span>
+
+  <div class="label">Código QR de acceso</div>
+  <div class="qr-wrap">
+    <img src="{{ qr_b64 }}" alt="QR de acceso">
+  </div>
+
+  <div class="label">Código PIN (muéstralo en portería)</div>
+  <div class="pin-badge">{{ codigo }}</div>
+
+  <div class="nombre-visitante">
+    <strong>{{ cred.visitante.get('nombre', '') }}</strong>
+  </div>
+
+  {% if cred.get('vigencia') %}
+    {% set vig = cred.vigencia %}
+    {% if vig.get('fin') %}
+      <div class="info-row">⏱️ Válido hasta {{ vig.fin.strftime('%d/%m/%Y %H:%M') if vig.fin else '—' }}</div>
+    {% endif %}
+  {% endif %}
+
+  <hr class="divider">
+  <div class="footer">
+    Presenta este QR o código PIN al vigilante al llegar.<br>
+    Powered by <strong>Nidus PH</strong>
+  </div>
+</div>
+</body>
+</html>

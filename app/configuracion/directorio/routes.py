@@ -68,11 +68,22 @@ def _parse_payload():
     datos["telefonos"] = tels_norm
 
     for flag in ("es_visible_para_residentes", "es_visible_para_seguridad",
-                 "es_visible_para_administracion", "vinculado_al_boton_de_panico"):
+                 "es_visible_para_administracion", "vinculado_al_boton_de_panico",
+                 "tiene_parqueadero"):
         val = datos.get(flag, "")
         if isinstance(val, bool):
             continue
         datos[flag] = str(val).lower() in ("true", "1", "on")
+
+    # vehiculos puede llegar como JSON string en multipart
+    if isinstance(datos.get("vehiculos"), str):
+        try:
+            import json as _json2
+            datos["vehiculos"] = _json2.loads(datos["vehiculos"])
+        except Exception:
+            datos["vehiculos"] = []
+    if not isinstance(datos.get("vehiculos"), list):
+        datos["vehiculos"] = []
 
     return empresa_id, datos, foto
 

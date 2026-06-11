@@ -109,6 +109,7 @@ def create_app():
     from app.servicios.routes               import servicios_bp, servicios_admin_bp
     from app.servicios.directorio.routes    import directorio_bp
     from app.servicios.boton_panico.routes  import panico_bp
+    from app.servicios.control_acceso.routes import control_acceso_bp
     from app.contabilidad                   import register_contabilidad_blueprints
 
     app.register_blueprint(auth_bp)
@@ -119,9 +120,10 @@ def create_app():
     app.register_blueprint(servicios_admin_bp)
     app.register_blueprint(directorio_bp)
     app.register_blueprint(panico_bp)
+    app.register_blueprint(control_acceso_bp)
     register_contabilidad_blueprints(app)
 
-    app.logger.info("Blueprints registrados: auth, recuperacion, slug, configuracion(x8), contabilidad(x8), directorio, boton_panico")
+    app.logger.info("Blueprints registrados: auth, recuperacion, slug, configuracion(x8), contabilidad(x8), directorio, boton_panico, control_acceso")
 
     # ── Migraciones idempotentes de BD (se ejecutan en cada arranque, son seguras) ──
     try:
@@ -144,12 +146,65 @@ def create_app():
     try:
         from app.servicios.directorio.model import inicializar_plantillas_globales
         inicializar_plantillas_globales()
+        # Migración: agregar bloque RESIDENTES a todas las empresas que no lo tengan
+        _n = db["directorio_config"].update_many(
+            {"bloques.codigo": {"$ne": "RESIDENTES"}},
+            {"$push": {"bloques": {
+                "codigo": "RESIDENTES", "nombre": "Residentes", "emoji": "🏠",
+                "orden": 6, "activo": True, "es_predeterminado": True,
+            }}}
+        )
+        if _n.modified_count:
+            app.logger.info("Migración: bloque RESIDENTES agregado a %d empresa(s)", _n.modified_count)
     except Exception as _e:
         app.logger.warning("Inicialización directorio_bloques: %s", _e)
+
+    # ── Catálogo: módulo "Control de Acceso" (ADITIVO — no toca otros datos) ──
+    try:
+        from datetime import datetime as _dt
+        db["servicios"].update_one(
+            {"codigo": "control_acceso"},
+            {"$setOnInsert": {
+                "nombre":      "Control de Acceso",
+                "codigo":      "control_acceso",
+                "descripcion": "Portería: credenciales (QR/PIN), coacción y citofonía",
+                "icono":       "🛂",
+                "orden":       50,
+                "activo":      True,
+                "creado_en":   _dt.utcnow(),
+                "creado_por":  "sistema",
+            }},
+            upsert=True,
+        )
+        db["access_credentials"].create_index([("conjunto_id", 1), ("codigo", 1)])
+        db["access_logs"].create_index([("conjunto_id", 1), ("creado_en", -1)])
+    except Exception as _e:
+        app.logger.warning("Inicialización control_acceso: %s", _e)
 
     # ── Twilio Webhooks (recibe estados en tiempo real) ──
     # El poller ya no es necesario — Twilio enviará webhooks automáticamente
     # cuando cambien los estados de SMS, WhatsApp o Llamadas
     # Ver: POST /servicios/boton_panico/webhook/twilio-status
+
+    # ── SLA de contratistas (hilo daemon cada 30 min) ──
+    try:
+        from app.servicios.control_acceso.sla_worker import iniciar_sla_worker
+        iniciar_sla_worker()
+        app.logger.info("SLA worker de contratistas iniciado")
+    except Exception as _e:
+        app.logger.warning("SLA worker no pudo iniciar: %s", _e)
+
+    # ── Cloudinary (inicializar configuración) ──
+    try:
+        import cloudinary
+        cloudinary.config(
+            cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME", ""),
+            api_key=os.environ.get("CLOUDINARY_API_KEY", ""),
+            api_secret=os.environ.get("CLOUDINARY_API_SECRET", ""),
+            secure=True,
+        )
+        app.logger.info("Cloudinary configurado (cloud=%s)", os.environ.get("CLOUDINARY_CLOUD_NAME", "N/A"))
+    except Exception as _e:
+        app.logger.warning("Cloudinary no configurado: %s", _e)
 
     return app

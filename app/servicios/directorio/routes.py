@@ -18,7 +18,11 @@ def _usuario():
     return session.get("num_doc") or session.get("usuario_id", "sistema")
 
 def _empresa_id():
-    return session.get("empresa_id", "")
+    # Primero sesión (usuario normal); si no, propiedad_id del form (SuperAdmin)
+    return (session.get("empresa_id")
+            or request.form.get("propiedad_id")
+            or request.args.get("propiedad_id")
+            or "")
 
 
 def _parse_contacto_payload():
@@ -161,6 +165,137 @@ def eliminar_contacto(contacto_id):
     if not exito:
         return err(resultado, 404)
     return ok(mensaje=resultado)
+
+
+@directorio_bp.route("/residentes/plantilla", methods=["GET"])
+@requiere_login
+def plantilla_residentes():
+    """Descarga un CSV de ejemplo para importación masiva de residentes."""
+    import csv, io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Nombres", "Apellidos", "Tipo de residente", "Torre", "Apartamento",
+                     "Telefono", "Parqueadero", "Tipo vehiculo", "Placa", "Color vehiculo", "Marca vehiculo",
+                     "Visible para residentes", "Visible para seguridad", "Visible para administracion"])
+    writer.writerow(["Juan Carlos", "García Martínez", "Propietario", "A", "101", "3112345678",
+                     "Sí", "carro", "ABC123", "Blanco", "Chevrolet Spark", "Sí", "No", "No"])
+    writer.writerow(["María Fernanda", "López Ruiz", "Arrendatario", "B", "205", "3209876543",
+                     "No", "", "", "", "", "Sí", "No", "Sí"])
+    output.seek(0)
+    from flask import Response
+    return Response(
+        output.getvalue().encode("utf-8-sig"),  # utf-8-sig para que Excel lo abra bien
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=plantilla_residentes.csv"}
+    )
+
+
+@directorio_bp.route("/residentes/importar", methods=["POST"])
+@requiere_login
+def importar_residentes():
+    """Importación masiva de residentes desde CSV o Excel."""
+    eid = _empresa_id()
+    if not eid:
+        return err("No hay empresa en sesión", 400)
+    if "archivo" not in request.files:
+        return err("Campo 'archivo' requerido", 400)
+    archivo = request.files["archivo"]
+    nombre_archivo = archivo.filename.lower()
+
+    filas = []
+    try:
+        if nombre_archivo.endswith(".xlsx") or nombre_archivo.endswith(".xls"):
+            import openpyxl
+            wb = openpyxl.load_workbook(archivo, read_only=True, data_only=True)
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows:
+                return err("El archivo Excel está vacío", 400)
+            headers = [str(h or "").strip().lower() for h in rows[0]]
+            for row in rows[1:]:
+                filas.append({headers[i]: str(v or "").strip() for i, v in enumerate(row) if i < len(headers)})
+        elif nombre_archivo.endswith(".csv"):
+            import csv, io
+            content = archivo.read().decode("utf-8-sig", errors="replace")
+            reader = csv.DictReader(io.StringIO(content))
+            for row in reader:
+                filas.append({k.strip().lower(): (v or "").strip() for k, v in row.items()})
+        else:
+            return err("Formato no soportado. Usa CSV o XLSX.", 400)
+    except Exception as e:
+        return err(f"Error al leer el archivo: {e}", 400)
+
+    if not filas:
+        return err("El archivo no contiene datos", 400)
+
+    def _bool_col(row, *keys):
+        for k in keys:
+            v = (row.get(k) or "").lower()
+            if v in ("sí", "si", "s", "yes", "1", "true", "x"):
+                return True
+            if v in ("no", "n", "0", "false"):
+                return False
+        return True  # default visible
+
+    from app.servicios.directorio.controller import ContactoController
+    from datetime import datetime as _dt
+    from bson import ObjectId as _ObjId
+
+    creados, errores = 0, []
+    for i, fila in enumerate(filas, start=2):
+        nombres    = fila.get("nombres") or fila.get("nombre") or ""
+        apellidos  = fila.get("apellidos") or fila.get("apellido") or ""
+        tipo       = fila.get("tipo de residente") or fila.get("tipo_residente") or fila.get("tipo") or "Propietario"
+        torre      = fila.get("torre") or fila.get("bloque") or ""
+        apartamento= fila.get("apartamento") or fila.get("apto") or ""
+        telefono   = fila.get("telefono") or fila.get("teléfono") or fila.get("tel") or ""
+
+        if not nombres:
+            errores.append(f"Fila {i}: 'Nombres' vacío, omitida.")
+            continue
+        if tipo not in ("Propietario", "Arrendatario"):
+            tipo = "Propietario" if "prop" in tipo.lower() else "Arrendatario"
+
+        vis_res  = _bool_col(fila, "visible para residentes", "visible_residentes")
+        vis_seg  = _bool_col(fila, "visible para seguridad",  "visible_seguridad")
+        vis_adm  = _bool_col(fila, "visible para administracion", "visible para administración", "visible_admin")
+
+        parqueadero = _bool_col(fila, "parqueadero", "tiene_parqueadero")
+        placa  = (fila.get("placa") or "").strip().upper()
+        color  = (fila.get("color vehiculo") or fila.get("color") or "").strip()
+        marca  = (fila.get("marca vehiculo") or fila.get("marca") or "").strip()
+        tipo_veh = (fila.get("tipo vehiculo") or fila.get("tipo_vehiculo") or "carro").lower()
+        tipo_veh = "moto" if "moto" in tipo_veh else "carro"
+        vehiculos = [{"tipo": tipo_veh, "placa": placa, "color": color, "marca": marca}] if (parqueadero and placa) else []
+
+        datos = {
+            "bloque":      "RESIDENTES",
+            "nombre":      nombres,
+            "apellidos":   apellidos,
+            "tipo_residente": tipo,
+            "torre":       torre,
+            "apartamento": apartamento,
+            "tiene_parqueadero": parqueadero,
+            "vehiculos":   vehiculos,
+            "telefonos":   [{"numero": telefono, "prefijo": "+57"}] if telefono else [],
+            "cargo_titulo": "",
+            "correo":      "",
+            "es_visible_para_residentes":    vis_res,
+            "es_visible_para_seguridad":     vis_seg,
+            "es_visible_para_administracion": vis_adm,
+            "vinculado_al_boton_de_panico":  False,
+        }
+        exito, res = ContactoController.crear(datos, eid, _usuario())
+        if exito:
+            creados += 1
+        else:
+            errores.append(f"Fila {i}: {res}")
+
+    return ok({
+        "creados": creados,
+        "errores": errores,
+        "mensaje": f"{creados} residente(s) importado(s) correctamente." + (f" {len(errores)} omitido(s)." if errores else "")
+    }, status=201)
 
 
 @directorio_bp.route("/contactos/<contacto_id>/foto", methods=["GET"])

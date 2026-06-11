@@ -341,6 +341,7 @@
 
     .modal-body { padding:20px 24px; overflow-y:auto; flex:1; }
 
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .form-group { margin-bottom:15px; }
     .form-group label {
       display:block; font-size:.74rem; color:var(--muted); margin-bottom:6px;
@@ -447,6 +448,11 @@
     <button class="btn-nuevo" onclick="DC.abrirModal()">
       <span style="font-size:1rem;line-height:1;">＋</span> Nuevo Contacto
     </button>
+    <button class="btn-nuevo" id="btn-importar-res"
+      onclick="DC.abrirImportar()"
+      style="background:linear-gradient(135deg,#276749,#38a169);">
+      📥 Importar Residentes
+    </button>
     <div class="search-wrap">
       <input id="buscador" type="text" placeholder="Buscar contacto..." onInput="DC.filtrar(this.value)" />
     </div>
@@ -491,12 +497,53 @@
           <option value="PUBLICOS">💡 Servicios Públicos</option>
           <option value="LOGISTICA">🔧 Logística</option>
           <option value="LOCAL">📍 Locales</option>
+          <option value="RESIDENTES">🏠 Residentes</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>Nombre *</label>
+        <label id="lbl-nombre">Nombre *</label>
         <input id="f-nombre" type="text" placeholder="Nombre del contacto" />
+      </div>
+
+      <!-- Campos exclusivos de RESIDENTES -->
+      <div class="form-group dynamic-field dc-field-residente" style="display:none;">
+        <label>Apellidos *</label>
+        <input id="f-apellidos" type="text" placeholder="Apellidos del residente" />
+      </div>
+      <div class="form-group dynamic-field dc-field-residente" style="display:none;">
+        <label>Tipo de residente *</label>
+        <select id="f-tipo-residente">
+          <option value="Propietario">Propietario</option>
+          <option value="Arrendatario">Arrendatario</option>
+        </select>
+      </div>
+      <div class="row2 dynamic-field dc-field-residente" style="display:none;">
+        <div class="form-group">
+          <label>Torre / Bloque</label>
+          <input id="f-torre" type="text" placeholder="Ej: A, 1, Norte" />
+        </div>
+        <div class="form-group">
+          <label>Apartamento</label>
+          <input id="f-apartamento" type="text" placeholder="Ej: 101" />
+        </div>
+      </div>
+
+      <!-- Parqueadero / Vehículos -->
+      <div class="toggle-section dynamic-field dc-field-residente" style="display:none;">
+        <div class="toggle-section-title">🚗 Parqueadero / Vehículos</div>
+        <label class="toggle-label">
+          <input type="checkbox" id="f-parqueadero" onchange="DC.toggleParqueadero()" />
+          <span class="toggle-track"></span>
+          <span>¿Tiene parqueadero?</span>
+        </label>
+      </div>
+      <div id="f-vehiculo-wrap" style="display:none;">
+        <div id="f-vehiculos-lista"></div>
+        <button type="button" onclick="DC.agregarVehiculo()"
+          style="width:100%;margin-top:4px;background:none;border:1.5px dashed rgba(4,34,67,.25);border-radius:9px;padding:7px;cursor:pointer;color:#042243;font-size:.8rem;font-family:inherit;">
+          + Agregar vehículo
+        </button>
       </div>
 
       <div class="form-group dynamic-field dc-field-cargo" style="display:none;">
@@ -565,16 +612,78 @@
 
 <div id="toast"></div>
 
+<!-- Modal importación masiva residentes -->
+<div class="modal-overlay" id="modal-importar">
+  <div class="modal-box" style="max-width:500px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#276749,#38a169);">
+      <span class="modal-header-icon">📥</span>
+      <div class="modal-header-info">
+        <div class="modal-header-title">Importar Residentes</div>
+        <div class="modal-header-sub">Carga masiva desde CSV o Excel</div>
+      </div>
+      <button class="modal-close" onclick="DC.cerrarImportar()">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Zona de drop -->
+      <div id="drop-zone" style="border:2px dashed var(--border);border-radius:14px;padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:16px;"
+           onclick="document.getElementById('imp-archivo').click()"
+           ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+           ondragleave="this.style.borderColor=''"
+           ondrop="DC.dropArchivo(event)">
+        <div style="font-size:2.5rem;margin-bottom:8px;">📂</div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:4px;">Arrastra tu archivo aquí</div>
+        <div style="font-size:.76rem;color:var(--muted);">o haz clic para seleccionar · CSV o XLSX</div>
+        <div id="imp-nombre-archivo" style="margin-top:10px;font-size:.8rem;color:var(--accent);font-weight:700;"></div>
+      </div>
+      <input type="file" id="imp-archivo" accept=".csv,.xlsx,.xls" hidden onchange="DC.seleccionarArchivo(this)" />
+
+      <!-- Campos de visibilidad globales -->
+      <div class="toggle-section" style="margin-bottom:14px;">
+        <div class="toggle-section-title">Visibilidad y acceso (aplica a todos los importados)</div>
+        <label class="toggle-label">
+          <input type="checkbox" id="imp-visible" checked />
+          <span class="toggle-track"></span>
+          <span>Visible para residentes</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="imp-seguridad" />
+          <span class="toggle-track"></span>
+          <span>Visible para seguridad</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="imp-admin" />
+          <span class="toggle-track"></span>
+          <span>Visible para administración</span>
+        </label>
+      </div>
+
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px;">
+        ¿No tienes la plantilla?
+        <a href="/servicios/directorio/residentes/plantilla" style="color:var(--accent);font-weight:700;">Descargar plantilla CSV</a>
+      </div>
+
+      <div id="imp-resultado" style="margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-footer" onclick="DC.cerrarImportar()"
+        style="background:linear-gradient(135deg,#7b0d1e,#e53e3e);color:#fff;">✕ Cancelar</button>
+      <button class="btn-footer" onclick="DC.ejecutarImportacion()"
+        style="background:linear-gradient(135deg,#276749,#38a169);color:#fff;">📥 Importar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const DC = (() => {
   const BASE = '/servicios/directorio/contactos';
 
   const META = {
-    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#ff4d6d', cargo:false, correo:false, panico:false },
-    ADMIN:       { icon:'🏢', label:'Administración',     color:'#00a8ff', cargo:true,  correo:true,  panico:true  },
-    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#00e676', cargo:false, correo:true,  panico:false },
-    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#ffd600', cargo:true,  correo:false, panico:true  },
-    LOCAL:       { icon:'📍', label:'Locales',            color:'#bf5af2', cargo:false, correo:false, panico:false },
+    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#ff4d6d', cargo:false, correo:false, panico:false, residente:false },
+    ADMIN:       { icon:'🏢', label:'Administración',     color:'#00a8ff', cargo:true,  correo:true,  panico:true,  residente:false },
+    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#00e676', cargo:false, correo:true,  panico:false, residente:false },
+    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#ffd600', cargo:true,  correo:false, panico:true,  residente:false },
+    LOCAL:       { icon:'📍', label:'Locales',            color:'#bf5af2', cargo:false, correo:false, panico:false, residente:false },
+    RESIDENTES:  { icon:'🏠', label:'Residentes',         color:'#26a17b', cargo:false, correo:false, panico:false, residente:true  },
   };
 
   const TAB_COLOR = { TODOS:'#00d4ff', ...Object.fromEntries(Object.entries(META).map(([k,v])=>[k,v.color])) };
@@ -622,8 +731,12 @@ const DC = (() => {
       const q = _busqueda.toLowerCase();
       lista = lista.filter(c =>
         (c.nombre||'').toLowerCase().includes(q) ||
+        (c.apellidos||'').toLowerCase().includes(q) ||
         (c.cargo_titulo||'').toLowerCase().includes(q) ||
-        (c.correo||'').toLowerCase().includes(q));
+        (c.correo||'').toLowerCase().includes(q) ||
+        (c.torre||'').toLowerCase().includes(q) ||
+        (c.apartamento||'').toLowerCase().includes(q) ||
+        (c.vehiculos||[]).some(v => (v.placa||'').toLowerCase().includes(q)));
     }
     label.textContent = _bloqueActual === 'TODOS'
       ? `Todos los contactos (${lista.length})`
@@ -655,8 +768,11 @@ const DC = (() => {
             <div class="card-header">
               <div class="card-avatar">${avatar}</div>
               <div class="card-info">
-                <div class="card-name">${esc(c.nombre)}</div>
+                <div class="card-name">${esc(c.nombre)}${c.apellidos ? ' ' + esc(c.apellidos) : ''}</div>
                 ${c.cargo_titulo ? `<div class="card-cargo">${esc(c.cargo_titulo)}</div>` : ''}
+                ${c.tipo_residente ? `<div class="card-cargo" style="color:${m.color};">${c.tipo_residente === 'Propietario' ? '🏡' : '🔑'} ${esc(c.tipo_residente)}</div>` : ''}
+                ${(c.torre||c.apartamento) ? `<div class="card-cargo">🏢 ${c.torre ? 'Torre '+esc(c.torre)+' ' : ''}${c.apartamento ? 'Apto '+esc(c.apartamento) : ''}</div>` : ''}
+                ${c.tiene_parqueadero && (c.vehiculos||[]).length ? (c.vehiculos||[]).map(v=>`<div class="card-cargo">${v.tipo==='moto'?'🏍️':'🚗'} ${esc(v.marca||'')} ${esc(v.color||'')} · ${esc(v.placa||'')}</div>`).join('') : ''}
                 <span class="card-bloque-badge" style="background:${m.color}18;color:${m.color};">
                   ${m.icon} ${m.label}
                 </span>
@@ -710,7 +826,12 @@ const DC = (() => {
     renderCards();
   }
 
-  function setBloque(b) { _bloqueActual = b; renderTabs(); renderCards(); }
+  function setBloque(b) {
+    _bloqueActual = b;
+    renderTabs(); renderCards();
+    const btnImp = document.getElementById('btn-importar-res');
+    if (btnImp) btnImp.style.display = (b === 'RESIDENTES') ? '' : 'none';
+  }
   function filtrar(q)   { _busqueda = q; renderCards(); }
 
   function cambioBloque(cargoActual = '') {
@@ -718,10 +839,80 @@ const DC = (() => {
     const m = META[b] || META.EMERGENCIAS;
     document.getElementById('dc-modal-icon').textContent = m.icon;
     document.getElementById('dc-modal-sub').textContent  = m.label;
-    document.querySelectorAll('.dc-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
-    document.querySelectorAll('.dc-field-correo').forEach(el => el.style.display = m.correo ? '' : 'none');
-    document.querySelectorAll('.dc-field-panico').forEach(el => el.style.display = m.panico ? '' : 'none');
+    document.querySelectorAll('.dc-field-cargo').forEach(el     => el.style.display = m.cargo     ? '' : 'none');
+    document.querySelectorAll('.dc-field-correo').forEach(el    => el.style.display = m.correo    ? '' : 'none');
+    document.querySelectorAll('.dc-field-panico').forEach(el    => el.style.display = m.panico    ? '' : 'none');
+    document.querySelectorAll('.dc-field-residente').forEach(el => el.style.display = m.residente ? '' : 'none');
+    // Parqueadero: ocultar vehículo al cambiar bloque (se reactiva con el toggle)
+    const vehWrap = document.getElementById('f-vehiculo-wrap');
+    if (vehWrap) {
+      if (!m.residente) {
+        vehWrap.style.display = 'none';
+      } else {
+        vehWrap.style.display = document.getElementById('f-parqueadero').checked ? '' : 'none';
+      }
+    }
+    // Teléfonos: etiqueta opcional para residentes (sin :has())
+    const phoneList = document.getElementById('phone-list');
+    if (phoneList) {
+      const telLbl = phoneList.closest('.form-group') && phoneList.closest('.form-group').querySelector('label');
+      if (telLbl) telLbl.innerHTML = m.residente
+        ? 'Teléfono <span style="font-weight:400;font-size:.72rem;text-transform:none;">(opcional)</span>'
+        : 'Teléfonos * <span style="font-weight:400;font-size:.72rem;text-transform:none;">(mín. 1)</span>';
+    }
+    // Nombre → Nombres para residentes
+    const lblNombre = document.getElementById('lbl-nombre');
+    if (lblNombre) lblNombre.textContent = m.residente ? 'Nombres *' : 'Nombre *';
+    const fNombre = document.getElementById('f-nombre');
+    if (fNombre) fNombre.placeholder = m.residente ? 'Nombres del residente' : 'Nombre del contacto';
     if (m.cargo) _cargarCargos(b, cargoActual);
+  }
+
+  function toggleParqueadero() {
+    const checked = document.getElementById('f-parqueadero').checked;
+    document.getElementById('f-vehiculo-wrap').style.display = checked ? '' : 'none';
+    if (checked && !document.querySelectorAll('#f-vehiculos-lista .v-row').length) {
+      _renderVehiculoFila({});
+    }
+    if (!checked) document.getElementById('f-vehiculos-lista').innerHTML = '';
+  }
+
+  function _renderVehiculoFila(v) {
+    const lista = document.getElementById('f-vehiculos-lista');
+    const div = document.createElement('div');
+    div.className = 'v-row';
+    div.style.cssText = 'border:1px solid rgba(4,34,67,.15);border-radius:10px;padding:10px;margin-bottom:8px;background:#f8faff;position:relative;';
+    div.innerHTML = `
+      <div style="display:grid;grid-template-columns:120px 1fr auto;gap:7px;margin-bottom:7px;align-items:center;">
+        <select class="v-tipo" style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 6px;font-family:inherit;font-size:.8rem;background:#fff;">
+          <option value="carro" ${(v.tipo||'carro')==='carro'?'selected':''}>🚗 Carro</option>
+          <option value="moto"  ${v.tipo==='moto'?'selected':''}>🏍️ Moto</option>
+        </select>
+        <input class="v-placa" type="text" placeholder="Placa (ABC123)" value="${esc(v.placa||'')}"
+          style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:.8rem;text-transform:uppercase;background:#fff;width:100%;">
+        <button type="button" onclick="DC.quitarVehiculo(this)"
+          style="background:rgba(192,48,74,.1);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#C0304A;font-size:.85rem;flex-shrink:0;">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+        <input class="v-color" type="text" placeholder="Color" value="${esc(v.color||'')}"
+          style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:.8rem;background:#fff;width:100%;">
+        <input class="v-marca" type="text" placeholder="Marca / Modelo" value="${esc(v.marca||'')}"
+          style="border:1.5px solid rgba(4,34,67,.2);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:.8rem;background:#fff;width:100%;">
+      </div>`;
+    lista.appendChild(div);
+  }
+
+  function agregarVehiculo() { _renderVehiculoFila({}); }
+
+  function quitarVehiculo(btn) { btn.closest('.v-row').remove(); }
+
+  function _leerVehiculos() {
+    return [...document.querySelectorAll('#f-vehiculos-lista .v-row')].map(row => ({
+      tipo:  row.querySelector('.v-tipo').value,
+      placa: row.querySelector('.v-placa').value.trim().toUpperCase(),
+      color: row.querySelector('.v-color').value.trim(),
+      marca: row.querySelector('.v-marca').value.trim(),
+    })).filter(v => v.placa);
   }
 
   async function _cargarCargos(bloque, valorActual = '') {
@@ -766,6 +957,19 @@ const DC = (() => {
     document.getElementById('dc-modal-title').textContent = contacto ? 'Editar Contacto' : 'Nuevo Contacto';
     document.getElementById('f-bloque').value             = bloque;
     document.getElementById('f-nombre').value             = contacto ? (contacto.nombre||'') : '';
+    document.getElementById('f-apellidos').value          = contacto ? (contacto.apellidos||'') : '';
+    document.getElementById('f-tipo-residente').value     = contacto ? (contacto.tipo_residente||'Propietario') : 'Propietario';
+    document.getElementById('f-torre').value              = contacto ? (contacto.torre||'') : '';
+    document.getElementById('f-apartamento').value        = contacto ? (contacto.apartamento||'') : '';
+    const _tieneParq = contacto ? !!contacto.tiene_parqueadero : false;
+    document.getElementById('f-parqueadero').checked = _tieneParq;
+    document.getElementById('f-vehiculos-lista').innerHTML = '';
+    if (_tieneParq) {
+      const _vehs = contacto.vehiculos && contacto.vehiculos.length
+        ? contacto.vehiculos
+        : (contacto.vehiculo && contacto.vehiculo.placa ? [contacto.vehiculo] : [{}]);
+      _vehs.forEach(v => _renderVehiculoFila(v));
+    }
     const _cargoVal = contacto ? (contacto.cargo_titulo||'') : '';
     document.getElementById('f-correo').value             = contacto ? (contacto.correo||'') : '';
     document.getElementById('f-visible').checked          = contacto ? !!contacto.es_visible_para_residentes : true;
@@ -846,7 +1050,11 @@ const DC = (() => {
     const tels = _leerTelefonos().filter(t => t.numero);
     if (!nombre)           { toast('El nombre es obligatorio', 'err'); return; }
     if (m.cargo && !cargo) { toast('El cargo es obligatorio para este bloque', 'err'); return; }
-    if (!tels.length)      { toast('Ingresa al menos un teléfono', 'err'); return; }
+    if (!m.residente && !tels.length) { toast('Ingresa al menos un teléfono', 'err'); return; }
+    if (m.residente) {
+      const aps = document.getElementById('f-apellidos').value.trim();
+      if (!aps) { toast('Los apellidos son obligatorios', 'err'); return; }
+    }
 
     const fd = new FormData();
     fd.append('bloque',  bloque);
@@ -858,6 +1066,18 @@ const DC = (() => {
     fd.append('es_visible_para_administracion',document.getElementById('f-administracion').checked);
     fd.append('vinculado_al_boton_de_panico',  document.getElementById('f-panico').checked);
     fd.append('telefonos', JSON.stringify(tels));
+    // Campos de residente
+    if (m.residente) {
+      fd.append('apellidos',         document.getElementById('f-apellidos').value.trim());
+      fd.append('tipo_residente',    document.getElementById('f-tipo-residente').value);
+      fd.append('torre',             document.getElementById('f-torre').value.trim());
+      fd.append('apartamento',       document.getElementById('f-apartamento').value.trim());
+      const tieneParq = document.getElementById('f-parqueadero').checked;
+      fd.append('tiene_parqueadero', tieneParq);
+      if (tieneParq) {
+        fd.append('vehiculos', JSON.stringify(_leerVehiculos()));
+      }
+    }
     const fotoInput = document.getElementById('f-foto');
     if (fotoInput.files[0]) fd.append('foto', fotoInput.files[0]);
 
@@ -885,9 +1105,77 @@ const DC = (() => {
     } catch(e) { toast('❌ Error de red', 'err'); }
   }
 
+  // ── Importación masiva residentes ────────────────────────────────────────
+  let _archivoImportar = null;
+
+  function abrirImportar() {
+    _archivoImportar = null;
+    document.getElementById('imp-nombre-archivo').textContent = '';
+    document.getElementById('imp-resultado').innerHTML = '';
+    document.getElementById('imp-archivo').value = '';
+    document.getElementById('modal-importar').classList.add('show');
+  }
+
+  function cerrarImportar() {
+    document.getElementById('modal-importar').classList.remove('show');
+    _archivoImportar = null;
+  }
+
+  function seleccionarArchivo(input) {
+    if (input.files[0]) {
+      _archivoImportar = input.files[0];
+      document.getElementById('imp-nombre-archivo').textContent = '📄 ' + _archivoImportar.name;
+    }
+  }
+
+  function dropArchivo(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const ext = file.name.toLowerCase();
+    if (!ext.endsWith('.csv') && !ext.endsWith('.xlsx') && !ext.endsWith('.xls')) {
+      toast('Formato no soportado. Usa CSV o XLSX.', 'err'); return;
+    }
+    _archivoImportar = file;
+    document.getElementById('imp-nombre-archivo').textContent = '📄 ' + file.name;
+  }
+
+  async function ejecutarImportacion() {
+    if (!_archivoImportar) { toast('Selecciona un archivo primero', 'err'); return; }
+    const res = document.getElementById('imp-resultado');
+    res.innerHTML = '<div style="color:var(--muted);font-size:.83rem;">⏳ Importando…</div>';
+    const fd = new FormData();
+    fd.append('archivo', _archivoImportar);
+    fd.append('visible_residentes',  document.getElementById('imp-visible').checked);
+    fd.append('visible_seguridad',   document.getElementById('imp-seguridad').checked);
+    fd.append('visible_admin',       document.getElementById('imp-admin').checked);
+    try {
+      const r = await fetch('/servicios/directorio/residentes/importar', { method:'POST', body:fd });
+      const j = await r.json();
+      if (j.ok) {
+        const d = j.data;
+        res.innerHTML = `
+          <div style="background:rgba(39,103,73,.1);border:1.5px solid rgba(39,103,73,.3);border-radius:10px;padding:14px;">
+            <div style="font-weight:800;color:#276749;margin-bottom:6px;">✅ ${d.mensaje}</div>
+            ${d.errores && d.errores.length ? `<div style="font-size:.76rem;color:var(--muted);margin-top:6px;">
+              <b>Filas con error:</b><br>${d.errores.map(e => '• '+e).join('<br>')}
+            </div>` : ''}
+          </div>`;
+        cargar();
+        _archivoImportar = null;
+        setTimeout(cerrarImportar, 3000);
+      } else {
+        res.innerHTML = `<div style="color:var(--red);font-size:.83rem;">❌ ${j.error||'Error al importar'}</div>`;
+      }
+    } catch(e) { res.innerHTML = '<div style="color:var(--red);">Error de red</div>'; }
+  }
+
   document.addEventListener('DOMContentLoaded', cargar);
 
-  return { abrirModal, cerrarModal, cambioBloque, guardar, editar, eliminar, setBloque, filtrar, agregarTelefono, previewFoto };
+  return { abrirModal, cerrarModal, cambioBloque, guardar, editar, eliminar, setBloque, filtrar,
+           agregarTelefono, previewFoto, toggleParqueadero, agregarVehiculo, quitarVehiculo,
+           abrirImportar, cerrarImportar, seleccionarArchivo, dropArchivo, ejecutarImportacion };
 })();
 
 // ── Tema: empresa (server) + localStorage (preferencia usuario) ──
