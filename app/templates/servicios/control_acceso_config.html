@@ -74,7 +74,26 @@ input:checked+.tog-sl.red{background:var(--red);}
   <button class="btn" style="background:#fff;color:#b00020;font-weight:800;" onclick="toggleLockdown(false)">Desactivar</button>
 </div>
 
-<!-- 1. Métodos de autenticación + cronómetro -->
+<!-- 1. Contratistas pendientes de aprobación -->
+<div class="card">
+  <h3>⏳ Contratistas pendientes de aprobación</h3>
+  <div id="pendientesLista"><div style="font-size:.78rem;color:var(--muted);">Cargando…</div></div>
+</div>
+
+<!-- Modal rechazo -->
+<div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.18);">
+    <div style="font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:12px;">❌ Rechazar solicitud</div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px;">Indica el motivo para notificar al residente.</div>
+    <textarea id="motivo-rechazo" rows="3" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit;resize:vertical;outline:none;" placeholder="Ej: Documentos incompletos, ARL vencida…"></textarea>
+    <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end;">
+      <button class="btn" style="background:#f1f5f9;color:var(--text);font-size:.82rem;" onclick="cerrarModalRechazo()">Cancelar</button>
+      <button class="btn btn-red" style="font-size:.82rem;" onclick="confirmarRechazo()">Rechazar</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Métodos de autenticación + cronómetro -->
 <div class="card">
   <h3>🔑 Métodos de autenticación y cronómetro</h3>
   <div class="row">
@@ -210,26 +229,7 @@ input:checked+.tog-sl.red{background:var(--red);}
   </div>
 </div>
 
-<!-- 9. Contratistas pendientes de aprobación -->
-<div class="card">
-  <h3>⏳ Contratistas pendientes de aprobación</h3>
-  <div id="pendientesLista"><div style="font-size:.78rem;color:var(--muted);">Cargando…</div></div>
-</div>
-
-<!-- Modal rechazo -->
-<div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.18);">
-    <div style="font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:12px;">❌ Rechazar solicitud</div>
-    <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px;">Indica el motivo para notificar al residente.</div>
-    <textarea id="motivo-rechazo" rows="3" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit;resize:vertical;outline:none;" placeholder="Ej: Documentos incompletos, ARL vencida…"></textarea>
-    <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end;">
-      <button class="btn" style="background:#f1f5f9;color:var(--text);font-size:.82rem;" onclick="cerrarModalRechazo()">Cancelar</button>
-      <button class="btn btn-red" style="font-size:.82rem;" onclick="confirmarRechazo()">Rechazar</button>
-    </div>
-  </div>
-</div>
-
-<!-- 10. Lista negra -->
+<!-- Lista negra -->
 <div class="card">
   <h3>🚫 Lista negra (Blacklist)</h3>
   <div class="row" style="gap:8px;flex-wrap:wrap;">
