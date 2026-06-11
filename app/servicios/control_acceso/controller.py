@@ -327,3 +327,127 @@ class AccessController:
             texto = "Opcion no valida."
         return ('<?xml version="1.0" encoding="UTF-8"?>'
                 f'<Response><Say language="es-US" voice="Polly.Lupe">{_xml.escape(texto)}</Say></Response>')
+
+    # ══════════════════════════════════════════════════════════════════════
+    # FASE 2 — Invitaciones, aprobación contratistas, courier
+    # ══════════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _enviar_invitacion_wa(telefono: str, cred: dict, enlace: str):
+        """WhatsApp al visitante con el enlace de invitación."""
+        numero = _num("+57", telefono)
+        if not numero:
+            return
+        nombre = cred.get("visitante", {}).get("nombre", "Visitante")
+        from app import db as _db
+        cid = cred.get("conjunto_id")
+        empresa = _db["empresas"].find_one({"_id": cid}, {"razon_social": 1, "nombre": 1}) or {}
+        conjunto_nombre = empresa.get("razon_social") or empresa.get("nombre") or "el conjunto"
+        msg = (
+            f"🏠 *Nidus — Control de Acceso*\n"
+            f"Hola *{nombre}*, tienes una invitación de acceso para *{conjunto_nombre}*.\n\n"
+            f"🪪 Tu código de ingreso:\n{enlace}\n\n"
+            f"Muestra tu QR o código PIN en portería.\n"
+            f"_Si no esperabas este mensaje, puedes ignorarlo._"
+        )
+        _safe(_enviar_whatsapp, numero, msg)
+
+    @staticmethod
+    def _notificar_aprobacion(cred: dict, aprobado: bool, motivo: str):
+        """WhatsApp al residente solicitante cuando su solicitud de contratista es aprobada/rechazada."""
+        from app import db as _db
+        sid = cred.get("solicitante_id")
+        if not sid:
+            return
+        u = _db["users"].find_one({"_id": sid}, {"telefono": 1, "nombre": 1}) or {}
+        numero = _num("+57", u.get("telefono", ""))
+        if not numero:
+            return
+        nombre_visita = cred.get("visitante", {}).get("nombre", "el contratista")
+        if aprobado:
+            msg = (
+                f"✅ *Nidus — Control de Acceso*\n"
+                f"Tu solicitud de acceso para *{nombre_visita}* fue *aprobada*.\n"
+                f"Ya puede ingresar al conjunto con su código."
+            )
+        else:
+            msg = (
+                f"❌ *Nidus — Control de Acceso*\n"
+                f"Tu solicitud de acceso para *{nombre_visita}* fue *rechazada*.\n"
+                f"Motivo: {motivo or 'Sin motivo especificado'}."
+            )
+        _safe(_enviar_whatsapp, numero, msg)
+
+    @staticmethod
+    def notificar_admin_nuevo_contratista(cred: dict, conjunto_id: str):
+        """WhatsApp al(los) admin del conjunto cuando llega una solicitud de contratista."""
+        from app import db as _db
+        from bson import ObjectId
+        # Buscar admins del conjunto (rol Administrador de la Copropiedad)
+        asocs = list(_db["asociaciones"].find({
+            "empresa_id": ObjectId(conjunto_id), "activo": True, "rol": "Administrador de la Copropiedad"
+        }))
+        if not asocs:
+            # Fallback: buscar users con ese rol en el conjunto
+            admins = list(_db["users"].find({
+                "empresa_id": ObjectId(conjunto_id), "rol": "Administrador de la Copropiedad"
+            }, {"telefono": 1, "nombre": 1}))
+        else:
+            uids = [a.get("user_id") for a in asocs if a.get("user_id")]
+            admins = list(_db["users"].find({"_id": {"$in": uids}}, {"telefono": 1, "nombre": 1}))
+        nombre_visita = cred.get("visitante", {}).get("nombre", "Un contratista")
+        empresa = cred.get("visitante", {}).get("empresa", "")
+        nombre_solicitante = ""
+        sid = cred.get("solicitante_id")
+        if sid:
+            u = _db["users"].find_one({"_id": sid}, {"nombre": 1, "apellido": 1}) or {}
+            nombre_solicitante = f"{u.get('nombre','')} {u.get('apellido','')}".strip()
+        cred_id = str(cred.get("_id", ""))
+        msg = (
+            f"🔔 *Nidus — Solicitud de Contratista*\n"
+            f"*{nombre_visita}*{' (' + empresa + ')' if empresa else ''} "
+            f"solicita acceso al conjunto.\n"
+            f"Solicitado por: {nombre_solicitante or 'Residente'}.\n\n"
+            f"Aprueba o rechaza en el panel de Control de Acceso → Credenciales."
+        )
+        for admin in admins:
+            num = _num("+57", admin.get("telefono", ""))
+            if num:
+                _safe(_enviar_whatsapp, num, msg)
+
+    @staticmethod
+    def _flujo_courier(conjunto_id: str, log_id: str, telefono: str,
+                       nombre_residente: str, nombre_courier: str,
+                       empresa_courier: str, unidad: dict, timeout_min: int):
+        """Notifica al residente del domicilio. Después del timeout, envía aviso de que debe bajar."""
+        import time
+        numero = _num("+57", telefono)
+        if not numero:
+            return
+        apto = unidad.get("apartamento", "") or unidad.get("bloque", "")
+        torre = unidad.get("torre", "")
+        loc = f"Torre {torre} - Apto {apto}".strip(" -")
+        empresa_str = f" de {empresa_courier}" if empresa_courier else ""
+        msg_inicial = (
+            f"📦 *Nidus — Domicilio*\n"
+            f"Hola *{nombre_residente}*, tienes un domicilio{empresa_str} "
+            f"a nombre de *{nombre_courier}* esperando en portería.\n"
+            f"Por favor pasa a recogerlo o autoriza su ingreso."
+        )
+        _safe(_enviar_whatsapp, numero, msg_inicial)
+        # Esperar N minutos
+        time.sleep(timeout_min * 60)
+        # Verificar si ya fue atendido
+        from app import db as _db
+        log_doc = _db["access_logs"].find_one({"_id": __import__("bson").ObjectId(log_id)}) or {}
+        if log_doc.get("estado") not in ("courier_esperando",):
+            return  # Ya fue atendido
+        msg_urgente = (
+            f"⚠️ *Nidus — Domicilio sin atender*\n"
+            f"Hola *{nombre_residente}*, tu domicilio{empresa_str} "
+            f"lleva más de {timeout_min} minutos esperando en portería.\n"
+            f"Por favor *baja a recogerlo ahora* o el mensajero se retirará."
+        )
+        _safe(_enviar_whatsapp, numero, msg_urgente)
+        AccessLogModel.actualizar_estado(log_id, "courier_recordatorio_enviado",
+                                         f"Recordatorio de domicilio enviado tras {timeout_min}min")

@@ -58,20 +58,38 @@ class AccessCredentialModel:
                                        "codigo": codigo, "estado": "activo"}):
             codigo = generar_codigo()
 
+        # Contratistas con aprobación requerida arrancan como pendiente_aprobacion
+        from app.servicios.control_acceso.config_model import CaConfigModel
+        cfg = CaConfigModel.obtener(conjunto_id)
+        requiere_aprobacion = (
+            tipo_credencial == "contratista" and
+            cfg.get("flujo_contratistas", {}).get("requiere_aprobacion", False)
+        )
+        estado_inicial = "pendiente_aprobacion" if requiere_aprobacion else "activo"
+
         doc = {
             "conjunto_id":     ObjectId(conjunto_id),
             "solicitante_id":  ObjectId(solicitante_id) if solicitante_id else None,
-            "unidad":          unidad or {},          # {torre, apartamento, bloque}
-            "visitante":       visitante or {},        # {nombre, documento, tipo_documento, vehiculo}
-            "tipo_credencial": tipo_credencial,        # unico | recurrente | proveedor
+            "unidad":          unidad or {},
+            "visitante":       visitante or {},
+            "tipo_credencial": tipo_credencial,        # unico | recurrente | contratista | proveedor | domicilio
             "metodo_autenticacion": metodo,            # QR | PIN
-            "codigo":          codigo,                 # 6 chars (sirve para QR y PIN manual)
+            "codigo":          codigo,
             "configuracion_recurrencia": configuracion_recurrencia or {},
             "vigencia": {
                 "inicio": vigencia_inicio or _ahora_bogota(),
                 "fin":    vigencia_fin,
             },
-            "estado":     "activo",
+            "estado":               estado_inicial,   # activo | pendiente_aprobacion | aprobado | rechazado | revocado | expirado
+            "requiere_aprobacion":  requiere_aprobacion,
+            "documentos":           [],               # URLs Cloudinary subidas
+            "aprobacion": {
+                "aprobado_por":  None, "aprobado_en":   None,
+                "rechazado_por": None, "rechazado_en":  None,
+                "motivo": "", "alerta_enviada": False,
+            },
+            "visitante_telefono":  visitante.get("telefono", ""),
+            "invitacion_enviada":  False,
             "creado_en":  datetime.utcnow(),
         }
         res = _credentials().insert_one(doc)

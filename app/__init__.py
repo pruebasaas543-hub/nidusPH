@@ -176,4 +176,25 @@ def create_app():
     # cuando cambien los estados de SMS, WhatsApp o Llamadas
     # Ver: POST /servicios/boton_panico/webhook/twilio-status
 
+    # ── SLA de contratistas (hilo daemon cada 30 min) ──
+    try:
+        from app.servicios.control_acceso.sla_worker import iniciar_sla_worker
+        iniciar_sla_worker()
+        app.logger.info("SLA worker de contratistas iniciado")
+    except Exception as _e:
+        app.logger.warning("SLA worker no pudo iniciar: %s", _e)
+
+    # ── Cloudinary (inicializar configuración) ──
+    try:
+        import cloudinary
+        cloudinary.config(
+            cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME", ""),
+            api_key=os.environ.get("CLOUDINARY_API_KEY", ""),
+            api_secret=os.environ.get("CLOUDINARY_API_SECRET", ""),
+            secure=True,
+        )
+        app.logger.info("Cloudinary configurado (cloud=%s)", os.environ.get("CLOUDINARY_CLOUD_NAME", "N/A"))
+    except Exception as _e:
+        app.logger.warning("Cloudinary no configurado: %s", _e)
+
     return app

@@ -197,15 +197,24 @@ def crear_credencial():
             return datetime.fromisoformat(v) if v else None
         except Exception:
             return None
+    tipo_credencial = d.get("tipo_credencial", "unico")
     cred = AccessCredentialModel.crear(
         cid, uid, visitante,
-        tipo_credencial=d.get("tipo_credencial", "unico"),
+        tipo_credencial=tipo_credencial,
         metodo=d.get("metodo_autenticacion", "QR"),
         configuracion_recurrencia=d.get("configuracion_recurrencia"),
         vigencia_inicio=_fecha((d.get("vigencia") or {}).get("inicio")),
         vigencia_fin=_fecha((d.get("vigencia") or {}).get("fin")),
         unidad=unidad,
     )
+    # Notificar al admin si es contratista pendiente
+    if cred.get("estado") == "pendiente_aprobacion":
+        import threading
+        threading.Thread(
+            target=AccessController.notificar_admin_nuevo_contratista,
+            args=(cred, cid),
+            daemon=True
+        ).start()
     return ok(serializar(cred), status=201)
 
 
@@ -399,3 +408,251 @@ def listar_logs():
     if not cid:
         return err("Sin conjunto en sesión", 400)
     return ok(serializar(AccessLogModel.listar(cid, limite=int(request.args.get("limite", 50)))))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FASE 2 — QR real, invitación, aprobación contratistas, Cloudinary, courier
+# ══════════════════════════════════════════════════════════════════════════
+
+# ── QR como imagen (base64 PNG) ────────────────────────────────────────────
+@control_acceso_bp.route("/credenciales/<cred_id>/qr", methods=["GET"])
+@requiere_login
+def qr_credencial(cred_id):
+    """Devuelve el QR de una credencial como {qr_base64: 'data:image/png;...'}."""
+    cred = db["access_credentials"].find_one({"_id": ObjectId(cred_id)})
+    if not cred:
+        return err("Credencial no encontrada", 404)
+    # Solo el solicitante o sistema puede ver el QR
+    uid = _usuario_id()
+    if not _es_sistema() and str(cred.get("solicitante_id")) != uid:
+        return err("Acceso denegado", 403)
+    from app.servicios.control_acceso.qr_utils import generar_qr_base64
+    codigo = cred.get("codigo", "")
+    return ok({"qr_base64": generar_qr_base64(codigo), "codigo": codigo})
+
+
+# ── Invitación pública (sin login) ─────────────────────────────────────────
+@control_acceso_bp.route("/invitacion/<codigo>", methods=["GET"])
+def ver_invitacion(codigo):
+    """Página pública: el visitante ve su QR + PIN. No requiere login."""
+    codigo = (codigo or "").strip().upper()
+    if not codigo:
+        return "Enlace inválido", 400
+    # Busca la credencial por código (sin filtro de conjunto; código es único en el sistema)
+    cred = db["access_credentials"].find_one({"codigo": codigo, "estado": "activo"})
+    if not cred:
+        return render_template("servicios/control_acceso_invitacion_invalida.html")
+    from app.servicios.control_acceso.qr_utils import generar_qr_base64
+    from app import db as _db
+    # Info del conjunto
+    cid = cred.get("conjunto_id")
+    empresa = _db["empresas"].find_one({"_id": cid}, {"razon_social": 1, "nombre": 1}) or {}
+    conjunto_nombre = empresa.get("razon_social") or empresa.get("nombre") or "Conjunto"
+    qr_b64 = generar_qr_base64(codigo)
+    return render_template(
+        "servicios/control_acceso_invitacion.html",
+        cred=cred,
+        codigo=codigo,
+        qr_b64=qr_b64,
+        conjunto_nombre=conjunto_nombre,
+    )
+
+
+# ── Enviar invitación WhatsApp al visitante ────────────────────────────────
+@control_acceso_bp.route("/credenciales/<cred_id>/enviar-invitacion", methods=["POST"])
+@requiere_login
+def enviar_invitacion(cred_id):
+    """Envía WhatsApp al visitante con el enlace de invitación."""
+    cred = db["access_credentials"].find_one({"_id": ObjectId(cred_id)})
+    if not cred:
+        return err("Credencial no encontrada", 404)
+    uid = _usuario_id()
+    if not _es_sistema() and str(cred.get("solicitante_id")) != uid:
+        return err("Acceso denegado", 403)
+    d = request.get_json(silent=True) or {}
+    telefono = (d.get("telefono") or cred.get("visitante_telefono") or "").strip()
+    if not telefono:
+        return err("Número de teléfono requerido", 400)
+    # Construir URL pública
+    host = request.host_url.rstrip("/")
+    enlace = f"{host}/servicios/control_acceso/invitacion/{cred['codigo']}"
+    import threading
+    threading.Thread(
+        target=AccessController._enviar_invitacion_wa,
+        args=(telefono, cred, enlace),
+        daemon=True
+    ).start()
+    db["access_credentials"].update_one(
+        {"_id": ObjectId(cred_id)},
+        {"$set": {"invitacion_enviada": True, "visitante_telefono": telefono}}
+    )
+    return ok(mensaje="Invitación enviada por WhatsApp")
+
+
+# ── Aprobación de contratistas ─────────────────────────────────────────────
+@control_acceso_bp.route("/credenciales/<cred_id>/aprobar", methods=["POST"])
+@requiere_login
+def aprobar_credencial(cred_id):
+    """Admin/Sistema aprueba la credencial de un contratista."""
+    if not _es_sistema():
+        rol = session.get("rol", "")
+        if "admin" not in rol.lower():
+            return err("Acceso denegado", 403)
+    from datetime import datetime as dt
+    r = db["access_credentials"].update_one(
+        {"_id": ObjectId(cred_id), "estado": "pendiente_aprobacion"},
+        {"$set": {
+            "estado": "activo",
+            "aprobacion.aprobado_por": _usuario_id(),
+            "aprobacion.aprobado_en": dt.utcnow(),
+        }}
+    )
+    if not r.modified_count:
+        return err("Credencial no encontrada o ya procesada", 404)
+    # WhatsApp al residente solicitante
+    cred = db["access_credentials"].find_one({"_id": ObjectId(cred_id)})
+    import threading
+    threading.Thread(
+        target=AccessController._notificar_aprobacion,
+        args=(cred, True, ""),
+        daemon=True
+    ).start()
+    return ok(mensaje="Credencial aprobada")
+
+
+@control_acceso_bp.route("/credenciales/<cred_id>/rechazar", methods=["POST"])
+@requiere_login
+def rechazar_credencial(cred_id):
+    """Admin/Sistema rechaza la credencial de un contratista."""
+    if not _es_sistema():
+        rol = session.get("rol", "")
+        if "admin" not in rol.lower():
+            return err("Acceso denegado", 403)
+    from datetime import datetime as dt
+    d = request.get_json(silent=True) or {}
+    motivo = (d.get("motivo") or "Sin motivo indicado").strip()
+    r = db["access_credentials"].update_one(
+        {"_id": ObjectId(cred_id), "estado": "pendiente_aprobacion"},
+        {"$set": {
+            "estado": "rechazado",
+            "aprobacion.rechazado_por": _usuario_id(),
+            "aprobacion.rechazado_en": dt.utcnow(),
+            "aprobacion.motivo": motivo,
+        }}
+    )
+    if not r.modified_count:
+        return err("Credencial no encontrada o ya procesada", 404)
+    cred = db["access_credentials"].find_one({"_id": ObjectId(cred_id)})
+    import threading
+    threading.Thread(
+        target=AccessController._notificar_aprobacion,
+        args=(cred, False, motivo),
+        daemon=True
+    ).start()
+    return ok(mensaje="Credencial rechazada")
+
+
+@control_acceso_bp.route("/credenciales/pendientes", methods=["GET"])
+@requiere_login
+def listar_pendientes():
+    """Lista de credenciales pendientes de aprobación (admin/sistema)."""
+    if not _es_sistema():
+        rol = session.get("rol", "")
+        if "admin" not in rol.lower():
+            return err("Acceso denegado", 403)
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("empresa_id requerido", 400)
+    pendientes = list(db["access_credentials"].find({
+        "conjunto_id": ObjectId(cid),
+        "estado": "pendiente_aprobacion",
+    }).sort("creado_en", -1))
+    return ok(serializar(pendientes))
+
+
+# ── Subida de documentos a Cloudinary ─────────────────────────────────────
+@control_acceso_bp.route("/credenciales/<cred_id>/documentos", methods=["POST"])
+@requiere_login
+def subir_documento(cred_id):
+    """Sube un documento a Cloudinary y guarda la URL en la credencial."""
+    cred = db["access_credentials"].find_one({"_id": ObjectId(cred_id)})
+    if not cred:
+        return err("Credencial no encontrada", 404)
+    uid = _usuario_id()
+    if not _es_sistema() and str(cred.get("solicitante_id")) != uid:
+        return err("Acceso denegado", 403)
+    if "archivo" not in request.files:
+        return err("Campo 'archivo' requerido", 400)
+    archivo = request.files["archivo"]
+    tipo_doc = (request.form.get("tipo") or "documento").strip()
+    try:
+        import cloudinary.uploader
+        import os
+        from flask import current_app
+        resultado = cloudinary.uploader.upload(
+            archivo,
+            folder=f"control_acceso/{cid}/{cred_id}",
+            public_id=f"{tipo_doc}_{cred['codigo']}",
+            resource_type="auto",
+        )
+        url = resultado.get("secure_url", "")
+        db["access_credentials"].update_one(
+            {"_id": ObjectId(cred_id)},
+            {"$push": {"documentos": {"tipo": tipo_doc, "url": url,
+                                      "subido_en": __import__("datetime").datetime.utcnow()}}}
+        )
+        return ok({"url": url, "tipo": tipo_doc})
+    except Exception as ex:
+        log.error("Cloudinary upload error: %s", ex)
+        return err(f"Error al subir documento: {ex}", 500)
+
+
+# ── Flujo Courier (domicilio) ──────────────────────────────────────────────
+@control_acceso_bp.route("/courier/registrar", methods=["POST"])
+@requiere_login
+def registrar_courier():
+    """Portería registra un domicilio. Notifica al residente por WhatsApp.
+    Si no responde en N minutos, envía recordatorio de que debe bajar."""
+    cid = _conjunto_efectivo()
+    if not cid:
+        return err("Sin conjunto", 400)
+    d = request.get_json(silent=True) or {}
+    nombre_courier  = (d.get("nombre_courier") or "Mensajero").strip()
+    empresa_courier = (d.get("empresa") or "").strip()
+    unidad = d.get("unidad") or {}
+    if not unidad:
+        return err("Unidad del residente requerida", 400)
+    # Buscar teléfono del residente
+    asoc = db["asociaciones"].find_one({
+        "empresa_id": ObjectId(cid), "activo": True,
+        "torre": unidad.get("torre", ""),
+        "apartamento": unidad.get("apartamento", ""),
+    }) or {}
+    res_uid = asoc.get("user_id")
+    telefono_residente = ""
+    nombre_residente = "Residente"
+    if res_uid:
+        u = db["users"].find_one({"_id": res_uid}, {"telefono": 1, "nombre": 1, "apellido": 1}) or {}
+        telefono_residente = u.get("telefono", "")
+        nombre_residente = f"{u.get('nombre','')} {u.get('apellido','')}".strip()
+    # Registrar log de courier
+    log_id = AccessLogModel.registrar(
+        cid,
+        visitante={"nombre": nombre_courier, "empresa": empresa_courier, "tipo": "domicilio"},
+        unidad=unidad,
+        metodo="COURIER",
+        estado="courier_esperando",
+        vigilante_id=_usuario_id(),
+        detalle=f"Domicilio de {empresa_courier or nombre_courier}",
+    )
+    if telefono_residente:
+        import threading
+        cfg = CaConfigModel.obtener(cid)
+        timeout_min = cfg.get("courier", {}).get("timeout_minutos", 5)
+        threading.Thread(
+            target=AccessController._flujo_courier,
+            args=(cid, log_id, telefono_residente, nombre_residente,
+                  nombre_courier, empresa_courier, unidad, timeout_min),
+            daemon=True
+        ).start()
+    return ok({"log_id": log_id, "mensaje": "Residente notificado"}, status=201)
