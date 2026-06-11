@@ -1747,8 +1747,9 @@
                 </div>
 
                 <!-- Tabs de bloque (generados dinámicamente) -->
-                <div id="dir-tabs-wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+                <div id="dir-tabs-wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;align-items:center;">
                     <button class="dir-tab-btn active" data-bloque="TODOS" onclick="dirCambiarBloque(this)">Todos</button>
+                    <button id="dir-btn-importar" onclick="dirAbrirImportar()" style="display:none;margin-left:auto;background:linear-gradient(135deg,#276749,#38a169);color:#fff;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;font-size:.82rem;font-weight:700;font-family:inherit;">📥 Importar Residentes</button>
                     <button class="btn btn-primary" style="margin-left:auto;" onclick="dirAbrirModal()">+ Nuevo Contacto</button>
                 </div>
 
@@ -2197,6 +2198,51 @@
                         <input class="form-control" id="dir-nombre" type="text" placeholder="Nombre del contacto">
                     </div>
 
+                    <!-- Campos exclusivos de RESIDENTES -->
+                    <div class="form-row dir-field-residente dir-dynamic-field" style="margin-bottom:14px;display:none;">
+                        <label>Apellidos *</label>
+                        <input class="form-control" id="dir-apellidos" type="text" placeholder="Apellidos del residente">
+                    </div>
+                    <div class="form-row dir-field-residente dir-dynamic-field" style="margin-bottom:14px;display:none;">
+                        <label>Tipo de residente *</label>
+                        <select class="form-control" id="dir-tipo-residente">
+                            <option value="Propietario">Propietario</option>
+                            <option value="Arrendatario">Arrendatario</option>
+                        </select>
+                    </div>
+                    <div class="dir-field-residente dir-dynamic-field" style="display:none;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div>
+                            <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Torre / Bloque</label>
+                            <input class="form-control" id="dir-torre" type="text" placeholder="A, 1, Norte...">
+                        </div>
+                        <div>
+                            <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Apartamento *</label>
+                            <input class="form-control" id="dir-apartamento" type="text" placeholder="101, 202...">
+                        </div>
+                    </div>
+                    <div class="dir-field-residente dir-dynamic-field" style="display:none;margin-bottom:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;color:#042243;font-weight:600;">
+                            <input type="checkbox" id="dir-parqueadero" onchange="dirToggleParqueadero()">
+                            🚗 ¿Tiene parqueadero?
+                        </label>
+                    </div>
+                    <div id="dir-vehiculo-wrap" style="display:none;margin-bottom:14px;border:1px solid rgba(4,34,67,.12);border-radius:10px;padding:12px;background:#f8faff;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                            <div>
+                                <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Placa *</label>
+                                <input class="form-control" id="dir-placa" type="text" placeholder="ABC123" style="text-transform:uppercase;">
+                            </div>
+                            <div>
+                                <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Color *</label>
+                                <input class="form-control" id="dir-color" type="text" placeholder="Blanco, Negro...">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:.78rem;font-weight:700;color:#042243;display:block;margin-bottom:4px;">Marca *</label>
+                            <input class="form-control" id="dir-marca" type="text" placeholder="Toyota Corolla...">
+                        </div>
+                    </div>
+
                     <!-- Cargo (solo ADMIN / LOGISTICA) -->
                     <div class="form-row dir-field-cargo dir-dynamic-field" style="margin-bottom:14px;display:none;">
                         <label>Cargo *</label>
@@ -2212,8 +2258,8 @@
                     </div>
 
                     <!-- Teléfonos -->
-                    <div class="form-row" style="margin-bottom:14px;">
-                        <label>Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small></label>
+                    <div class="form-row" id="dir-tel-label-row" style="margin-bottom:14px;">
+                        <label id="dir-tel-label">Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small></label>
                         <div id="dir-telefonos-wrap" style="display:flex;flex-direction:column;gap:6px;"></div>
                         <button type="button" onclick="dirAgregarTelefono()" style="margin-top:7px;background:none;border:1.5px dashed rgba(4,34,67,.25);border-radius:8px;padding:6px 12px;cursor:pointer;color:#042243;font-size:.8rem;width:100%;font-family:inherit;">+ Agregar teléfono</button>
                     </div>
@@ -2272,6 +2318,39 @@
                 </div>
             </div>
         </div><!-- /modal-dir -->
+
+        <!-- Modal importación masiva residentes -->
+        <div class="modal-overlay" id="modal-dir-importar">
+            <div style="width:clamp(340px,95vw,500px);border-radius:18px;background:#fff;box-shadow:0 24px 64px rgba(4,34,67,.22);overflow:hidden;">
+                <div style="background:linear-gradient(135deg,#276749,#38a169);padding:18px 22px 16px;display:flex;align-items:center;justify-content:space-between;">
+                    <div style="color:#fff;font-size:.96rem;font-weight:700;">📥 Importar Residentes</div>
+                    <button onclick="dirCerrarImportar()" style="background:rgba(255,255,255,.22);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;">×</button>
+                </div>
+                <div style="padding:20px 22px;">
+                    <p style="font-size:.82rem;color:#042243;margin:0 0 14px;">Sube un archivo CSV o Excel con los residentes. <a href="/servicios/directorio/residentes/plantilla" style="color:#276749;font-weight:700;">Descargar plantilla</a></p>
+                    <div id="dir-imp-drop" onclick="document.getElementById('dir-imp-archivo').click()"
+                        style="border:2.5px dashed #93b8e8;border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:#f8faff;transition:background .2s;"
+                        ondragover="event.preventDefault();this.style.background='#dde8f8'"
+                        ondragleave="this.style.background='#f8faff'"
+                        ondrop="dirDropArchivo(event)">
+                        <div style="font-size:2rem;margin-bottom:6px;">📂</div>
+                        <div id="dir-imp-nombre" style="font-size:.82rem;color:#2563a8;font-weight:600;">Haz clic o arrastra tu archivo CSV / XLSX aquí</div>
+                    </div>
+                    <input type="file" id="dir-imp-archivo" accept=".csv,.xlsx,.xls" hidden onchange="dirSeleccionarArchivo(this)">
+                    <div style="margin-top:14px;font-size:.78rem;font-weight:700;color:#042243;margin-bottom:8px;">Visibilidad por defecto:</div>
+                    <div style="display:flex;flex-direction:column;gap:7px;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;"><input type="checkbox" id="dir-imp-res" checked> Visible para residentes</label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;"><input type="checkbox" id="dir-imp-seg"> Visible para seguridad</label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;cursor:pointer;"><input type="checkbox" id="dir-imp-adm"> Visible para administración</label>
+                    </div>
+                    <div id="dir-imp-resultado" style="margin-top:12px;font-size:.82rem;"></div>
+                </div>
+                <div style="padding:12px 22px 18px;display:flex;justify-content:flex-end;gap:10px;background:#fafbfc;border-top:1px solid rgba(4,34,67,.08);">
+                    <button onclick="dirCerrarImportar()" style="padding:8px 20px;border-radius:8px;border:none;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;background:#e2e8f0;color:#042243;">Cancelar</button>
+                    <button onclick="dirEjecutarImportacion()" style="padding:8px 20px;border-radius:8px;border:none;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#276749,#38a169);color:#fff;">📥 Importar</button>
+                </div>
+            </div>
+        </div><!-- /modal-dir-importar -->
 
     </div><!-- /main-content -->
 </div><!-- /main-layout -->
@@ -6878,17 +6957,20 @@ function dirCambiarBloque(btn) {
     document.querySelectorAll('.dir-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     _dirBloqueAct = btn.dataset.bloque;
+    const btnImp = document.getElementById('dir-btn-importar');
+    if (btnImp) btnImp.style.display = (_dirBloqueAct === 'RESIDENTES') ? '' : 'none';
     _dirCargar();
 }
 
 // ── Modal ────────────────────────────────────────────────────────────────
 
 const _DIR_META = {
-    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#e53e3e', cargo:false, correo:false, panico:false },
-    ADMIN:       { icon:'🏢', label:'Administración',     color:'#2b6cb0', cargo:true,  correo:true,  panico:true  },
-    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#276749', cargo:false, correo:true,  panico:false },
-    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#b7791f', cargo:true,  correo:false, panico:true  },
-    LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false },
+    EMERGENCIAS: { icon:'🚨', label:'Emergencias',        color:'#e53e3e', cargo:false, correo:false, panico:false, residente:false },
+    ADMIN:       { icon:'🏢', label:'Administración',     color:'#2b6cb0', cargo:true,  correo:true,  panico:true,  residente:false },
+    PUBLICOS:    { icon:'💡', label:'Servicios Públicos', color:'#276749', cargo:false, correo:true,  panico:false, residente:false },
+    LOGISTICA:   { icon:'🔧', label:'Logística',          color:'#b7791f', cargo:true,  correo:false, panico:true,  residente:false },
+    LOCAL:       { icon:'📍', label:'Locales',            color:'#6b46c1', cargo:false, correo:false, panico:false, residente:false },
+    RESIDENTES:  { icon:'🏠', label:'Residentes',         color:'#276749', cargo:false, correo:false, panico:false, residente:true  },
 };
 
 function _dirPoblarSelectBloques(codigoSeleccionado) {
@@ -6918,6 +7000,16 @@ function dirCambioBloque(cargoActual = '') {
     document.querySelectorAll('.dir-field-cargo').forEach(el  => el.style.display = m.cargo  ? '' : 'none');
     document.querySelectorAll('.dir-field-correo').forEach(el => el.style.display = m.correo ? '' : 'none');
     document.querySelectorAll('.dir-field-panico').forEach(el => el.style.display = m.panico ? '' : 'none');
+    const esRes = bloque === 'RESIDENTES';
+    document.querySelectorAll('.dir-field-residente').forEach(el => el.style.display = esRes ? '' : 'none');
+    const vehWrap = document.getElementById('dir-vehiculo-wrap');
+    if (vehWrap) {
+        vehWrap.style.display = (esRes && document.getElementById('dir-parqueadero').checked) ? '' : 'none';
+    }
+    const telLbl = document.getElementById('dir-tel-label');
+    if (telLbl) telLbl.innerHTML = esRes
+        ? 'Teléfono <small style="color:#8A9CC8;">(opcional)</small>'
+        : 'Teléfonos * <small style="color:#8A9CC8;">(mín. 1)</small>';
     if (m.cargo) _dirCargarCargos(bloque, cargoActual);
 }
 
@@ -6961,6 +7053,18 @@ async function dirAbrirModal(contacto = null) {
         prev.src = ''; prev.style.display = 'none'; ph.style.display = '';
     }
     document.getElementById('dir-foto').value = '';
+    // Campos residentes
+    document.getElementById('dir-apellidos').value      = contacto ? (contacto.apellidos||'') : '';
+    document.getElementById('dir-tipo-residente').value = contacto ? (contacto.tipo_residente||'Propietario') : 'Propietario';
+    document.getElementById('dir-torre').value          = contacto ? (contacto.torre||'') : '';
+    document.getElementById('dir-apartamento').value    = contacto ? (contacto.apartamento||'') : '';
+    const _tieneParq = contacto ? !!contacto.tiene_parqueadero : false;
+    document.getElementById('dir-parqueadero').checked = _tieneParq;
+    const _veh = contacto ? (contacto.vehiculo||{}) : {};
+    document.getElementById('dir-placa').value  = _veh.placa  || '';
+    document.getElementById('dir-color').value  = _veh.color  || '';
+    document.getElementById('dir-marca').value  = _veh.marca  || '';
+    document.getElementById('dir-vehiculo-wrap').style.display = _tieneParq ? '' : 'none';
     const tels = contacto && contacto.telefonos && contacto.telefonos.length
         ? contacto.telefonos
         : [{ numero: '', prefijo: '+57' }];
@@ -6971,6 +7075,72 @@ async function dirAbrirModal(contacto = null) {
 
 function dirCerrarModal() {
     document.getElementById('modal-dir').classList.remove('show');
+}
+
+function dirToggleParqueadero() {
+    const checked = document.getElementById('dir-parqueadero').checked;
+    document.getElementById('dir-vehiculo-wrap').style.display = checked ? '' : 'none';
+    if (!checked) {
+        document.getElementById('dir-placa').value = '';
+        document.getElementById('dir-color').value = '';
+        document.getElementById('dir-marca').value = '';
+    }
+}
+
+// ── Importación masiva de residentes ────────────────────────────────────────
+
+let _dirImpArchivo = null;
+
+function dirAbrirImportar() {
+    _dirImpArchivo = null;
+    document.getElementById('dir-imp-nombre').textContent = 'Haz clic o arrastra tu archivo CSV / XLSX aquí';
+    document.getElementById('dir-imp-resultado').innerHTML = '';
+    document.getElementById('dir-imp-archivo').value = '';
+    document.getElementById('modal-dir-importar').classList.add('show');
+}
+
+function dirCerrarImportar() {
+    document.getElementById('modal-dir-importar').classList.remove('show');
+    _dirImpArchivo = null;
+}
+
+function dirSeleccionarArchivo(input) {
+    if (input.files && input.files[0]) {
+        _dirImpArchivo = input.files[0];
+        document.getElementById('dir-imp-nombre').textContent = '📄 ' + _dirImpArchivo.name;
+    }
+}
+
+function dirDropArchivo(event) {
+    event.preventDefault();
+    document.getElementById('dir-imp-drop').style.background = '#f8faff';
+    const f = event.dataTransfer.files[0];
+    if (f) { _dirImpArchivo = f; document.getElementById('dir-imp-nombre').textContent = '📄 ' + f.name; }
+}
+
+async function dirEjecutarImportacion() {
+    if (!_dirImpArchivo) { showToast('❌ Selecciona un archivo primero', true); return; }
+    const res = document.getElementById('dir-imp-resultado');
+    res.innerHTML = '<span style="color:#2563a8;">⏳ Importando...</span>';
+    const fd = new FormData();
+    fd.append('archivo', _dirImpArchivo);
+    fd.append('propiedad_id', _dirEmpresaId);
+    fd.append('visible_res', document.getElementById('dir-imp-res').checked);
+    fd.append('visible_seg', document.getElementById('dir-imp-seg').checked);
+    fd.append('visible_admin', document.getElementById('dir-imp-adm').checked);
+    try {
+        const r = await fetch('/servicios/directorio/residentes/importar', { method: 'POST', body: fd });
+        const j = await r.json();
+        if (j.ok) {
+            res.innerHTML = `<div style="color:#276749;font-weight:700;">✅ ${j.data.mensaje}</div>` +
+                (j.data.errores?.length ? `<ul style="color:#b7791f;font-size:.76rem;margin:6px 0 0 14px;">${j.data.errores.map(e=>`<li>${e}</li>`).join('')}</ul>` : '');
+            showToast('✅ Importación completada');
+            await _dirCargar();
+            setTimeout(dirCerrarImportar, 3000);
+        } else {
+            res.innerHTML = `<div style="color:#C0304A;">❌ ${j.error||'Error al importar'}</div>`;
+        }
+    } catch(e) { res.innerHTML = '<div style="color:#C0304A;">❌ Error de red</div>'; }
 }
 
 let _dirPaises = [];
@@ -7049,7 +7219,7 @@ async function dirGuardar() {
     const meta = _DIR_META[bloque] || {};
     if (!nombre)  { showToast('❌ El nombre es obligatorio', true); return; }
     if (meta.cargo && !cargo) { showToast('❌ El cargo es obligatorio para este bloque', true); return; }
-    if (!telefonos.length)    { showToast('❌ Debe ingresar al menos un teléfono', true); return; }
+    if (bloque !== 'RESIDENTES' && !telefonos.length) { showToast('❌ Debe ingresar al menos un teléfono', true); return; }
     const fd = new FormData();
     fd.append('propiedad_id',                _dirEmpresaId);
     fd.append('bloque',                      bloque);
@@ -7062,6 +7232,22 @@ async function dirGuardar() {
     fd.append('vinculado_al_boton_de_panico',document.getElementById('dir-flag-panico').checked   ? 'true' : 'false');
     fd.append('orden',                        parseInt(document.getElementById('dir-orden').value) || 0);
     fd.append('telefonos', JSON.stringify(telefonos));
+    // Campos exclusivos de residentes
+    if (bloque === 'RESIDENTES') {
+        fd.append('apellidos',       document.getElementById('dir-apellidos').value.trim());
+        fd.append('tipo_residente',  document.getElementById('dir-tipo-residente').value);
+        fd.append('torre',           document.getElementById('dir-torre').value.trim());
+        fd.append('apartamento',     document.getElementById('dir-apartamento').value.trim());
+        const tieneParq = document.getElementById('dir-parqueadero').checked;
+        fd.append('tiene_parqueadero', tieneParq ? 'true' : 'false');
+        if (tieneParq) {
+            fd.append('vehiculo', JSON.stringify({
+                placa: document.getElementById('dir-placa').value.trim().toUpperCase(),
+                color: document.getElementById('dir-color').value.trim(),
+                marca: document.getElementById('dir-marca').value.trim(),
+            }));
+        }
+    }
     const fotoFile = document.getElementById('dir-foto').files[0];
     if (fotoFile) fd.append('foto', fotoFile);
 

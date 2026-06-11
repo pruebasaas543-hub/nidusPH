@@ -18,7 +18,11 @@ def _usuario():
     return session.get("num_doc") or session.get("usuario_id", "sistema")
 
 def _empresa_id():
-    return session.get("empresa_id", "")
+    # Primero sesión (usuario normal); si no, propiedad_id del form (SuperAdmin)
+    return (session.get("empresa_id")
+            or request.form.get("propiedad_id")
+            or request.args.get("propiedad_id")
+            or "")
 
 
 def _parse_contacto_payload():
