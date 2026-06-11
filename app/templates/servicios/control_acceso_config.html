@@ -43,6 +43,16 @@ input:checked+.tog-sl.red{background:var(--red);}
 .punto{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);}
 /* Blacklist tabla */
 .bl-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);}
+/* Tarjeta contratista pendiente */
+.pend-card{border:1.5px solid rgba(183,121,31,.35);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:rgba(255,250,235,.6);}
+.pend-card .nombre{font-size:.92rem;font-weight:700;color:var(--text);}
+.pend-card .meta{font-size:.74rem;color:var(--muted);margin-top:2px;}
+.pend-card .docs{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.pend-card .doc-chip{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8f0fe;color:#1a56db;}
+.pend-card .acciones{display:flex;gap:8px;margin-top:12px;}
+.btn-aprobar{padding:8px 16px;border-radius:9px;border:none;cursor:pointer;font-size:.8rem;font-weight:700;font-family:inherit;background:rgba(39,174,96,.15);border:1.5px solid rgba(39,174,96,.4);color:var(--green);}
+.btn-rechazar{padding:8px 16px;border-radius:9px;border:none;cursor:pointer;font-size:.8rem;font-weight:700;font-family:inherit;background:rgba(229,62,62,.1);border:1.5px solid rgba(229,62,62,.3);color:var(--red);}
+.pend-empty{font-size:.78rem;color:var(--muted);padding:12px 0;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#042243;color:#fff;
   padding:10px 22px;border-radius:10px;font-size:.84rem;opacity:0;transition:opacity .3s;z-index:999;}
 .toast.show{opacity:1;}
@@ -200,7 +210,26 @@ input:checked+.tog-sl.red{background:var(--red);}
   </div>
 </div>
 
-<!-- 9. Lista negra -->
+<!-- 9. Contratistas pendientes de aprobación -->
+<div class="card">
+  <h3>⏳ Contratistas pendientes de aprobación</h3>
+  <div id="pendientesLista"><div style="font-size:.78rem;color:var(--muted);">Cargando…</div></div>
+</div>
+
+<!-- Modal rechazo -->
+<div id="modal-rechazo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.18);">
+    <div style="font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:12px;">❌ Rechazar solicitud</div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px;">Indica el motivo para notificar al residente.</div>
+    <textarea id="motivo-rechazo" rows="3" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit;resize:vertical;outline:none;" placeholder="Ej: Documentos incompletos, ARL vencida…"></textarea>
+    <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end;">
+      <button class="btn" style="background:#f1f5f9;color:var(--text);font-size:.82rem;" onclick="cerrarModalRechazo()">Cancelar</button>
+      <button class="btn btn-red" style="font-size:.82rem;" onclick="confirmarRechazo()">Rechazar</button>
+    </div>
+  </div>
+</div>
+
+<!-- 10. Lista negra -->
 <div class="card">
   <h3>🚫 Lista negra (Blacklist)</h3>
   <div class="row" style="gap:8px;flex-wrap:wrap;">
@@ -417,8 +446,103 @@ async function eliminarBlacklist(id){
   toast(j.ok?'Eliminado':'Error',j.ok); cargarBlacklist();
 }
 
+// ── Contratistas pendientes ────────────────────────────────────────────────
+let _credIdRechazando = null;
+
+function _tiempoTranscurrido(fechaStr){
+  if(!fechaStr) return '';
+  const d = new Date(fechaStr + (fechaStr.endsWith('Z')?'':'Z'));
+  const mins = Math.floor((Date.now() - d)/60000);
+  if(mins < 60)   return `hace ${mins}m`;
+  if(mins < 1440) return `hace ${Math.floor(mins/60)}h`;
+  return `hace ${Math.floor(mins/1440)}d`;
+}
+
+async function cargarPendientes(){
+  if(!EID) return;
+  try{
+    const r = await fetch(`${API}/credenciales/pendientes${Q}`);
+    const j = await r.json();
+    const c = $('pendientesLista');
+    if(!j.ok){ c.innerHTML='<div class="pend-empty">Error al cargar.</div>'; return; }
+    const lista = j.data || [];
+    if(!lista.length){
+      c.innerHTML='<div class="pend-empty">✅ Sin solicitudes pendientes.</div>';
+      return;
+    }
+    c.innerHTML = lista.map(p => {
+      const v = p.visitante || {};
+      const docs = (p.documentos || []).map(d =>
+        `<span class="doc-chip">📎 ${d.tipo||'Doc'}</span>`
+      ).join('');
+      const docsReq = (p.aprobacion || {}).documentos_requeridos || [];
+      const chips = docsReq.map(d => `<span class="doc-chip">${d}</span>`).join('');
+      const cuando = _tiempoTranscurrido(p.creado_en ? p.creado_en.$date || p.creado_en : '');
+      const empresa = v.empresa ? ` · ${v.empresa}` : '';
+      return `<div class="pend-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <div style="flex:1;">
+            <div class="nombre">🔧 ${v.nombre||'Sin nombre'}${empresa}</div>
+            <div class="meta">
+              ${v.documento ? `Doc: <b>${v.documento}</b> · ` : ''}
+              ${cuando ? `Solicitado ${cuando}` : ''}
+            </div>
+            ${docs ? `<div class="docs">${docs}</div>` : ''}
+            ${chips ? `<div class="docs" style="margin-top:4px;">${chips}</div>` : ''}
+          </div>
+          <span style="font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:20px;background:rgba(183,121,31,.15);color:var(--orange);white-space:nowrap;">⏳ Pendiente</span>
+        </div>
+        <div class="acciones">
+          <button class="btn-aprobar" onclick="aprobarCred('${p._id}')">✅ Aprobar</button>
+          <button class="btn-rechazar" onclick="abrirModalRechazo('${p._id}')">❌ Rechazar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){ $('pendientesLista').innerHTML='<div class="pend-empty">Error de conexión.</div>'; }
+}
+
+async function aprobarCred(credId){
+  if(!confirm('¿Aprobar esta solicitud de contratista?')) return;
+  try{
+    const r = await fetch(`${API}/credenciales/${credId}/aprobar`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({empresa_id: EID})
+    });
+    const j = await r.json();
+    if(j.ok){ toast('✅ Solicitud aprobada — Se notificó al residente'); cargarPendientes(); }
+    else toast(j.error||'Error al aprobar', false);
+  }catch{ toast('Error de conexión',false); }
+}
+
+function abrirModalRechazo(credId){
+  _credIdRechazando = credId;
+  $('motivo-rechazo').value = '';
+  $('modal-rechazo').style.display = 'flex';
+  setTimeout(()=>$('motivo-rechazo').focus(), 100);
+}
+
+function cerrarModalRechazo(){
+  $('modal-rechazo').style.display = 'none';
+  _credIdRechazando = null;
+}
+
+async function confirmarRechazo(){
+  if(!_credIdRechazando) return;
+  const motivo = $('motivo-rechazo').value.trim() || 'Sin motivo especificado';
+  try{
+    const r = await fetch(`${API}/credenciales/${_credIdRechazando}/rechazar`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({motivo, empresa_id: EID})
+    });
+    const j = await r.json();
+    cerrarModalRechazo();
+    if(j.ok){ toast('❌ Solicitud rechazada — Se notificó al residente'); cargarPendientes(); }
+    else toast(j.error||'Error al rechazar', false);
+  }catch{ toast('Error de conexión',false); }
+}
+
 // Arranque
-cargarConfig(); cargarBlacklist();
+cargarConfig(); cargarBlacklist(); cargarPendientes();
 </script>
 </body>
 </html>
